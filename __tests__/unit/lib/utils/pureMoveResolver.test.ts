@@ -84,6 +84,13 @@ const sameBlobs: Layout = {
   to: { [NEW_CLS]: 'a1', [NEW_META]: 'b1' },
 }
 
+const BAR_OLD = `${OLD_DIR}/Bar.cls`
+const BAR_NEW = `${NEW_DIR}/Bar.cls`
+const BAR_BLOBS: Layout = {
+  from: { [BAR_OLD]: 'c2' },
+  to: { [BAR_NEW]: 'c2' },
+}
+
 const handlerAnswering = (member: string, comparesElements = false) => ({
   getElementDescriptor: () => ({ type: 'ApexClass', member }),
   comparesElements: () => comparesElements,
@@ -216,7 +223,7 @@ describe('PureMoveResolver', () => {
       ['the class blob differs', () => arrange(changedBlob(NEW_CLS))],
       ['the meta blob differs', () => arrange(changedBlob(NEW_META))],
       [
-        'the relative layouts differ',
+        'a moved file is absent from the --to listing',
         () =>
           arrange({
             from: sameBlobs.from,
@@ -224,7 +231,7 @@ describe('PureMoveResolver', () => {
           }),
       ],
       [
-        'the addition count differs from the deletion count',
+        'the --to listing lacks the meta file',
         () =>
           arrange({
             from: sameBlobs.from,
@@ -305,7 +312,9 @@ describe('PureMoveResolver', () => {
       // Assert
       expect(result.lines).toEqual([`A\t${barNew}`])
       expect(result.checkSkipped).toBe(false)
-      expect(Logger.debug).toHaveBeenCalled()
+      expect(debugMessages().join('\n')).toContain(
+        `Pure move probe failed for A\t${barNew}: lookup failed`
+      )
     })
   })
 
@@ -350,20 +359,48 @@ describe('PureMoveResolver', () => {
     })
   })
 
-  describe('Given a move whose component cannot be listed', () => {
-    it('When the files live outside their type directory, Then the additions are kept', async () => {
+  describe('Given a move whose destination layout differs from its source layout', () => {
+    it('When an extra file of the component arrives with no deletion, Then the additions are kept', async () => {
       // Arrange
-      const oldCls = 'force-app/x/Foo.cls'
-      const newCls = 'force-app/y/Foo.cls'
-      arrange({ from: { [oldCls]: 'a1' }, to: { [newCls]: 'a1' } })
+      const extra = `${NEW_DIR}/sub/Foo.cls`
+      arrange({
+        from: sameBlobs.from,
+        to: { ...sameBlobs.to, [extra]: 'a1' },
+      })
       const sut = newSut()
-      const input = [`A\t${newCls}`]
+      const input = [...lines, `A\t${extra}`]
 
       // Act
-      const result = await sut.resolve(input, [deletion(oldCls)])
+      const result = await sut.resolve(input, cancelled())
 
       // Assert
       expect(result.lines).toEqual(input)
+    })
+  })
+
+  describe('Given a move whose component cannot be listed', () => {
+    it('When the files live outside their type directory, Then the additions are kept and the other pure group is still dropped', async () => {
+      // Arrange
+      const oldCls = 'force-app/x/Foo.cls'
+      const newCls = 'force-app/y/Foo.cls'
+      arrange({
+        from: { [oldCls]: 'a1', ...BAR_BLOBS.from },
+        to: { [newCls]: 'a1', ...BAR_BLOBS.to },
+      })
+      mockGetTypeHandler.mockImplementation(async (line: string) =>
+        handlerAnswering(line.includes('Bar') ? 'Bar' : 'Foo')
+      )
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(
+        [`A\t${newCls}`, `A\t${BAR_NEW}`],
+        [deletion(oldCls), deletion(BAR_OLD)]
+      )
+
+      // Assert
+      expect(result.lines).toEqual([`A\t${newCls}`])
+      expect(result.checkSkipped).toBe(false)
     })
   })
 
@@ -402,6 +439,25 @@ describe('PureMoveResolver', () => {
         to: sameBlobs.to,
       })
       mockKeep.mockImplementation(line => !line.endsWith(sibling))
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(lines, cancelled())
+
+      // Assert
+      expect(result.lines).toEqual([lines[1], lines[3]])
+    })
+  })
+
+  describe('Given an extra file of the moved component at --to ignored by the ignore file', () => {
+    it('When the extra file sits inside the listing root, Then the move is still pure', async () => {
+      // Arrange
+      const extra = `${NEW_DIR}/sub/Foo.cls`
+      arrange({
+        from: sameBlobs.from,
+        to: { ...sameBlobs.to, [extra]: 'a1' },
+      })
+      mockKeep.mockImplementation(line => !line.endsWith(extra))
       const sut = newSut()
 
       // Act
@@ -642,13 +698,17 @@ describe('PureMoveResolver', () => {
 
     const arrangeLabels = (layout: Layout, rootFile = PROJECT) => {
       arrange(layout, rootFile)
-      mockGetTypeHandler.mockImplementation(async (line: string) => ({
-        getElementDescriptor: () => ({
-          type: 'CustomLabel',
-          member: line.includes('Other') ? 'Other' : 'CustomLabels',
-        }),
-        comparesElements: () => true,
-      }))
+      mockGetTypeHandler.mockImplementation(async (line: string) =>
+        line.includes('/classes/')
+          ? handlerAnswering('Bar')
+          : {
+              getElementDescriptor: () => ({
+                type: 'CustomLabel',
+                member: line.includes('Other') ? 'Other' : 'CustomLabels',
+              }),
+              comparesElements: () => true,
+            }
+      )
     }
 
     const labelsMove: Layout = {
@@ -717,10 +777,15 @@ describe('PureMoveResolver', () => {
       expect(runUnion).not.toHaveBeenCalled()
     })
 
-    it('When the deletion and the addition sit in different entries, Then no spec is built', async () => {
+    it('When the deletion and the addition sit in different entries, Then no spec is built and the other pure group is still dropped', async () => {
       // Arrange
+      const barOld = 'force-app/a/main/classes/Bar.cls'
+      const barNew = 'force-app/a/second/classes/Bar.cls'
       arrangeLabels(
-        labelsMove,
+        {
+          from: { ...labelsMove.from, [barOld]: 'c2' },
+          to: { ...labelsMove.to, [barNew]: 'c2' },
+        },
         JSON.stringify({
           packageDirectories: [
             { path: 'force-app/a' },
@@ -731,10 +796,15 @@ describe('PureMoveResolver', () => {
       const sut = newSut()
 
       // Act
-      await sut.resolve([`A\t${LABELS_NEW}`], [deletion(LABELS_OLD)])
+      const result = await sut.resolve(
+        [`A\t${LABELS_NEW}`, `A\t${barNew}`],
+        [deletion(LABELS_OLD), deletion(barOld)]
+      )
 
       // Assert
       expect(runUnion).not.toHaveBeenCalled()
+      expect(result.lines).toEqual([`A\t${LABELS_NEW}`])
+      expect(result.checkSkipped).toBe(false)
     })
 
     it('When one move is inside an entry and another outside every entry, Then two distinct specs are built', async () => {
@@ -762,18 +832,26 @@ describe('PureMoveResolver', () => {
       )
     })
 
-    it('When the files live outside their type directory, Then no spec is built', async () => {
+    it('When the files live outside their type directory, Then no spec is built and the other pure group is still dropped', async () => {
       // Arrange
       const stray = 'force-app/a/CustomLabels.labels-meta.xml'
       const strayMoved = 'force-app/x/CustomLabels.labels-meta.xml'
-      arrangeLabels({ from: { [stray]: 'a1' }, to: { [strayMoved]: 'a1' } })
+      arrangeLabels({
+        from: { [stray]: 'a1', ...BAR_BLOBS.from },
+        to: { [strayMoved]: 'a1', ...BAR_BLOBS.to },
+      })
       const sut = newSut()
 
       // Act
-      await sut.resolve([`A\t${strayMoved}`], [deletion(stray)])
+      const result = await sut.resolve(
+        [`A\t${strayMoved}`, `A\t${BAR_NEW}`],
+        [deletion(stray), deletion(BAR_OLD)]
+      )
 
       // Assert
       expect(runUnion).not.toHaveBeenCalled()
+      expect(result.lines).toEqual([`A\t${strayMoved}`])
+      expect(result.checkSkipped).toBe(false)
     })
 
     it('When a non-cancelled deletion targets a base file, Then that line is dropped from the lines', async () => {

@@ -19,6 +19,7 @@ import { NO_UNIONS, type RunContext } from '../../src/types/runContext'
 import type ChangeSet from '../../src/utils/changeSet'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
 import { Logger } from '../../src/utils/LoggingService'
+import type RepoGitDiff from '../../src/utils/repoGitDiff'
 import { makeHandlerResult } from '../__utils__/handlerResultView'
 
 const {
@@ -47,7 +48,7 @@ const {
   mockGetUnmatchedSourceScopes: vi.fn<() => readonly string[]>(),
   mockGetHeldAdditionProbeFailure:
     vi.fn<() => { candidateCount: number } | undefined>(),
-  mockGetCancelledDeletions: vi.fn<() => readonly string[]>(),
+  mockGetCancelledDeletions: vi.fn<RepoGitDiff['getCancelledDeletions']>(),
   mockResolve: vi.fn(),
   mockProcess: vi.fn<(lines: string[]) => Promise<HandlerResult>>(),
   mockCollectAll: vi.fn<(changes: ChangeSet) => Promise<HandlerResult>>(),
@@ -908,7 +909,9 @@ describe('external library inclusion', () => {
     it('Given the diff yields lines and cancelled deletions, When sgd runs, Then the resolver receives them and process receives the resolver lines', async () => {
       // Arrange
       mockGetLines.mockReturnValueOnce(asAsyncIterable(['A\tx', 'D\ty']))
-      mockGetCancelledDeletions.mockReturnValueOnce(['D\tz'])
+      mockGetCancelledDeletions.mockReturnValueOnce([
+        { line: 'D\tz', name: 'z' },
+      ])
       mockResolve.mockResolvedValueOnce({
         lines: ['A\tx'],
         unions: NO_UNIONS,
@@ -920,7 +923,10 @@ describe('external library inclusion', () => {
       await sgd(sut)
 
       // Assert
-      expect(mockResolve).toHaveBeenCalledWith(['A\tx', 'D\ty'], ['D\tz'])
+      expect(mockResolve).toHaveBeenCalledWith(
+        ['A\tx', 'D\ty'],
+        [{ line: 'D\tz', name: 'z' }]
+      )
       expect(mockProcess.mock.calls[0]?.[0]).toEqual(['A\tx'])
     })
 

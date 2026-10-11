@@ -1,34 +1,14 @@
 'use strict'
-import { readdir, rm, writeFile } from 'node:fs/promises'
-import { join, relative } from 'node:path'
+import { beforeAll, describe, expect, it } from 'vitest'
 
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-
-import GitAdapter from '../../src/adapter/GitAdapter'
-import sgd from '../../src/main'
-import type { ConfigInput } from '../../src/types/config'
-import { ChangeKind } from '../../src/types/handlerResult'
-import { IgnoreHelper } from '../../src/utils/ignoreHelper'
-import {
-  type ChangesManifestJson,
-  readManifestXml,
-  runBothModes as runBothModesWithHelpers,
-} from '../__utils__/changesManifestHelpers'
-import {
-  FIXTURE_HOOK_BUDGET_MS,
-  type FixtureOp,
-  initRepo,
-} from '../__utils__/gitFixtureRepo'
-import { createTempDir } from '../__utils__/gitTestHarness'
+import { FIXTURE_HOOK_BUDGET_MS } from '../__utils__/gitFixtureRepo'
 import {
   add,
-  buildScenario,
   CLASS_BODY_CHANGED,
   CLASS_META_CHANGED,
   classFiles,
   DEFAULT_ROOT,
   FIELD_META,
-  type FixtureFile,
   file,
   LWC_CSS,
   LWC_JS_CHANGED,
@@ -43,144 +23,16 @@ import {
   remove,
   type ScenarioRefs,
 } from '../__utils__/pureMoveFixtureRepo'
+import {
+  type Case,
+  expectOutcome,
+  type Outcome,
+  usePureMoveHarness,
+} from '../__utils__/pureMoveHarness'
 
-// makeInput pins apiVersion, so ConfigValidator's appexchange lookup is never
-// reached — this bucket runs behind an unreachable proxy.
-const API_VERSION = 60
 const SINGLE_ENTRY = projectJson(['force-app'])
 const PROJECT = file(PROJECT_FILE, SINGLE_ENTRY)
-
-let fixtureDir: string
-const tempDirs: string[] = []
-
-const trackedTempDir = async (prefix: string): Promise<string> => {
-  const dir = await createTempDir(prefix)
-  tempDirs.push(dir)
-  return dir
-}
-
-type Outcome = {
-  pkg: string[]
-  destructive: string[]
-  copied: string[]
-  changes: string[]
-  warnings: string[]
-}
-
-const NOTHING: Outcome = {
-  pkg: [],
-  destructive: [],
-  copied: [],
-  changes: [],
-  warnings: [],
-}
-
-const membersOf = (xml: string): string[] =>
-  [...xml.matchAll(/<types>([\s\S]*?)<\/types>/g)]
-    .flatMap(([, body = '']) => {
-      const type = /<name>(.*?)<\/name>/.exec(body)?.[1]
-      return [...body.matchAll(/<members>(.*?)<\/members>/g)].map(
-        ([, member]) => `${type}:${member}`
-      )
-    })
-    .sort()
-
-const NAME_LIST_KINDS = [
-  ChangeKind.Add,
-  ChangeKind.Modify,
-  ChangeKind.Delete,
-] as const
-
-const flattenChanges = (payload: ChangesManifestJson): string[] =>
-  NAME_LIST_KINDS.flatMap(kind =>
-    Object.entries(payload[kind]).flatMap(([type, names]) =>
-      names.map(name => `${kind}:${type}:${name}`)
-    )
-  )
-    .concat(
-      Object.entries(payload[ChangeKind.Rename]).flatMap(([type, pairs]) =>
-        pairs.map(pair => `rename:${type}:${pair.from}>${pair.to}`)
-      )
-    )
-    .sort()
-
-const copiedFiles = async (output: string): Promise<string[]> => {
-  const entries = await readdir(output, {
-    recursive: true,
-    withFileTypes: true,
-  })
-  return entries
-    .filter(entry => entry.isFile())
-    .map(entry => relative(output, join(entry.parentPath, entry.name)))
-    .map(path => path.split('\\').join('/'))
-    .filter(
-      path =>
-        !path.startsWith('package/') && !path.startsWith('destructiveChanges/')
-    )
-    .sort()
-}
-
-type Run = { refs: ScenarioRefs; overrides?: Partial<ConfigInput> }
-
-const runSgd = async (
-  run: Run,
-  overrides: Partial<ConfigInput> = {}
-): Promise<{
-  work: Awaited<ReturnType<typeof sgd>>
-  packageXml: string
-  destructiveXml: string
-}> => {
-  const input: ConfigInput = {
-    to: run.refs.to,
-    from: run.refs.from,
-    mergeBase: false,
-    output: await trackedTempDir('sgd-pure-move-out-'),
-    source: ['.'],
-    repo: fixtureDir,
-    ignoreWhitespace: false,
-    generateDelta: true,
-    apiVersion: API_VERSION,
-    ...run.overrides,
-    ...overrides,
-  }
-  const work = await sgd(input)
-  const { packageXml, destructiveXml } = await readManifestXml(input.output)
-  return { work, packageXml, destructiveXml }
-}
-
-// Every scenario runs with and without the changes manifest and must give the
-// same package.xml, destructiveChanges.xml and copied files in both.
-const outcomeOf = async (run: Run): Promise<Outcome> => {
-  const { off, on, payload } = await runBothModesWithHelpers(
-    overrides => runSgd(run, overrides),
-    trackedTempDir,
-    'sgd-pure-move-manifest-'
-  )
-  const offCopied = await copiedFiles(off.work.config.output)
-  expect(on.packageXml).toBe(off.packageXml)
-  expect(on.destructiveXml).toBe(off.destructiveXml)
-  expect(await copiedFiles(on.work.config.output)).toEqual(offCopied)
-  return {
-    pkg: membersOf(off.packageXml),
-    destructive: membersOf(off.destructiveXml),
-    copied: offCopied,
-    changes: flattenChanges(payload),
-    warnings: off.work.warnings.map(warning => warning.message),
-  }
-}
-
-const ignoreFile = async (lines: readonly string[]): Promise<string> => {
-  // _buildIgnore reads with a plain fs.readFile, so the path must be absolute.
-  const path = join(await trackedTempDir('sgd-pure-move-ignore-'), '.sgdignore')
-  await writeFile(path, `${lines.join('\n')}\n`)
-  return path
-}
-
-const build = (
-  name: string,
-  base: readonly FixtureFile[],
-  change: readonly FixtureOp[]
-): ScenarioRefs => buildScenario(fixtureDir, name, base, change)
+const { build, outcomeOf, ignoreOverrides } = usePureMoveHarness('pure-move')
 
 const FOO = classFiles(DEFAULT_ROOT, 'Foo')
 const FOO_MOVED_PATHS = FOO.map(({ path }) =>
@@ -192,27 +44,6 @@ const FOO_DEPLOYED: Partial<Outcome> = {
   copied: FOO_MOVED_PATHS,
   changes: ['add:ApexClass:Foo'],
 }
-
-const expectOutcome = (result: Outcome, expected: Partial<Outcome>): void => {
-  expect(result).toEqual({ ...NOTHING, ...expected })
-}
-
-beforeAll(async () => {
-  fixtureDir = await trackedTempDir('sgd-pure-move-fixture-')
-  initRepo(fixtureDir)
-}, FIXTURE_HOOK_BUDGET_MS)
-
-afterEach(async () => {
-  await GitAdapter.closeAll()
-  IgnoreHelper.resetIgnoreInstance()
-  IgnoreHelper.resetIncludeInstance()
-})
-
-afterAll(async () => {
-  await Promise.all(
-    tempDirs.map(dir => rm(dir, { recursive: true, force: true }))
-  )
-})
 
 describe('Given a class moved between two directories of one package directory', () => {
   let refs: ScenarioRefs
@@ -230,46 +61,46 @@ describe('Given a class moved between two directories of one package directory',
 })
 
 describe('Given a class moved with a content change', () => {
-  it('When the class body changes, Then the class is deployed and copied without a destructive entry', async () => {
-    // Arrange
-    const refs = build(
+  let bodyRefs: ScenarioRefs
+  let metaRefs: ScenarioRefs
+  let partialRefs: ScenarioRefs
+  beforeAll(() => {
+    bodyRefs = build(
       'class-body',
       [PROJECT, ...FOO],
       [...FOO_MOVE, add(FOO_MOVED_PATHS[0] as string, CLASS_BODY_CHANGED)]
     )
+    metaRefs = build(
+      'class-meta',
+      [PROJECT, ...FOO],
+      [...FOO_MOVE, add(FOO_MOVED_PATHS[1] as string, CLASS_META_CHANGED)]
+    )
+    partialRefs = build(
+      'class-partial',
+      [PROJECT, ...FOO],
+      [move(FOO[0]?.path as string, FOO_MOVED_PATHS[0] as string)]
+    )
+  }, FIXTURE_HOOK_BUDGET_MS)
 
+  it('When the class body changes, Then the class is deployed and copied without a destructive entry', async () => {
     // Act
-    const result = await outcomeOf({ refs })
+    const result = await outcomeOf({ refs: bodyRefs })
 
     // Assert
     expectOutcome(result, FOO_DEPLOYED)
   })
 
   it('When only the meta file changes, Then the class is deployed and copied', async () => {
-    // Arrange
-    const refs = build(
-      'class-meta',
-      [PROJECT, ...FOO],
-      [...FOO_MOVE, add(FOO_MOVED_PATHS[1] as string, CLASS_META_CHANGED)]
-    )
-
     // Act
-    const result = await outcomeOf({ refs })
+    const result = await outcomeOf({ refs: metaRefs })
 
     // Assert
     expectOutcome(result, FOO_DEPLOYED)
   })
 
   it('When only the class file moves and its meta file stays, Then the class is deployed and the moved file copied', async () => {
-    // Arrange
-    const refs = build(
-      'class-partial',
-      [PROJECT, ...FOO],
-      [move(FOO[0]?.path as string, FOO_MOVED_PATHS[0] as string)]
-    )
-
     // Act
-    const result = await outcomeOf({ refs })
+    const result = await outcomeOf({ refs: partialRefs })
 
     // Assert
     expectOutcome(result, {
@@ -288,15 +119,6 @@ const BILLING_FOO_DEPLOYED: Partial<Outcome> = {
   pkg: ['ApexClass:Foo'],
   copied: BILLING_FOO_PATHS,
   changes: ['add:ApexClass:Foo'],
-}
-
-type Case = {
-  title: string
-  base: readonly FixtureFile[]
-  change: readonly FixtureOp[]
-  expected: Partial<Outcome>
-  ignore?: readonly string[]
-  ignoreDestructive?: readonly string[]
 }
 
 const FIELD_PATH = `${DEFAULT_ROOT}/objects/Account/fields/S__c.field-meta.xml`
@@ -489,18 +311,6 @@ const componentCases: readonly Case[] = [
   },
 ]
 
-const ignoreOverrides = async ({
-  ignore,
-  ignoreDestructive,
-}: Pick<Case, 'ignore' | 'ignoreDestructive'>): Promise<
-  Partial<ConfigInput>
-> => ({
-  ...(ignore ? { ignore: await ignoreFile(ignore) } : {}),
-  ...(ignoreDestructive
-    ? { ignoreDestructive: await ignoreFile(ignoreDestructive) }
-    : {}),
-})
-
 describe.each(componentCases)(
   'Given $title',
   ({ base, change, expected, ...ignores }) => {
@@ -523,16 +333,18 @@ describe.each(componentCases)(
 )
 
 describe('Given a class renamed while moving', () => {
-  it('When the content is identical, Then the new name is deployed and the old name is destructed', async () => {
-    // Arrange
-    const refs = build(
+  let refs: ScenarioRefs
+  beforeAll(() => {
+    refs = build(
       'class-renamed',
       [PROJECT, ...FOO],
       FOO.map(({ path }) =>
         move(path, path.replace(DEFAULT_ROOT, MOVED_ROOT).replace('Foo', 'Bar'))
       )
     )
+  }, FIXTURE_HOOK_BUDGET_MS)
 
+  it('When the content is identical, Then the new name is deployed and the old name is destructed', async () => {
     // Act
     const result = await outcomeOf({ refs })
 
@@ -549,10 +361,9 @@ describe('Given a class renamed while moving', () => {
 describe('Given a report moved between folders', () => {
   const REPORT = (folder: string): string =>
     `${DEFAULT_ROOT}/reports/${folder}/R.report-meta.xml`
-
-  it('When the destination folder descriptor is added, Then the report is deployed at its new path and no report is destructed', async () => {
-    // Arrange
-    const refs = build(
+  let refs: ScenarioRefs
+  beforeAll(() => {
+    refs = build(
       'report-folder',
       [
         PROJECT,
@@ -570,26 +381,35 @@ describe('Given a report moved between folders', () => {
         ),
       ]
     )
+  }, FIXTURE_HOOK_BUDGET_MS)
 
+  it('When the destination folder descriptor is added, Then the report is deployed at its new path and no report is destructed', async () => {
     // Act
     const result = await outcomeOf({ refs })
 
     // Assert
-    expect(result.pkg).toContain('Report:New/R')
-    expect(result.destructive.filter(m => m.startsWith('Report:'))).toEqual([])
-    expect(result.copied).toContain(REPORT('New'))
+    expectOutcome(result, {
+      pkg: ['Report:New/R', 'ReportFolder:New'],
+      copied: [
+        `${DEFAULT_ROOT}/reports/New.reportFolder-meta.xml`,
+        REPORT('New'),
+      ],
+      changes: ['add:ReportFolder:New', 'rename:Report:Old/R>New/R'],
+    })
   })
 })
 
 describe('Given an unusable sfdx-project.json at the target revision', () => {
-  it('When a class moves inside one package directory, Then it is deployed and the skipped check is warned about', async () => {
-    // Arrange
-    const refs = build(
+  let refs: ScenarioRefs
+  beforeAll(() => {
+    refs = build(
       'project-unusable',
       [PROJECT, ...FOO],
       [...FOO_MOVE, add(PROJECT_FILE, 'not json')]
     )
+  }, FIXTURE_HOOK_BUDGET_MS)
 
+  it('When a class moves inside one package directory, Then it is deployed and the skipped check is warned about', async () => {
     // Act
     const result = await outcomeOf({ refs })
 

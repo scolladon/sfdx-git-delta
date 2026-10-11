@@ -9,6 +9,7 @@ import {
   buildUnionSpec,
   isLabelsContainer,
   LABELS_UNION_SCOPE,
+  listUnionCandidates,
   type UnionSpecInput,
   unionScopeOf,
 } from '../../../../src/utils/containerUnion'
@@ -249,20 +250,30 @@ describe('Given containerUnion path rules', () => {
       }
     )
 
-    it('When the scope is a workflow, Then candidates come from the listing roots under that cancellation key', () => {
+    it('When the scope is a workflow, Then candidates come from the listing roots of the spec under that cancellation key', () => {
       // Arrange
       const mine = 'force-app/a/workflows/Account.workflow-meta.xml'
       const sibling = 'force-app/a/workflows/Lead.workflow-meta.xml'
-      const elsewhere = 'force-app/a/other/Account.workflow-meta.xml'
+      const inOtherRoots = 'force-app/b/workflows/Account.workflow-meta.xml'
       const scope = unionScopeOf(mine, metadata)
+      const input: UnionSpecInput = {
+        scope,
+        entry: ENTRY,
+        listingRoots: ['force-app/a/workflows'],
+        metadata,
+        source: SOURCE,
+        ignore: { keep: () => true },
+        from: sideOf([mine, sibling, inOtherRoots]),
+        to: sideOf([mine, sibling, inOtherRoots]),
+        lines: [],
+      }
+      const listing = listUnionCandidates(input, [
+        input,
+        { scope, listingRoots: ['force-app/b/workflows'] },
+      ])
 
       // Act
-      const result = specOf({
-        scope,
-        listingRoots: ['force-app/a/workflows'],
-        from: sideOf([mine, sibling, elsewhere]),
-        to: sideOf([mine, sibling]),
-      })
+      const result = buildUnionSpec(input, listing)
 
       // Assert
       expect(result.additionBasePaths).toEqual([mine])

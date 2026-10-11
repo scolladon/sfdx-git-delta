@@ -88,6 +88,42 @@ const labelXml = ([name, value]: readonly [string, string]): string =>
 export const labelsXml = (labels: ReadonlyArray<[string, string]>): string =>
   `<?xml version="1.0" encoding="UTF-8"?>\n<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">\n${labels.map(labelXml).join('')}</CustomLabels>\n`
 
+export type LabelEntry = [string, string]
+
+export const labelsPath = (directory: string, name = 'CustomLabels'): string =>
+  `force-app/${directory}/labels/${name}.labels-meta.xml`
+
+export const labels = (
+  directory: string,
+  entries: ReadonlyArray<LabelEntry>,
+  name = 'CustomLabels'
+): FixtureFile => file(labelsPath(directory, name), labelsXml(entries))
+
+export const labelsAdd = (
+  directory: string,
+  entries: ReadonlyArray<LabelEntry>,
+  name = 'CustomLabels'
+): FixtureOp => add(labelsPath(directory, name), labelsXml(entries))
+
+export const moveLabels = (
+  from: string,
+  to: string,
+  name = 'CustomLabels'
+): FixtureOp => move(labelsPath(from, name), labelsPath(to, name))
+
+export const asPairs = (entries: ReadonlyArray<LabelEntry>): string[] =>
+  entries.map(([name, value]) => `${name}=${value}`)
+
+export const labelMembers = (names: readonly string[]): string[] =>
+  names.map(name => `CustomLabel:${name}`)
+
+export const L1: LabelEntry = ['L1', 'one']
+export const L2: LabelEntry = ['L2', 'two']
+export const A1: LabelEntry = ['A1', 'a1']
+export const B1: LabelEntry = ['B1', 'b1']
+export const B2: LabelEntry = ['B2', 'b2']
+export const OTHER = 'Other'
+
 const alertXml = (name: string, descriptionSuffix: string): string =>
   `    <alerts>\n        <fullName>${name}</fullName>\n        <description>${name}${descriptionSuffix}</description>\n    </alerts>\n`
 

@@ -47,9 +47,10 @@ beforeAll(async () => {
     `${CLASS_DIR}/Foo.cls-meta.xml`,
     '<?xml version="1.0" encoding="UTF-8"?>\n<ApexClass xmlns="http://soap.sforce.com/2006/04/metadata"><apiVersion>62.0</apiVersion><status>Active</status></ApexClass>\n'
   )
-  write(PROJECT_FILE, projectJson('62.0'))
+  write(PROJECT_FILE, projectJson('61.0'))
   fromSha = commitAll('from')
   write(`${CLASS_DIR}/Foo.cls`, 'public class Foo { Integer a; }\n')
+  write(PROJECT_FILE, projectJson('62.0'))
   toSha = commitAll('to')
   write(PROJECT_FILE, projectJson('60.0'))
 }, FIXTURE_HOOK_BUDGET_MS)
@@ -68,7 +69,7 @@ afterAll(async () => {
 })
 
 describe('Given sourceApiVersion committed at --to', () => {
-  it('Given 62.0 committed at --to and 60.0 in the working tree, When sgd runs without an api version, Then package.xml carries version 62.0', async () => {
+  it('Given 61.0 committed at --from, 62.0 committed at --to and 60.0 in the working tree, When sgd runs without an api version, Then package.xml carries version 62.0', async () => {
     // Arrange
     const output = await createTempDir('sgd-api-version-out-')
     tempDirs.push(output)
