@@ -135,7 +135,7 @@ The repository's own end-to-end baseline is the live proof of the held-addition 
 
 ## Pure-Move Suppression
 
-**Entry**: `PureMoveResolver.resolve(lines, cancelled)` (`src/utils/pureMoveResolver.ts`), called by `src/main.ts` between the diff collection and the handler pass.
+**Entry**: `PureMoveResolver.resolve(lines, cancelled)` (`src/utils/pureMoveResolver.ts`), called by `src/main.ts` between the diff collection and the handler pass. The resolver only orchestrates: the component checks live in `src/utils/componentMove.ts`, union triggers in `src/utils/unionTriggers.ts`, union membership in `src/utils/containerUnion.ts`, the per-revision view (project + blob ids) in `src/utils/revisionSide.ts`, and diff-line formatting in `src/utils/gitLine.ts`.
 
 A component moved to another directory shows up in the diff as deletions plus additions of the same component. Stage 3 already pairs them by component key and cancels the deletions; the resolver decides which of those pairs are *pure* moves, in which case the additions are dropped too and the component reaches neither manifest. It returns a `MoveResolution`: the remaining `lines`, the precomputed in-file `unions` and a `checkSkipped` flag. With no cancelled deletion it returns the lines untouched.
 
@@ -144,7 +144,7 @@ A component moved to another directory shows up in the diff as deletions plus ad
 A group (cancelled deletions plus additions sharing a key) is a pure move when all of these hold:
 
 - every file resolves to the same type and member (one handler probe per group);
-- the set of deleted and added files has the same relative layout, and the blobs are identical (`GitAdapter.getBlobIds` at each revision, compared by path relative to the common directory);
+- the deleted and added files map one to one by path relative to each side's common directory, with identical blob ids (`GitAdapter.getBlobIds` at each revision);
 - the component is complete: the files moved are exactly the files of the component listed at `from` and at `to` (component indexes built once per revision);
 - the component is in one `sfdx-project.json` package directory, each side resolved against its own revision's project (`loadSfdxProject`; no project at both revisions means one entry);
 - the source is visible to the global ignore (`--ignore-file`): a source under it, or covered only by `--ignore-destructive-file`, is not a move. A destination under the destructive-only ignore is still suppressed; a destination under the global ignore was already held in Stage 3 and emits nothing.
@@ -157,9 +157,9 @@ In-file containers cannot be judged by blobs: a labels file can change while its
 
 | Symbol | Meaning |
 | ------ | ------- |
-| `F_add` | files of the container added in the diff |
-| `F_del` | files of the container deleted in the diff |
-| `S` | files of the container surviving on both sides, modified or not, in the same entry |
+| `F_add` | from-side files of the union that vouch for an element already existing: kept by the global ignore, except a file deleted in the diff under the destructive-only ignore |
+| `F_del` | from-side files whose elements may be deleted: kept by both ignore files |
+| `S` | to-side files of the union in the entry, whatever the ignore files (a file under the global ignore shields its elements from deletion but emits nothing) |
 
 SDR exposes one `CustomLabels` component per package directory, whatever the file names, so for non-decomposed `CustomLabel` the union spans all the labels files of the entry; for other in-file types it is the file itself. `MetadataDiff.runUnion` diffs the elements of the to-side files against the union of the from-side files: only changed or added elements reach `package.xml`, elements gone from every to-side file reach `destructiveChanges.xml`, and an element merely moved between files of the entry is neither. Moves across entries are not unions: every element deploys. The `--ignore-file` and `--ignore-destructive-file` patterns split the union bases (a file under the global ignore is out of the comparison; the destructive-only ignore filters deletions only), and a labels file whose package directory differs between the revisions is left out. The outcomes are keyed by file path and placed in `RunContext.unions`.
 
