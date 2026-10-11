@@ -93,7 +93,6 @@ export default class TypeHandlerFactory {
   public async getTypeHandler(line: string) {
     // Stryker disable next-line MethodExpression -- equivalent: line.charAt(0) extracts the first character (A/M/D/R); mutating to `line` returns the full line which is then matched against DELETION constant — only the first-char comparison logic matters and the rest of the path proceeds with the now-truthy changeType assignment
     const changeType = line.charAt(0)
-    // Stryker disable next-line StringLiteral -- equivalent: replace strips the leading "<changeType>\t" prefix; tests assert on the (changeType, element) pair returned, not on the literal replacement string
     const path = pathOfLine(line)
     const type = this.metadata.get(path)
     // Stryker disable ConditionalExpression,BlockStatement,StringLiteral -- equivalent: upstream RepoGitDiff pre-filters with metadata.has(), so `type` is always defined and the throw branch is unreachable
