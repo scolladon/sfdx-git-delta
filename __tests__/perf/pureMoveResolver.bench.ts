@@ -263,9 +263,7 @@ const folderScenario = (): (() => Scenario) => {
       const deletion = `${DELETION}${TAB}${oldPath}`
       from.set(oldPath, `s-${round}-${index}`)
       to.set(newPath, `s-${round}-${index}`)
-      // Probing every addition too would push the row past the bench timeout;
-      // the cost under test is the grouping of the cancelled deletions.
-      if (index === 0) lines.push(`${ADDITION}${TAB}${newPath}`)
+      lines.push(`${ADDITION}${TAB}${newPath}`)
       cancelled.push({
         line: deletion,
         name: comparisonName(metadata, deletion),
@@ -273,6 +271,15 @@ const folderScenario = (): (() => Scenario) => {
     }
     return { lines, cancelled, from, to }
   }
+}
+
+const sanityScenario = folderScenario()()
+const sanity = await new PureMoveResolver(
+  contextOf(baseConfig),
+  portsOf(sanityScenario)
+).resolve(sanityScenario.lines, sanityScenario.cancelled)
+if (sanity.lines.length > 0) {
+  throw new Error('The folder move bench must be a fully suppressed move')
 }
 
 describe('pure-move-resolver-folder-component', () => {

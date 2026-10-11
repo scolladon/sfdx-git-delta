@@ -287,6 +287,44 @@ describe('PureMoveResolver', () => {
     })
   })
 
+  describe('Given a move across two package directories', () => {
+    const crossEntryProject = JSON.stringify({
+      packageDirectories: [
+        { path: 'force-app/main' },
+        { path: 'force-app/other' },
+      ],
+    })
+
+    it('When the handler does not compare elements, Then only one line of the group is probed and the additions are kept', async () => {
+      // Arrange
+      arrange(sameBlobs, crossEntryProject)
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(lines, cancelled())
+
+      // Assert
+      expect(result.lines).toEqual(lines)
+      expect(mockGetTypeHandler).toHaveBeenCalledTimes(1)
+    })
+
+    it('When the handler compares elements, Then every line of the group is probed', async () => {
+      // Arrange
+      arrange(sameBlobs, crossEntryProject)
+      mockGetTypeHandler.mockImplementation(async () =>
+        handlerAnswering('Foo', true)
+      )
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(lines, cancelled())
+
+      // Assert
+      expect(result.lines).toEqual(lines)
+      expect(mockGetTypeHandler).toHaveBeenCalledTimes(4)
+    })
+  })
+
   describe('Given the revision view cannot load', () => {
     const parseCause = (() => {
       try {

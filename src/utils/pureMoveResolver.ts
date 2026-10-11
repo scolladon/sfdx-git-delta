@@ -18,6 +18,7 @@ import {
   type MoveEnv,
   type MoveGroup,
   type Probe,
+  spansEntries,
 } from './componentMove.js'
 import { eachLimit } from './concurrency/index.js'
 import { getConcurrencyThreshold } from './concurrencyUtils.js'
@@ -70,6 +71,11 @@ type DiffContext = Readonly<{
 
 const NO_RESULT: UnionResult = { outcomes: new Map(), dropped: new Set() }
 
+const linesOf = (group: MoveGroup): readonly string[] => [
+  ...group.deletions,
+  ...group.additions,
+]
+
 const mergeResults = (results: readonly UnionResult[]): UnionResult => ({
   outcomes: new Map(results.flatMap(result => [...result.outcomes])),
   dropped: new Set(results.flatMap(result => [...result.dropped])),
@@ -121,7 +127,7 @@ export default class PureMoveResolver {
       ignore,
     }
     const groups = this.groupMoves(lines, cancelled)
-    const probes = await this.probeAll(groups)
+    const probes = await this.probeAll(groups, view)
     const judged = this.judge(groups, probes, view, env)
     const unions = await this.diffUnions(judged.triggers, { lines, view, env })
     const dropped = new Set([...judged.dropped, ...unions.dropped])
@@ -175,19 +181,43 @@ export default class PureMoveResolver {
     return { project, blobIds }
   }
 
+  // A group spanning package directories is never a pure move; only an
+  // element-comparing handler still needs its lines for union triggers, and a
+  // group's lines share one handler, so one line tells which case it is.
   private async probeAll(
-    groups: readonly MoveGroup[]
+    groups: readonly MoveGroup[],
+    view: RevisionView
   ): Promise<ReadonlyMap<string, Probe>> {
     const probes = new Map<string, Probe>()
-    const lines = groups.flatMap(group => [
-      ...group.deletions,
-      ...group.additions,
-    ])
+    const spanning = new Set(groups.filter(group => spansEntries(group, view)))
+    const local = groups.filter(group => !spanning.has(group))
+    await this.probeLines(
+      [
+        ...local.flatMap(linesOf),
+        ...[...spanning].flatMap(group => linesOf(group).slice(0, 1)),
+      ],
+      probes
+    )
+    const comparing = [...spanning].filter(group =>
+      linesOf(group)
+        .slice(0, 1)
+        .some(line => probes.get(line)?.comparesElements)
+    )
+    await this.probeLines(
+      comparing.flatMap(group => linesOf(group).slice(1)),
+      probes
+    )
+    return probes
+  }
+
+  private async probeLines(
+    lines: readonly string[],
+    probes: Map<string, Probe>
+  ): Promise<void> {
     await eachLimit(lines, getConcurrencyThreshold(), async line => {
       const probe = await this.probe(line)
       if (probe) probes.set(line, probe)
     })
-    return probes
   }
 
   private async probe(line: string): Promise<Probe | undefined> {

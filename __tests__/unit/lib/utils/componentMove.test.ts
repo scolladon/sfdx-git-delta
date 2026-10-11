@@ -370,6 +370,99 @@ describe('Given the pure component move checks', () => {
       expect(result).toBe(true)
     })
 
+    describe('with a nested bundle layout', () => {
+      const OLD_BUNDLE = 'force-app/main/default/lwc/cmp'
+      const NEW_BUNDLE = 'force-app/other/lwc/cmp'
+      const files = ['cmp.js', 'cmp.html', '__tests__/cmp.test.js']
+      const bundleVerdict = (
+        changed?: string,
+        moved: readonly string[] = files
+      ): boolean => {
+        const bundle = groupOf(
+          files.map(file => `${OLD_BUNDLE}/${file}`),
+          moved.map(file => `${NEW_BUNDLE}/${file}`)
+        )
+        const view = viewOf(
+          Object.fromEntries(
+            files.map(file => [`${OLD_BUNDLE}/${file}`, 'a1'])
+          ),
+          Object.fromEntries(
+            moved.map(file => [
+              `${NEW_BUNDLE}/${file}`,
+              file === changed ? 'ff' : 'a1',
+            ])
+          )
+        )
+        const candidate = candidateOf(bundle, probesFor(bundle), view, env)
+        if (!candidate) return false
+        const indexes = indexComponents([candidate], view, env)
+        return isPure(bundle.name, candidate, view, indexes)
+      }
+
+      it('When every file keeps its relative path and blob, Then it is pure', () => {
+        // Act
+        const result = bundleVerdict()
+
+        // Assert
+        expect(result).toBe(true)
+      })
+
+      it('When a nested file changed content, Then it is not pure', () => {
+        // Act
+        const result = bundleVerdict('__tests__/cmp.test.js')
+
+        // Assert
+        expect(result).toBe(false)
+      })
+
+      it('When a nested file lands at another relative path, Then it is not pure', () => {
+        // Act
+        const result = bundleVerdict(undefined, [
+          'cmp.js',
+          'cmp.html',
+          'cmp.test.js',
+        ])
+
+        // Assert
+        expect(result).toBe(false)
+      })
+    })
+
+    it('When the moved files share no common directory, Then relative paths are the paths themselves', () => {
+      // Arrange
+      const rootProject = SfdxProject.parse(
+        JSON.stringify({ packageDirectories: [{ path: '.' }] })
+      )
+      const scattered = groupOf(
+        ['a/classes/Foo.cls', 'b/classes/Foo.cls-meta.xml'],
+        ['c/classes/Foo.cls', 'd/classes/Foo.cls-meta.xml']
+      )
+      const view: RevisionView = {
+        from: sideOf(
+          { 'a/classes/Foo.cls': 'a1', 'b/classes/Foo.cls-meta.xml': 'b1' },
+          rootProject
+        ),
+        to: sideOf(
+          { 'c/classes/Foo.cls': 'a1', 'd/classes/Foo.cls-meta.xml': 'b1' },
+          rootProject
+        ),
+      }
+      const rootEnv = { ...env, source: ['.'] }
+      const candidate = candidateOf(
+        scattered,
+        probesFor(scattered),
+        view,
+        rootEnv
+      ) as Candidate
+      const indexes = indexComponents([candidate], view, rootEnv)
+
+      // Act
+      const result = isPure(scattered.name, candidate, view, indexes)
+
+      // Assert
+      expect(result).toBe(false)
+    })
+
     it('When a sibling file of the component stayed behind, Then it is not pure', () => {
       // Arrange
       const partial = groupOf([OLD_CLS], [NEW_CLS])
