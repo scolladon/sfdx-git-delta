@@ -171,16 +171,14 @@ describe('expandComponentCopies', () => {
   describe('Given a component name holding a dot', () => {
     it('When expanded, Then the dot matches only itself', () => {
       // Arrange
+      const sut = expandComponentCopies
       const trees = readerOf([
         `${ROOT}/my.Resource.resource-meta.xml`,
         `${ROOT}/myXResource.resource-meta.xml`,
       ])
 
       // Act
-      const result = expandComponentCopies(
-        [request(`${ROOT}/my.Resource`)],
-        trees
-      )
+      const result = sut([request(`${ROOT}/my.Resource`)], trees)
 
       // Assert
       expect(pathsOf(result)).toEqual([`${ROOT}/my.Resource.resource-meta.xml`])
@@ -207,11 +205,12 @@ describe('expandComponentCopies', () => {
   describe('Given a lookalike nested path', () => {
     it('When expanded, Then the nested path is not copied', () => {
       // Arrange
+      const sut = expandComponentCopies
       const nested = `${ROOT}/Other/${ROOT}/Lib/x.js`
       const trees = readerOf([nested])
 
       // Act
-      const result = expandComponentCopies([request(`${ROOT}/Lib`)], trees)
+      const result = sut([request(`${ROOT}/Lib`)], trees)
 
       // Assert
       expect(pathsOf(result)).toEqual([])
@@ -281,28 +280,42 @@ describe('expandComponentCopies', () => {
   })
 
   describe('Given a bundle request and a page request beneath it', () => {
-    it('When expanded, Then each parent is listed once and the page files appear once in each expansion', () => {
-      // Arrange
-      const sut = expandComponentCopies
-      const site = 'force-app/main/default/digitalExperiences/site'
-      const bundle = `${site}/Site_A`
-      const view = `${bundle}/sfdc_cms__view`
-      const page = `${view}/page_a`
-      const trees = readerOf([
+    const site = 'force-app/main/default/digitalExperiences/site'
+    const bundle = `${site}/Site_A`
+    const view = `${bundle}/sfdc_cms__view`
+    const page = `${view}/page_a`
+    const bundleTrees = () =>
+      readerOf([
         `${bundle}/Site_A.digitalExperience-meta.xml`,
         `${page}/content.json`,
         `${view}/page_a.json`,
       ])
+
+    it('When expanded, Then each parent is listed once', () => {
+      // Arrange
+      const sut = expandComponentCopies
+      const trees = bundleTrees()
       const spy = vi.spyOn(trees, 'filesUnder')
 
       // Act
-      const result = sut([request(bundle), request(page)], trees)
+      sut([request(bundle), request(page)], trees)
 
       // Assert
       expect(spy.mock.calls).toEqual([
         [TO, site],
         [TO, view],
       ])
+    })
+
+    it('When expanded, Then the page files appear once in each expansion', () => {
+      // Arrange
+      const sut = expandComponentCopies
+      const trees = bundleTrees()
+
+      // Act
+      const result = sut([request(bundle), request(page)], trees)
+
+      // Assert
       expect(pathsOf(result)).toEqual([
         `${bundle}/Site_A.digitalExperience-meta.xml`,
         `${page}/content.json`,
@@ -425,10 +438,15 @@ describe('expandComponentCopies', () => {
   })
 
   describe('Given requests for distinct components in one type directory', () => {
-    it('When expanded, Then the directory is listed once and each request yields its own files in place', () => {
-      // Arrange
-      const sut = expandComponentCopies
-      const trees = readerOf([
+    const passThrough = gitCopy('x')
+    const copies = [
+      request(`${ROOT}/C`),
+      passThrough,
+      request(`${ROOT}/A`),
+      request(`${ROOT}/B`),
+    ]
+    const typeDirTrees = () =>
+      readerOf([
         `${ROOT}/A/a.js`,
         `${ROOT}/A.resource-meta.xml`,
         `${ROOT}/B/b.js`,
@@ -436,21 +454,29 @@ describe('expandComponentCopies', () => {
         `${ROOT}/C/c.js`,
         `${ROOT}/C.resource-meta.xml`,
       ])
+
+    it('When expanded, Then the directory is listed once', () => {
+      // Arrange
+      const sut = expandComponentCopies
+      const trees = typeDirTrees()
       const spy = vi.spyOn(trees, 'filesUnder')
-      const passThrough = gitCopy('x')
-      const copies = [
-        request(`${ROOT}/C`),
-        passThrough,
-        request(`${ROOT}/A`),
-        request(`${ROOT}/B`),
-      ]
+
+      // Act
+      sut(copies, trees)
+
+      // Assert
+      expect(spy.mock.calls).toEqual([[TO, ROOT]])
+    })
+
+    it('When expanded, Then each request yields its own files in place', () => {
+      // Arrange
+      const sut = expandComponentCopies
+      const trees = typeDirTrees()
 
       // Act
       const result = sut(copies, trees)
 
       // Assert
-      expect(spy).toHaveBeenCalledTimes(1)
-      expect(spy).toHaveBeenCalledWith(TO, ROOT)
       expect(result).toEqual([
         gitCopy(`${ROOT}/C/c.js`),
         gitCopy(`${ROOT}/C.resource-meta.xml`),
@@ -464,27 +490,41 @@ describe('expandComponentCopies', () => {
   })
 
   describe('Given requests at two revisions under one parent', () => {
-    it('When expanded, Then the parent is listed once per revision', () => {
-      // Arrange
-      const sut = expandComponentCopies
-      const a = `${ROOT}/A`
-      const trees = createTreeReader(
+    const a = `${ROOT}/A`
+    const copies = [request(a), request(`${ROOT}/B`), request(a, OTHER)]
+    const twoRevisionTrees = () =>
+      createTreeReader(
         new Map([
           [TO, indexOf([`${a}/a.js`, `${ROOT}/B/b.js`])],
           [OTHER, indexOf([`${a}/z.js`])],
         ])
       )
+
+    it('When expanded, Then the parent is listed once per revision', () => {
+      // Arrange
+      const sut = expandComponentCopies
+      const trees = twoRevisionTrees()
       const spy = vi.spyOn(trees, 'filesUnder')
-      const copies = [request(a), request(`${ROOT}/B`), request(a, OTHER)]
 
       // Act
-      const result = sut(copies, trees)
+      sut(copies, trees)
 
       // Assert
       expect(spy.mock.calls).toEqual([
         [TO, ROOT],
         [OTHER, ROOT],
       ])
+    })
+
+    it('When expanded, Then each revision yields its own files', () => {
+      // Arrange
+      const sut = expandComponentCopies
+      const trees = twoRevisionTrees()
+
+      // Act
+      const result = sut(copies, trees)
+
+      // Assert
       expect(result).toEqual([
         gitCopy(`${a}/a.js`),
         gitCopy(`${ROOT}/B/b.js`),
