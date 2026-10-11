@@ -187,6 +187,22 @@ describe('PureMoveResolver', () => {
     })
   })
 
+  describe('Given the same deletion reported once per rename destination', () => {
+    it('When resolve runs, Then the move is judged as if it was reported once', async () => {
+      // Arrange
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(lines, [
+        ...cancelled(),
+        deletion(OLD_CLS),
+      ])
+
+      // Assert
+      expect(result.lines).toEqual([lines[1], lines[3]])
+    })
+  })
+
   describe('Given a move that is not pure', () => {
     const changedBlob = (path: string): Layout => ({
       from: sameBlobs.from,

@@ -142,7 +142,9 @@ export default class PureMoveResolver {
     >()
     for (const { line, name } of cancelled) {
       const group = groups.get(name) ?? { name, deletions: [], additions: [] }
-      group.deletions.push(line)
+      // A source copied to several destinations is reported once per
+      // destination, yet it is one deleted file.
+      if (!group.deletions.includes(line)) group.deletions.push(line)
       groups.set(name, group)
     }
     for (const line of lines) {

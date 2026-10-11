@@ -278,6 +278,17 @@ const componentCases: readonly Case[] = [
   },
   {
     title:
+      'a class moved while an identical copy is added under a directory the ignore file covers',
+    base: [PROJECT, ...FOO],
+    change: [
+      ...FOO_MOVE,
+      add(`${MOVED_ROOT}/classes/sub/Foo.cls`, FOO[0]?.content as string),
+    ],
+    ignore: [`${MOVED_ROOT}/classes/sub/`],
+    expected: {},
+  },
+  {
+    title:
       'a class moved out of a directory the ignore file covers, with no destructive ignore file',
     base: [PROJECT, ...FOO],
     change: FOO_MOVE,
