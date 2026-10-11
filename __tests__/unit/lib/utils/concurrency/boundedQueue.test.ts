@@ -7,6 +7,12 @@ import { BoundedQueue } from '../../../../../src/utils/concurrency/boundedQueue'
 
 const microtask = () => setImmediate()
 
+class InspectableQueue<T> extends BoundedQueue<T> {
+  public retained(): number {
+    return this.pending.length
+  }
+}
+
 describe('BoundedQueue', () => {
   describe('Given an empty queue', () => {
     it('When constructed, Then idle returns true', () => {
@@ -177,6 +183,70 @@ describe('BoundedQueue', () => {
 
       // Assert — second drain after rejection still rejects
       await expect(sut.drain()).rejects.toBe(boom)
+    })
+  })
+
+  describe('Given a backlog larger than the concurrency limit', () => {
+    it('When draining, Then items run in push order without Array.shift', async () => {
+      // Arrange
+      const shift = vi.spyOn(Array.prototype, 'shift')
+      const seen: number[] = []
+      const sut = new BoundedQueue<number>(async item => {
+        seen.push(item)
+      }, 1)
+
+      // Act
+      for (let item = 0; item < 50; item++) sut.push(item)
+      await sut.drain()
+      const shiftCalls = shift.mock.calls.length
+      shift.mockRestore()
+
+      // Assert
+      expect(shiftCalls).toBe(0)
+      expect(seen).toEqual(Array.from({ length: 50 }, (_, item) => item))
+      expect(sut.idle()).toBe(true)
+    })
+
+    it('When the backlog is drained, Then no consumed item stays retained', async () => {
+      // Arrange
+      const sut = new InspectableQueue<number>(async () => undefined, 1)
+
+      // Act
+      for (let item = 0; item < 5; item++) sut.push(item)
+      await sut.drain()
+
+      // Assert
+      expect(sut.retained()).toBe(0)
+    })
+
+    it('When a worker fails with items still waiting, Then the waiting items are released', async () => {
+      // Arrange
+      const sut = new InspectableQueue<number>(async () => {
+        throw new Error('worker exploded')
+      }, 1)
+
+      // Act
+      for (let item = 0; item < 5; item++) sut.push(item)
+      await expect(sut.drain()).rejects.toThrow('worker exploded')
+
+      // Assert
+      expect(sut.retained()).toBe(0)
+    })
+
+    it('When refilled after a drain, Then the new items run', async () => {
+      // Arrange
+      const worker = vi.fn(async (_item: number) => undefined)
+      const sut = new BoundedQueue<number>(worker, 1)
+      sut.push(1)
+      sut.push(2)
+      await sut.drain()
+
+      // Act
+      sut.push(3)
+      await sut.drain()
+
+      // Assert
+      expect(worker.mock.calls.map(([item]) => item)).toEqual([1, 2, 3])
     })
   })
 })

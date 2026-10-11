@@ -1,6 +1,5 @@
 'use strict'
 import { PATH_SEP } from '../constant/fsConstants.js'
-import { GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
 import {
   CONTENT_CONTAINER_ADAPTERS,
   DASHBOARD_TYPE,
@@ -10,6 +9,7 @@ import {
 } from '../constant/metadataConstants.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Metadata } from '../types/metadata.js'
+import { pathOfLine } from './gitLine.js'
 
 const TREE_INDEX_XML_NAMES = new Set([
   OBJECT_TYPE,
@@ -30,19 +30,6 @@ const needsTreeIndex = (type: Metadata): boolean => {
   return false
 }
 
-const buildParentIndex = (
-  metadata: MetadataRepository
-): Map<string, Metadata> => {
-  const index = new Map<string, Metadata>()
-  for (const m of metadata.values()) {
-    // Stryker disable next-line ConditionalExpression -- equivalent: xmlName presence guard; the project's metadata corpus always sets xmlName for routable types, so the false-flip never enters the inner set in practice
-    if (m.xmlName) {
-      index.set(m.xmlName, m)
-    }
-  }
-  return index
-}
-
 // Every tree-index-needing type scopes to its type directory, regardless of
 // adapter: a bundle's liveness check (pathExists on its component directory)
 // answers identically whether the index was built from just that component
@@ -56,19 +43,32 @@ const scopeForType = (parts: string[], type: Metadata): string | null => {
 }
 
 // A child type (parentXmlName) is indexed through its parent: the parent's
-// type directory is the one the index must cover.
+// type directory is the one a listing must cover.
+const indexedTypeOf = (
+  path: string,
+  metadata: MetadataRepository
+): Metadata | undefined => {
+  const type = metadata.get(path)
+  if (!type?.parentXmlName) return type
+  return metadata.getByXmlName(type.parentXmlName)
+}
+
+export const componentListingRoot = (
+  path: string,
+  metadata: MetadataRepository
+): string | null => {
+  const indexedType = indexedTypeOf(path, metadata)
+  if (!indexedType) return null
+
+  return scopeForType(path.split(PATH_SEP), indexedType)
+}
+
 const scopeForLine = (
   line: string,
-  metadata: MetadataRepository,
-  parentIndex: Map<string, Metadata>
+  metadata: MetadataRepository
 ): string | null => {
-  const path = line.replace(GIT_DIFF_TYPE_REGEX, '')
-  const type = metadata.get(path)
-  if (!type) return null
-
-  const indexedType = type.parentXmlName
-    ? parentIndex.get(type.parentXmlName)
-    : type
+  const path = pathOfLine(line)
+  const indexedType = indexedTypeOf(path, metadata)
   if (!indexedType || !needsTreeIndex(indexedType)) return null
 
   return scopeForType(path.split(PATH_SEP), indexedType)
@@ -79,10 +79,9 @@ export const computeTreeIndexScope = (
   metadata: MetadataRepository
 ): Set<string> => {
   const scope = new Set<string>()
-  const parentIndex = buildParentIndex(metadata)
 
   for (const line of lines) {
-    const result = scopeForLine(line, metadata, parentIndex)
+    const result = scopeForLine(line, metadata)
     if (result) {
       scope.add(result)
     }

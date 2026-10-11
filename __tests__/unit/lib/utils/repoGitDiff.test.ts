@@ -461,6 +461,14 @@ describe('Given a RepoGitDiff', () => {
       expect(sut.getRenamePairs()).toEqual([])
     })
 
+    it('Given a freshly constructed RepoGitDiff, When getCancelledDeletions is read before getLines is called, Then it returns an empty array', () => {
+      // Arrange
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act & Assert
+      expect(sut.getCancelledDeletions()).toEqual([])
+    })
+
     it('Given an R-line, When getLines, Then it is split into synthetic A and D lines and exposed via getRenamePairs', async () => {
       // Arrange
       mockGetDiffLines.mockReturnValue([
@@ -634,6 +642,81 @@ describe('Given a RepoGitDiff', () => {
       const verdictPassedToGetUnmatchedSourceScopes =
         mockGetUnmatchedSourceScopes.mock.calls.at(-1)?.[0]
       expect(verdictPassedToGetUnmatchedSourceScopes).toBe(verdictOnSecondDrain)
+    })
+  })
+
+  describe('Given cancelled deletions', () => {
+    const DELETED_CLASS = `${DELETION}${TAB}${SOURCE_DIR}/${CLASS}`
+    const ADDED_CLASS = `${ADDITION}${TAB}force-app/other/${CLASS}`
+
+    afterEach(() => {
+      mockKeep.mockReturnValue(true)
+    })
+
+    it('When a deletion shares its key with a kept addition, Then getCancelledDeletions returns it with its line and key, and it is not yielded', async () => {
+      // Arrange
+      mockGetDiffLines.mockReturnValue([DELETED_CLASS, ADDED_CLASS])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([ADDED_CLASS])
+      expect(sut.getCancelledDeletions()).toStrictEqual([
+        {
+          line: DELETED_CLASS,
+          name: globalMetadata
+            .getFullyQualifiedName(DELETED_CLASS)
+            .toLowerCase(),
+        },
+      ])
+    })
+
+    it('When the only same-key addition is held by the ignore file, Then the deletion is not captured', async () => {
+      // Arrange
+      config.to = TO
+      mockKeep.mockImplementation(rejectsIgnoredDir)
+      mockGetDiffLines.mockReturnValue([
+        DELETED_CLASS,
+        `${ADDITION}${TAB}${IGNORED_DIR}/${CLASS}`,
+      ])
+      mockBuildTreeIndex.mockResolvedValue(indexOf(`${IGNORED_DIR}/${CLASS}`))
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([])
+      expect(sut.getCancelledDeletions()).toStrictEqual([])
+    })
+
+    it('When a deletion has no same-key addition, Then it is yielded and not captured', async () => {
+      // Arrange
+      mockGetDiffLines.mockReturnValue([DELETED_CLASS])
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act
+      const result = await collect(sut.getLines())
+
+      // Assert
+      expect(result).toStrictEqual([DELETED_CLASS])
+      expect(sut.getCancelledDeletions()).toStrictEqual([])
+    })
+
+    it('When getLines runs twice, Then the second run starts from an empty list', async () => {
+      // Arrange
+      const sut = new RepoGitDiff(config, globalMetadata)
+      mockGetDiffLines.mockReturnValueOnce([DELETED_CLASS, ADDED_CLASS])
+      await collect(sut.getLines())
+      mockGetDiffLines.mockReturnValueOnce([ADDED_CLASS])
+
+      // Act
+      await collect(sut.getLines())
+
+      // Assert
+      expect(sut.getCancelledDeletions()).toStrictEqual([])
     })
   })
 

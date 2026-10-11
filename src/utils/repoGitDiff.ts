@@ -8,6 +8,8 @@ import { ADDITION, DELETION, RENAMED } from '../constant/gitConstants.js'
 import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
 
+import { comparisonName } from './comparisonName.js'
+import { additionLineOf, lineOf } from './gitLine.js'
 import { buildIgnoreHelper, type IgnoreHelper } from './ignoreHelper.js'
 import { Logger, lazy } from './LoggingService.js'
 
@@ -15,7 +17,7 @@ export type RenamePathPair = Readonly<{ fromPath: string; toPath: string }>
 
 export type HeldAdditionProbeFailure = Readonly<{ candidateCount: number }>
 
-type DeferredDeletion = Readonly<{ line: string; name: string }>
+export type DeferredDeletion = Readonly<{ line: string; name: string }>
 
 // Filled while the diff streams and resolved only once it is drained: a D
 // line can be classified only against every addition name in the diff.
@@ -28,6 +30,7 @@ type PendingCancellation = Readonly<{
 export default class RepoGitDiff {
   protected readonly gitAdapter: GitAdapter
   private renamePairs: RenamePathPair[] = []
+  private cancelledDeletions: DeferredDeletion[] = []
   // The field initialiser only zeroes this once, at construction.
   // getLines() can be called more than once on the same instance (see the
   // renamePairs reset below), so the verdict is reset explicitly at the
@@ -89,13 +92,18 @@ export default class RepoGitDiff {
       pending.additionNames,
       ignoreHelper
     )
-    for (const { line, name } of pending.deferredDeletions) {
-      if (!pending.additionNames.has(name) && !vouching.has(name)) yield line
+    for (const deletion of pending.deferredDeletions) {
+      if (pending.additionNames.has(deletion.name)) {
+        this.cancelledDeletions.push(deletion)
+      } else if (!vouching.has(deletion.name)) {
+        yield deletion.line
+      }
     }
   }
 
   private _resetRunState(): void {
     this.renamePairs = []
+    this.cancelledDeletions = []
     this.diffScopeVerdict.changesSeen = 0
     this.diffScopeVerdict.linesYielded = 0
     this.probeFailure = undefined
@@ -150,6 +158,11 @@ export default class RepoGitDiff {
   }
 
   // Meaningful only once the diff is drained, like getUnmatchedSourceScopes().
+  public getCancelledDeletions(): readonly DeferredDeletion[] {
+    return this.cancelledDeletions
+  }
+
+  // Meaningful only once the diff is drained, like getUnmatchedSourceScopes().
   public getHeldAdditionProbeFailure(): HeldAdditionProbeFailure | undefined {
     return this.probeFailure
   }
@@ -179,14 +192,12 @@ export default class RepoGitDiff {
     const fromPath = parts[1]!
     const toPath = parts[2]!
     this.renamePairs.push({ fromPath, toPath })
-    yield `${DELETION}${TAB}${fromPath}`
-    yield `${ADDITION}${TAB}${toPath}`
+    yield lineOf(DELETION, fromPath)
+    yield additionLineOf(toPath)
   }
 
-  // Locale-invariant on purpose: a locale-sensitive fold makes the
-  // cancellation key depend on the machine that ran the diff.
   protected _extractComparisonName(line: string) {
-    return this.metadata.getFullyQualifiedName(line).toLowerCase()
+    return comparisonName(this.metadata, line)
   }
 
   // A held name vouches for its component only when nothing of that
@@ -241,7 +252,7 @@ export default class RepoGitDiff {
     }
     const visible = new Set<string>()
     for (const path of listing) {
-      const line = `${ADDITION}${TAB}${path}`
+      const line = additionLineOf(path)
       if (!this.metadata.has(line)) continue
       const name = this._extractComparisonName(line)
       if (candidates.has(name) && ignoreHelper.keep(line)) visible.add(name)

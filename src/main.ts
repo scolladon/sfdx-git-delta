@@ -6,7 +6,7 @@ import { getDefinition } from './metadata/metadataManager.js'
 import { getPostProcessors } from './post-processor/postProcessorManager.js'
 import DiffLineInterpreter from './service/diffLineInterpreter.js'
 import type { Config, ConfigInput } from './types/config.js'
-import type { RunContext } from './types/runContext.js'
+import { NO_UNIONS, type RunContext } from './types/runContext.js'
 import type { Work } from './types/work.js'
 import ChangeSet from './utils/changeSet.js'
 import { assembleChanges } from './utils/changesAssembly.js'
@@ -15,6 +15,7 @@ import { Logger, lazy } from './utils/LoggingService.js'
 import { MessageService } from './utils/MessageService.js'
 import { sanitizeForMessage } from './utils/messageSanitizer.js'
 import { parseSourceDirs } from './utils/pathspec.js'
+import PureMoveResolver from './utils/pureMoveResolver.js'
 import RenameResolver from './utils/renameResolver.js'
 import RepoGitDiff from './utils/repoGitDiff.js'
 import { computeTreeIndexScope } from './utils/treeIndexScope.js'
@@ -73,16 +74,12 @@ export default async (configInput: ConfigInput): Promise<Work> => {
     const metadata: MetadataRepository = await getDefinition(config)
     const repoGitDiffHelper = new RepoGitDiff(config, metadata)
 
-    // The tree-index scope is read off the diff whenever no include file
-    // overrides it, so the stream is materialised once: computeTreeIndexScope
-    // and lineProcessor.process walk the same lines. With an include file the
-    // scope is config.source and the async iterable feeds straight into
-    // DiffLineInterpreter, so handlers fire while git is still emitting.
+    // The stream is always materialised: the tree-index scope and the move
+    // pairing both need every line, and the cancelled deletions the pairing
+    // reads exist only once the diff is drained. lineProcessor.process then
+    // walks the lines the resolver returns.
     const needsScopeFromDiff = !config.include && !config.includeDestructive
-    const materialized = needsScopeFromDiff
-      ? await collectLines(repoGitDiffHelper.getLines())
-      : undefined
-    const lines = materialized ?? repoGitDiffHelper.getLines()
+    const rawLines = await collectLines(repoGitDiffHelper.getLines())
 
     // The manifests must not depend on --generate-delta: every index-backed
     // read that decides package.xml vs destructiveChanges.xml (container
@@ -92,15 +89,21 @@ export default async (configInput: ConfigInput): Promise<Work> => {
     // (DiffLineInterpreter, RenameResolver, IOExecutor, the post-processors)
     // through RunContext rather than cached on GitAdapter, so no reader can
     // see a different scope than the one this run built under.
-    const scopePaths: readonly string[] = materialized
-      ? [...computeTreeIndexScope(materialized, metadata)]
+    const scopePaths: readonly string[] = needsScopeFromDiff
+      ? [...computeTreeIndexScope(rawLines, metadata)]
       : config.source
+    const gitAdapter = GitAdapter.getInstance(config)
     const { trees, unindexed } = await buildRunTreeReader(
-      GitAdapter.getInstance(config),
+      gitAdapter,
       config,
       scopePaths
     )
-    const ctx: RunContext = { config, metadata, trees }
+    const baseCtx: RunContext = { config, metadata, trees, unions: NO_UNIONS }
+    const moves = await new PureMoveResolver(baseCtx, gitAdapter).resolve(
+      rawLines,
+      repoGitDiffHelper.getCancelledDeletions()
+    )
+    const ctx: RunContext = { ...baseCtx, unions: moves.unions }
 
     const lineProcessor = new DiffLineInterpreter(ctx)
     const postProcessors = getPostProcessors(ctx)
@@ -108,7 +111,7 @@ export default async (configInput: ConfigInput): Promise<Work> => {
     // First pass: build the read model from handler output alone so collectors
     // (FlowTranslationProcessor) introspect the handler-pass package view before
     // include lines exist.
-    const handlerResult = await lineProcessor.process(lines)
+    const handlerResult = await lineProcessor.process(moves.lines)
     const handlerView = ChangeSet.from(handlerResult.elements) // handler pass ONLY
 
     const postResult = await postProcessors.collectAll(handlerView)
@@ -189,6 +192,14 @@ export default async (configInput: ConfigInput): Promise<Work> => {
       () => [sanitizeForMessage(requestedTo)]
     )
 
+    // The resolver reads sfdx-project.json and the file lists at both
+    // revisions; when it cannot, moved components are deployed as if changed.
+    const moveCheckWarnings = warnIf(
+      moves.checkSkipped,
+      'warning.PureMoveCheckSkipped',
+      () => [sanitizeForMessage(requestedFrom), sanitizeForMessage(requestedTo)]
+    )
+
     const work: Work = {
       config,
       changes,
@@ -198,6 +209,7 @@ export default async (configInput: ConfigInput): Promise<Work> => {
         ...processorWarnings,
         ...sourceScopeWarnings,
         ...ignoredMoveWarnings,
+        ...moveCheckWarnings,
         ...treeIndexWarnings,
         ...undeletableWarnings(changes, messages),
       ],

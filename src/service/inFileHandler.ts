@@ -1,7 +1,6 @@
 'use strict'
 import { basename } from 'node:path/posix'
 
-import { TAB } from '../constant/cliConstants.js'
 import { DOT } from '../constant/fsConstants.js'
 import { DELETION, MODIFICATION } from '../constant/gitConstants.js'
 import { isPackable } from '../metadata/metadataManager.js'
@@ -19,6 +18,7 @@ import {
 import type { RunContext } from '../types/runContext.js'
 import { pushAll } from '../utils/arrayUtils.js'
 import { wrapError } from '../utils/errorUtils.js'
+import { lineOf } from '../utils/gitLine.js'
 import { buildIgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { MessageService } from '../utils/MessageService.js'
@@ -52,11 +52,17 @@ export default class InFileHandler extends StandardHandler {
     return await this.collectAddition()
   }
 
+  public override comparesElements(): boolean {
+    return true
+  }
+
   protected async _collectCompareResult(): Promise<HandlerResult> {
     try {
       const elements: ManifestElement[] = []
       const copies: CopyOperation[] = []
-      const outcome = await this.metadataDiff.run(this.element.basePath)
+      const outcome =
+        this.ctx.unions.get(this.element.basePath) ??
+        (await this.metadataDiff.run(this.element.basePath))
 
       // RATIONALE: members deleted inside a modified file arrive on an `M`
       // line, which the upstream line filter checks against the global
@@ -145,7 +151,7 @@ export default class InFileHandler extends StandardHandler {
   protected async _keepsDestructiveChanges(): Promise<boolean> {
     if (this.changeType !== MODIFICATION) return true
     const ignoreHelper = await buildIgnoreHelper(this.config)
-    return ignoreHelper.keep(`${DELETION}${TAB}${this.element.basePath}`)
+    return ignoreHelper.keep(lineOf(DELETION, this.element.basePath))
   }
 
   protected _getQualifiedName() {

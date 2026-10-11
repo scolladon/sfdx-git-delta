@@ -256,3 +256,36 @@ describe('Decomposed CustomLabel spec', () => {
     })
   })
 })
+
+describe('CustomLabelHandler element comparison', () => {
+  const build = (line: string, type = labelType) => {
+    const { changeType, element } = createElement(line, type, globalMetadata)
+    return new CustomLabelHandler(changeType, element, getContext({ config }))
+  }
+
+  it('Given a CustomLabels container file, When asked whether it compares elements, Then it answers true', () => {
+    // Arrange
+    const sut = build(
+      'M       force-app/main/default/labels/CustomLabels.labels-meta.xml'
+    )
+
+    // Act
+    const result = sut.comparesElements()
+
+    // Assert
+    expect(result).toBe(true)
+  })
+
+  it('Given a decomposed label file, When asked whether it compares elements, Then it answers false', () => {
+    // Arrange
+    const sut = build(
+      'M       force-app/main/default/labels/Test.label-meta.xml'
+    )
+
+    // Act
+    const result = sut.comparesElements()
+
+    // Assert
+    expect(result).toBe(false)
+  })
+})

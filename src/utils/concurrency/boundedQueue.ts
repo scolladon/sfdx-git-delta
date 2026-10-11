@@ -7,6 +7,7 @@ type Rejecter = (reason: unknown) => void
 
 export class BoundedQueue<T> {
   protected readonly pending: T[] = []
+  protected head = 0
   protected active = 0
   protected error: unknown = undefined
   protected readonly drainResolvers: Resolver[] = []
@@ -24,7 +25,7 @@ export class BoundedQueue<T> {
   }
 
   public idle(): boolean {
-    return this.active === 0 && this.pending.length === 0
+    return this.active === 0 && this.head === this.pending.length
   }
 
   public drain(): Promise<void> {
@@ -37,11 +38,24 @@ export class BoundedQueue<T> {
   }
 
   private _pump(): void {
-    while (this.active < this.limit && this.pending.length > 0) {
-      const item = this.pending.shift() as T
+    while (this.active < this.limit && this.head < this.pending.length) {
+      const item = this._take()
       this.active++
       void this._run(item)
     }
+  }
+
+  // A head cursor, not Array.shift: shift is O(n) on large backlogs.
+  private _take(): T {
+    const item = this.pending[this.head] as T
+    this.pending[this.head++] = undefined as T
+    if (this.head === this.pending.length) this._clearPending()
+    return item
+  }
+
+  private _clearPending(): void {
+    this.pending.length = 0
+    this.head = 0
   }
 
   private async _run(item: T): Promise<void> {
@@ -60,7 +74,7 @@ export class BoundedQueue<T> {
   private _fail(err: unknown): void {
     if (this.error !== undefined) return
     this.error = err
-    this.pending.length = 0
+    this._clearPending()
     const rejecters = this.drainRejecters.splice(0)
     this.drainResolvers.length = 0
     for (const reject of rejecters) reject(err)

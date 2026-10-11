@@ -1,12 +1,8 @@
 import ignore, { Ignore } from 'ignore'
 
-import {
-  ADDITION,
-  DELETION,
-  GIT_DIFF_TYPE_REGEX,
-  MODIFICATION,
-} from '../constant/gitConstants.js'
+import { ADDITION, DELETION, MODIFICATION } from '../constant/gitConstants.js'
 import { readFile } from './fsUtils.js'
+import { pathOfLine } from './gitLine.js'
 import { log } from './LoggingDecorator.js'
 
 export class IgnoreHelper {
@@ -29,7 +25,7 @@ export class IgnoreHelper {
       ignInstance = this.globalIgnore
     }
 
-    const filePath = line.replace(GIT_DIFF_TYPE_REGEX, '')
+    const filePath = pathOfLine(line)
 
     return !ignInstance?.ignores(filePath)
   }

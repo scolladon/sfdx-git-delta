@@ -295,6 +295,29 @@ describe(`StandardHandler`, () => {
     })
   })
 
+  describe('comparesElements', () => {
+    it('Given a standard component, When asked whether it compares elements, Then it answers false', () => {
+      // Arrange
+      const line = `${ADDITION}       ${entityPath}`
+      const { changeType, element } = createElement(
+        line,
+        classType,
+        globalMetadata
+      )
+      const sut = new StandardHandler(
+        changeType,
+        element,
+        getContext({ config })
+      )
+
+      // Act
+      const result = sut.comparesElements()
+
+      // Assert
+      expect(result).toBe(false)
+    })
+  })
+
   describe('toString', () => {
     it('should return a string representation of the handler', () => {
       // Arrange

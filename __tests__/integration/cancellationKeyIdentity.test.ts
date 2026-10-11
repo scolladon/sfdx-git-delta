@@ -12,6 +12,7 @@ import type { MetadataRepository } from '../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../src/metadata/metadataManager'
 import TypeHandlerFactory from '../../src/service/typeHandlerFactory'
 import type { Metadata } from '../../src/types/metadata'
+import { NO_UNIONS } from '../../src/types/runContext'
 import RepoGitDiff from '../../src/utils/repoGitDiff'
 import { getConfig } from '../__utils__/testWork'
 
@@ -273,6 +274,7 @@ beforeAll(async () => {
     config: getConfig(),
     metadata,
     trees: EMPTY_TREE_READER,
+    unions: NO_UNIONS,
   })
   probe = new CancellationKeyProbe(getConfig(), metadata)
   sharedSuffixes = directoriesPerSharedSuffix(metadata.values())

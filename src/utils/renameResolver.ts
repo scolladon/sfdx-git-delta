@@ -1,12 +1,12 @@
 'use strict'
 
-import { TAB } from '../constant/cliConstants.js'
-import { ADDITION, DELETION } from '../constant/gitConstants.js'
+import { DELETION } from '../constant/gitConstants.js'
 import TypeHandlerFactory from '../service/typeHandlerFactory.js'
 import type { Config } from '../types/config.js'
 import type { RunContext } from '../types/runContext.js'
 import type { RenameTriple } from './changeSet.js'
 import { getErrorMessage } from './errorUtils.js'
+import { additionLineOf, lineOf } from './gitLine.js'
 import { buildIgnoreHelper, type IgnoreHelper } from './ignoreHelper.js'
 import { log } from './LoggingDecorator.js'
 import { Logger, lazy } from './LoggingService.js'
@@ -51,8 +51,8 @@ export default class RenameResolver {
     ignoreHelper: IgnoreHelper
   ): Promise<{ type: string; from: string; to: string } | null> {
     try {
-      const fromLine = `${DELETION}${TAB}${pair.fromPath}`
-      const toLine = `${ADDITION}${TAB}${pair.toPath}`
+      const fromLine = lineOf(DELETION, pair.fromPath)
+      const toLine = additionLineOf(pair.toPath)
       if (!ignoreHelper.keep(fromLine) || !ignoreHelper.keep(toLine)) {
         return null
       }

@@ -66,6 +66,7 @@ type FakeRepo = {
     readObject: ReturnType<typeof vi.fn>
     readBlob: ReturnType<typeof vi.fn>
     flattenTree: ReturnType<typeof vi.fn>
+    readTree: ReturnType<typeof vi.fn>
     walkCommits: ReturnType<typeof vi.fn>
     streamBlob: ReturnType<typeof vi.fn>
     mergeBase: ReturnType<typeof vi.fn>
@@ -80,6 +81,7 @@ const makeFakeRepo = (): FakeRepo => ({
     readObject: vi.fn(),
     readBlob: vi.fn(),
     flattenTree: vi.fn(),
+    readTree: vi.fn(),
     walkCommits: vi.fn(),
     streamBlob: vi.fn(),
     mergeBase: vi.fn(),
@@ -953,6 +955,141 @@ describe('GitAdapter', () => {
       expect((error as Error).message).toBe(
         'bad-ref...to-oid: not a valid git revision'
       )
+    })
+  })
+
+  describe('Given getRootFileContent', () => {
+    it('When the root tree holds the file as a blob, Then it resolves its utf8 content', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      stubCommit(fakeRepo, 'commit-oid')
+      fakeRepo.primitives.readTree.mockResolvedValue({
+        entries: [{ name: 'sfdx-project.json', mode: '100644', id: 'b1' }],
+      })
+      fakeRepo.primitives.readBlob.mockResolvedValue({
+        content: Buffer.from('{}'),
+      })
+
+      // Act
+      const result = await sut.getRootFileContent('HEAD', 'sfdx-project.json')
+
+      // Assert
+      expect(result).toBe('{}')
+      expect(fakeRepo.primitives.readTree).toHaveBeenCalledWith(
+        'tree-of-commit-oid'
+      )
+      expect(fakeRepo.primitives.readBlob).toHaveBeenCalledWith('b1')
+    })
+
+    it('When the root tree has no such entry, Then it resolves undefined and reads no blob', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      stubCommit(fakeRepo, 'commit-oid')
+      fakeRepo.primitives.readTree.mockResolvedValue({
+        entries: [{ name: 'README.md', mode: '100644', id: 'b1' }],
+      })
+
+      // Act
+      const result = await sut.getRootFileContent('HEAD', 'sfdx-project.json')
+
+      // Assert
+      expect(result).toBeUndefined()
+      expect(fakeRepo.primitives.readBlob).not.toHaveBeenCalled()
+    })
+
+    it('When the name matches a tree entry, Then it resolves undefined', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      stubCommit(fakeRepo, 'commit-oid')
+      fakeRepo.primitives.readTree.mockResolvedValue({
+        entries: [{ name: 'sfdx-project.json', mode: '040000', id: 't1' }],
+      })
+
+      // Act
+      const result = await sut.getRootFileContent('HEAD', 'sfdx-project.json')
+
+      // Assert
+      expect(result).toBeUndefined()
+      expect(fakeRepo.primitives.readBlob).not.toHaveBeenCalled()
+    })
+
+    it('When readTree rejects with a raw tsgit error, Then it rejects with the mapped error', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      stubCommit(fakeRepo, 'commit-oid')
+      fakeRepo.primitives.readTree.mockRejectedValue(
+        Object.assign(new Error('object not found: tree'), {
+          data: { code: 'OBJECT_NOT_FOUND' },
+        })
+      )
+
+      // Act
+      const error = await sut
+        .getRootFileContent('bad-ref', 'sfdx-project.json')
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe('bad-ref: not a valid git revision')
+    })
+  })
+
+  describe('Given getBlobIds', () => {
+    it('When called, Then it resolves the path to blob id map of the revision', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      stubCommit(fakeRepo, 'commit-oid')
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([
+          ['a.cls', { mode: '100644', id: 'x' }],
+          ['dir', { mode: '040000', id: 'd' }],
+        ])
+      )
+
+      // Act
+      const result = await sut.getBlobIds('HEAD')
+
+      // Assert
+      expect(new Map(result)).toEqual(new Map([['a.cls', 'x']]))
+    })
+
+    it('When buildTreeIndex already indexed the revision, Then flattenTree is not called again', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      stubCommit(fakeRepo, 'commit-oid')
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['a.cls', { mode: '100644', id: 'x' }]])
+      )
+      await sut.buildTreeIndex('HEAD', [])
+
+      // Act
+      await sut.getBlobIds('HEAD')
+
+      // Assert
+      expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledOnce()
+    })
+
+    it('When flattenTree rejects, Then it rejects mapped and a later call flattens again', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      stubCommit(fakeRepo, 'commit-oid')
+      fakeRepo.primitives.flattenTree
+        .mockRejectedValueOnce(
+          Object.assign(new Error('object not found: tree'), {
+            data: { code: 'OBJECT_NOT_FOUND' },
+          })
+        )
+        .mockResolvedValueOnce(
+          flatten([['a.cls', { mode: '100644', id: 'x' }]])
+        )
+
+      // Act
+      const error = await sut.getBlobIds('HEAD').catch((e: unknown) => e)
+      const retried = await sut.getBlobIds('HEAD')
+
+      // Assert
+      expect((error as Error).message).toBe('HEAD: not a valid git revision')
+      expect(retried.get('a.cls')).toBe('x')
+      expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledTimes(2)
     })
   })
 

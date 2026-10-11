@@ -15,10 +15,11 @@ import {
   type ManifestElement,
   ManifestTarget,
 } from '../../src/types/handlerResult'
-import type { RunContext } from '../../src/types/runContext'
+import { NO_UNIONS, type RunContext } from '../../src/types/runContext'
 import type ChangeSet from '../../src/utils/changeSet'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
 import { Logger } from '../../src/utils/LoggingService'
+import type RepoGitDiff from '../../src/utils/repoGitDiff'
 import { makeHandlerResult } from '../__utils__/handlerResultView'
 
 const {
@@ -29,6 +30,8 @@ const {
   mockGetRenamePairs,
   mockGetUnmatchedSourceScopes,
   mockGetHeldAdditionProbeFailure,
+  mockGetCancelledDeletions,
+  mockResolve,
   mockProcess,
   mockCollectAll,
   mockExecuteRemaining,
@@ -45,6 +48,8 @@ const {
   mockGetUnmatchedSourceScopes: vi.fn<() => readonly string[]>(),
   mockGetHeldAdditionProbeFailure:
     vi.fn<() => { candidateCount: number } | undefined>(),
+  mockGetCancelledDeletions: vi.fn<RepoGitDiff['getCancelledDeletions']>(),
+  mockResolve: vi.fn(),
   mockProcess: vi.fn<(lines: string[]) => Promise<HandlerResult>>(),
   mockCollectAll: vi.fn<(changes: ChangeSet) => Promise<HandlerResult>>(),
   mockExecuteRemaining: vi.fn(),
@@ -103,10 +108,17 @@ vi.mock('../../src/utils/repoGitDiff', async () => {
         getRenamePairs: mockGetRenamePairs,
         getUnmatchedSourceScopes: mockGetUnmatchedSourceScopes,
         getHeldAdditionProbeFailure: mockGetHeldAdditionProbeFailure,
+        getCancelledDeletions: mockGetCancelledDeletions,
       }
     }),
   }
 })
+
+vi.mock('../../src/utils/pureMoveResolver', () => ({
+  default: vi.fn().mockImplementation(function () {
+    return { resolve: mockResolve }
+  }),
+}))
 
 // RenameResolver instantiates TypeHandlerFactory and calls getTypeHandler for
 // each rename path. Stub it so tests can control the (type, member)
@@ -175,6 +187,12 @@ beforeEach(() => {
   mockGetRenamePairs.mockReturnValue([])
   mockGetUnmatchedSourceScopes.mockReturnValue([])
   mockGetHeldAdditionProbeFailure.mockReturnValue(undefined)
+  mockGetCancelledDeletions.mockReturnValue([])
+  mockResolve.mockImplementation(async (lines: readonly string[]) => ({
+    lines,
+    unions: NO_UNIONS,
+    checkSkipped: false,
+  }))
   mockComputeTreeIndexScope.mockReturnValue(new Set())
 })
 
@@ -661,7 +679,7 @@ describe('external library inclusion', () => {
       )
     })
 
-    it('Given an include file and generateDelta false, When sgd runs, Then buildTreeIndex is called with config.source and process receives the streamed iterable', async () => {
+    it('Given an include file and generateDelta false, When sgd runs, Then buildTreeIndex is called with config.source and process receives the materialised array', async () => {
       // Arrange
       const sut = {
         generateDelta: false,
@@ -678,9 +696,7 @@ describe('external library inclusion', () => {
       expect(mockBuildTreeIndex).toHaveBeenCalledWith('HEAD', ['force-app'])
       expect(mockBuildTreeIndex).toHaveBeenCalledWith('HEAD~1', ['force-app'])
       expect(mockComputeTreeIndexScope).not.toHaveBeenCalled()
-      expect(mockProcess.mock.calls[0]?.[0]).toBe(
-        mockGetLines.mock.results[0]?.value
-      )
+      expect(Array.isArray(mockProcess.mock.calls[0]?.[0])).toBe(true)
     })
 
     it('Given an empty computed scope and generateDelta false, When sgd runs, Then buildTreeIndex is not called', async () => {
@@ -875,6 +891,92 @@ describe('external library inclusion', () => {
 
       // Assert
       expect(result.warnings[0]?.message).not.toContain('\x07')
+    })
+  })
+
+  describe('pure move resolution', () => {
+    const MOVE_CONFIG: ConfigInput = {
+      from: 'HEAD~1',
+      to: 'HEAD',
+      source: [],
+      mergeBase: false,
+      output: '',
+      repo: '',
+      ignoreWhitespace: false,
+      generateDelta: false,
+    }
+
+    it('Given the diff yields lines and cancelled deletions, When sgd runs, Then the resolver receives them and process receives the resolver lines', async () => {
+      // Arrange
+      mockGetLines.mockReturnValueOnce(asAsyncIterable(['A\tx', 'D\ty']))
+      mockGetCancelledDeletions.mockReturnValueOnce([
+        { line: 'D\tz', name: 'z' },
+      ])
+      mockResolve.mockResolvedValueOnce({
+        lines: ['A\tx'],
+        unions: NO_UNIONS,
+        checkSkipped: false,
+      })
+      const sut = MOVE_CONFIG
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      expect(mockResolve).toHaveBeenCalledWith(
+        ['A\tx', 'D\ty'],
+        [{ line: 'D\tz', name: 'z' }]
+      )
+      expect(mockProcess.mock.calls[0]?.[0]).toEqual(['A\tx'])
+    })
+
+    it('Given the resolver returns union outcomes, When sgd runs, Then the interpreter and the IO executor receive them in ctx', async () => {
+      // Arrange
+      const unions = new Map([['labels', { kind: 'unions' }]]) as never
+      mockResolve.mockResolvedValueOnce({
+        lines: [],
+        unions,
+        checkSkipped: false,
+      })
+      const sut = MOVE_CONFIG
+
+      // Act
+      await sgd(sut)
+
+      // Assert
+      const interpreterCtx = vi.mocked(DiffLineInterpreter).mock.calls[0]?.[0]
+      const ioCtx = vi.mocked(IOExecutor).mock.calls[0]?.[0]
+      expect(interpreterCtx?.unions).toBe(unions)
+      expect(ioCtx?.unions).toBe(unions)
+    })
+
+    it('Given the resolver reports the check was skipped, When sgd runs, Then a warning naming both revisions is pushed', async () => {
+      // Arrange
+      mockResolve.mockResolvedValueOnce({
+        lines: [],
+        unions: NO_UNIONS,
+        checkSkipped: true,
+      })
+      const sut = MOVE_CONFIG
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings.map(w => w.message)).toEqual([
+        'warning.PureMoveCheckSkipped:HEAD~1,HEAD',
+      ])
+    })
+
+    it('Given the resolver did not skip the check, When sgd runs, Then no such warning is pushed', async () => {
+      // Arrange
+      const sut = MOVE_CONFIG
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings).toEqual([])
     })
   })
 

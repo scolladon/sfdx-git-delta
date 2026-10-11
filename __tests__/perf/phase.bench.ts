@@ -11,7 +11,7 @@ import { perfBench } from './harness/perfBench.ts'
 // Replaces a bench that hid three regressions behind a warm instance: one
 // MetadataRepository built at module load and reused across every sample
 // (the pathCache is warm after the first sample, so the miss path is never
-// measured), paths pre-stripped of their diff-status prefix (asFilePath is
+// measured), paths pre-stripped of their diff-status prefix (pathOfLine is
 // never exercised), and the same string objects reused on every iteration
 // (V8's cached string hash means the Map lookup never hashes a string it
 // has not seen before). This file rebuilds both halves of that blindness

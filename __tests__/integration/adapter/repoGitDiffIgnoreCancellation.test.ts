@@ -137,6 +137,35 @@ describe('Given a class moved wholesale into a directory an ignore pattern cover
     expect(result).toEqual(NO_IGNORE_BASELINE)
   })
 
+  it('When no ignore file is configured, Then the cancelled deletions are exposed', async () => {
+    // Arrange
+    const config = makeConfig()
+    const sut = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    await collect(sut.getLines())
+    const result = sut.getCancelledDeletions().map(d => d.line)
+
+    // Assert
+    expect(result).toEqual([
+      `D\t${IGNORE_SOURCE_CLASS}`,
+      `D\t${IGNORE_SOURCE_CLASS_META}`,
+    ])
+  })
+
+  it('When --ignore-file covers the move destination, Then no deletion is exposed as cancelled', async () => {
+    // Arrange
+    const config = makeConfig({ ignore: ignorePatternPath })
+    const sut = new RepoGitDiff(config, globalMetadata)
+
+    // Act
+    await collect(sut.getLines())
+    const result = sut.getCancelledDeletions()
+
+    // Assert
+    expect(result).toEqual([])
+  })
+
   it('When an unrelated --ignore-destructive-file is also configured, Then the move is still cancelled', async () => {
     // Arrange — visibility at `to` is decided by the global ignore alone.
     // With a destructive ignore that covers nothing, the moved copies are

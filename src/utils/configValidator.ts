@@ -2,8 +2,6 @@
 import { stat } from 'node:fs/promises'
 import { join } from 'node:path/posix'
 
-import { SfProject } from '@salesforce/core'
-
 import GitAdapter from '../adapter/GitAdapter.js'
 import { GIT_FOLDER } from '../constant/gitConstants.js'
 import { getLatestSupportedVersion } from '../metadata/metadataManager.js'
@@ -26,6 +24,7 @@ import type {
   SourceDirRejection,
   SourceDirRejectionReason,
 } from './pathspec.js'
+import { loadSfdxProject } from './sfdxProject.js'
 
 type ShaKey = 'from' | 'to'
 const SHA_KEYS: readonly ShaKey[] = ['from', 'to']
@@ -282,14 +281,12 @@ export default class ConfigValidator {
     if (this._isPinned()) return
 
     try {
-      const sfProject = await SfProject.resolve(this.config.repo)
-      this.config.apiVersion = toApiVersion(
-        sfProject.getSfProjectJson().getContents().sourceApiVersion
-      )
-    } catch (ex) {
+      const project = await loadSfdxProject(this.gitAdapter, this.config.to)
+      this.config.apiVersion = toApiVersion(project.sourceApiVersion)
+    } catch (error) {
       Logger.debug(
         // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only
-        lazy`_getApiVersion: no sfdx-project.json found at '${this.config.repo}': ${ex}`
+        lazy`_getApiVersion: no usable sfdx-project.json at '${this.config.to}': ${() => getErrorMessage(error)}`
       )
     }
   }
