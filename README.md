@@ -514,14 +514,14 @@ $ sf sgd source delta --from HEAD~1
 
 Both manifests are empty. A move that also edits a file, leaves a file behind, or crosses package directories is not a pure move: it is reported as an addition and a deletion, as before.
 
-Labels are different, because a `CustomLabels` file holds many components. All the `CustomLabels` files of one package directory are treated as one component: labels moved between the files of a directory are not redeployed, and a label gone from every file is deleted.
+Labels are different, because a `CustomLabels` file holds many components. When a labels file is moved inside a package directory (deleted at one path, added at another), SGD compares the labels of all the `CustomLabels` files of that package directory before and after the change: labels that only moved are not redeployed, changed or added labels reach `package.xml`, and a label gone from every file reaches `destructiveChanges.xml`.
 
 ```xml
-<!-- before: labels/A.labels-meta.xml has L1, L2; labels/B.labels-meta.xml has L3 -->
-<!-- after:  labels/A.labels-meta.xml has L1;     labels/B.labels-meta.xml has L2, L3 -->
+<!-- before: force-app/main/labels/CustomLabels.labels-meta.xml   has L1, L2 -->
+<!-- after:  force-app/shared/labels/CustomLabels.labels-meta.xml has L1     -->
 ```
 
-`L2` moved from one file to the other: `package.xml` and `destructiveChanges.xml` stay empty. If `L2` was also removed from every file, `destructiveChanges.xml` lists `CustomLabel/L2`. Merging two labels files into one gives the same result: only the labels that were changed or added reach `package.xml`, only the labels that vanished reach `destructiveChanges.xml`.
+The file moved and `L2` was removed: `package.xml` stays empty and `destructiveChanges.xml` lists `CustomLabel/L2`. Merging two moved labels files into one gives the same result: only the labels that were changed or added reach `package.xml`, only the labels that vanished reach `destructiveChanges.xml`. Labels files edited in place, with no file moved, are compared file by file, as before.
 
 A label moved to a file of another package directory is not a move: every label of the moved file deploys. With `--ignore-file [-i]`, a labels file matched by the pattern is out of the comparison and a label moved into it emits nothing; with `--ignore-destructive-file [-D]`, labels still deploy and only the deletions are filtered. A labels file whose package directory changed between `--from` and `--to` is left out of the comparison. Other types stored in one file (workflows, sharing rules...) follow the same rule file by file.
 
