@@ -8,18 +8,31 @@ import DiffLineInterpreter from '../../lib/service/diffLineInterpreter.js'
 import type { Config } from '../../lib/types/config.js'
 import { NO_UNIONS } from '../../lib/types/runContext.js'
 import { expandComponentCopies } from '../../lib/utils/componentCopies.js'
-import { perfBench } from './harness/perfBench.ts'
+import {
+  assertMeanWithinCeiling,
+  deriveCeilingMs,
+  perfBench,
+} from './harness/perfBench.ts'
 import { sourceDirs } from './harness/sourceDirs.ts'
 
 // Cost rows of the resource delta copies (one copy per diff line, expanded
-// once per component). Ceilings are NOT set here: rows with no CI history
-// are seeded from one ubuntu CI run of this branch (perf-memory.json means),
-// never from a local number.
+// once per component).
 
 const FILES_2K = 2_000
 const FILES_10K = 10_000
 const TO = 'to-sha'
 const RESOURCES = 'force-app/main/default/staticresources'
+
+// Seeded from the first ubuntu-latest CI run of these rows (perf-memory.json
+// means): a developer-machine mean under-measures CI, so the ceilings come
+// from CI only and are re-derived from the gh-pages series once it holds more
+// runs.
+const WORST_MEAN_MS = {
+  'resource-copies-2k-files': 12.76,
+  'resource-copies-10k-files': 63.49,
+} as const
+
+type CeiledRow = keyof typeof WORST_MEAN_MS
 
 const metadata = await getDefinition({})
 
@@ -54,18 +67,27 @@ const buildLines = (fileCount: number): string[] =>
     (_, i) => `${MODIFICATION}${TAB}${RESOURCES}/Lib/f${i}.js`
   )
 
-const runRow = (name: string, fileCount: number) => {
+const runRow = (name: CeiledRow, fileCount: number) => {
   const trees = buildTrees(fileCount)
   const ctx = { config, metadata, trees, unions: NO_UNIONS }
   let lines: string[] = []
   describe(name, () => {
+    const elapsedMs: number[] = []
     perfBench(
       name,
       async () => {
+        const start = performance.now()
         const result = await new DiffLineInterpreter(ctx).process(lines)
         expandComponentCopies(result.copies, trees)
+        elapsedMs.push(performance.now() - start)
       },
       {
+        afterRun: () =>
+          assertMeanWithinCeiling(
+            name,
+            elapsedMs,
+            deriveCeilingMs(WORST_MEAN_MS[name])
+          ),
         beforeEach: () => {
           lines = buildLines(fileCount)
         },
