@@ -106,7 +106,6 @@ const commonDirectory = (paths: readonly string[]): string =>
     .join('/')
 
 type RelativeSide = Readonly<{
-  sorted: readonly string[]
   blobIds: ReadonlyMap<string, ObjectId | undefined>
 }>
 
@@ -120,10 +119,7 @@ const relativeSide = (
   const skip = NO_DIRECTORY.has(root) ? 0 : root.length + 1
   const byRelative = new Map<string, ObjectId | undefined>()
   for (const path of paths) byRelative.set(path.slice(skip), blobIds.get(path))
-  return {
-    sorted: paths.map(path => path.slice(skip)).sort(),
-    blobIds: byRelative,
-  }
+  return { blobIds: byRelative }
 }
 
 const sharedIdentity = (probes: readonly Probe[]): Identity | undefined => {
@@ -156,15 +152,11 @@ const sameSet = (
   return found.length === wanted.size && found.every(path => wanted.has(path))
 }
 
-const sameList = (left: readonly string[], right: readonly string[]): boolean =>
-  left.length === right.length &&
-  left.every((path, index) => path === right[index])
-
 const sameContent = (moved: MovedPaths, view: RevisionView): boolean => {
   const before = relativeSide(moved.deletions, view.from.blobIds)
   const after = relativeSide(moved.additions, view.to.blobIds)
   return (
-    sameList(before.sorted, after.sorted) &&
+    before.blobIds.size === after.blobIds.size &&
     [...before.blobIds].every(
       ([path, id]) => id !== undefined && id === after.blobIds.get(path)
     )
