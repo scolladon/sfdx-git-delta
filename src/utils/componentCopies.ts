@@ -15,12 +15,6 @@ export type FileCopyOperation = Exclude<
 
 type ExpandedPaths = Map<string, Set<string>>
 
-const REGEX_SPECIAL_CHARS = /[.*+?^${}()|[\]\\]/g
-const MATCHED_CHAR = '\\$&'
-
-const escapeRegex = (value: string): string =>
-  value.replace(REGEX_SPECIAL_CHARS, MATCHED_CHAR)
-
 const parentOf = (path: string): string =>
   path.substring(0, path.lastIndexOf(PATH_SEP))
 
@@ -38,17 +32,17 @@ const markExpanded = (
   expanded.set(revision, paths)
 }
 
+const isMemberOf =
+  (component: string) =>
+  (file: string): boolean =>
+    file.startsWith(`${component}${PATH_SEP}`) ||
+    file.startsWith(`${component}${DOT}`)
+
 const componentFiles = (
   trees: TreeReader,
   { revision, path }: GitComponentCopyOperation
-): string[] => {
-  const belongsToComponent = new RegExp(
-    `${escapeRegex(path)}[${PATH_SEP}${DOT}]`
-  )
-  return trees
-    .filesUnder(revision, parentOf(path))
-    .filter(file => belongsToComponent.test(file))
-}
+): string[] =>
+  trees.filesUnder(revision, parentOf(path)).filter(isMemberOf(path))
 
 const gitCopyOf = (path: string, revision: string): FileCopyOperation => ({
   kind: CopyOperationKind.GitCopy,

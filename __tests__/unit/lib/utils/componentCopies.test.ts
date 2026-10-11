@@ -126,8 +126,8 @@ describe('expandComponentCopies', () => {
     })
   })
 
-  describe('Given a name with a regex special char', () => {
-    it('When expanded, Then the char is escaped, not stripped', () => {
+  describe('Given a component name holding a dot', () => {
+    it('When expanded, Then the dot matches only itself', () => {
       // Arrange
       const trees = readerOf([
         `${ROOT}/my.Resource.resource-meta.xml`,
@@ -163,7 +163,7 @@ describe('expandComponentCopies', () => {
   })
 
   describe('Given a lookalike nested path', () => {
-    it('When expanded, Then the unanchored predicate copies it', () => {
+    it('When expanded, Then the nested path is not copied', () => {
       // Arrange
       const nested = `${ROOT}/Other/${ROOT}/Lib/x.js`
       const trees = readerOf([nested])
@@ -172,7 +172,38 @@ describe('expandComponentCopies', () => {
       const result = expandComponentCopies([request(`${ROOT}/Lib`)], trees)
 
       // Assert
-      expect(pathsOf(result)).toEqual([nested])
+      expect(pathsOf(result)).toEqual([])
+    })
+  })
+
+  describe('Given a file named exactly as the component', () => {
+    it('When expanded, Then it is not a member', () => {
+      // Arrange
+      const sut = expandComponentCopies
+      const trees = readerOf([`${ROOT}/Lib`])
+
+      // Act
+      const result = sut([request(`${ROOT}/Lib`)], trees)
+
+      // Assert
+      expect(pathsOf(result)).toEqual([])
+    })
+  })
+
+  describe('Given a dotted sibling folder', () => {
+    it('When the plain-named component is expanded, Then the folder files are copied', () => {
+      // Arrange
+      const sut = expandComponentCopies
+      const trees = readerOf([`${ROOT}/Lib/a.js`, `${ROOT}/Lib.v2/x.js`])
+
+      // Act
+      const result = sut([request(`${ROOT}/Lib`)], trees)
+
+      // Assert
+      expect(pathsOf(result)).toEqual([
+        `${ROOT}/Lib/a.js`,
+        `${ROOT}/Lib.v2/x.js`,
+      ])
     })
   })
 

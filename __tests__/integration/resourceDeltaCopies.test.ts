@@ -41,6 +41,10 @@ const LIBRARY = [
   at(`${STATIC}/Library/x.js`, 'x\n'),
   at(`${STATIC}/Library.resource-meta.xml`, RESOURCE_META),
 ] as const
+const LOOKALIKE = [
+  at(`${STATIC}/Other/${DEFAULT_ROOT}/${STATIC}/Lib/x.js`, 'x\n'),
+  at(`${STATIC}/Other.resource-meta.xml`, RESOURCE_META),
+] as const
 const LOGO = [
   at(`${STATIC}/Logo.png`, 'png\n'),
   at(`${STATIC}/Logo.resource-meta.xml`, RESOURCE_META),
@@ -142,6 +146,13 @@ const cases: readonly Case[] = [
   {
     title: 'a StaticResource beside a prefix-sharing sibling',
     base: [PROJECT, ...LIB, ...LIBRARY],
+    change: [edit(LIB_A)],
+    copiedAtTo: editedAtTo(LIB, [LIB_A]),
+    expected: LIB_PKG,
+  },
+  {
+    title: 'a StaticResource beside a lookalike nested path',
+    base: [PROJECT, ...LIB, ...LOOKALIKE],
     change: [edit(LIB_A)],
     copiedAtTo: editedAtTo(LIB, [LIB_A]),
     expected: LIB_PKG,
