@@ -178,7 +178,7 @@ const droppedDeletionsOf = (
 
 export const buildUnionSpec = (
   input: UnionSpecInput,
-  listing: UnionListing = listUnionCandidates(input, [input])
+  listing: UnionListing
 ): UnionSpec => {
   const fromPaths = candidates(input, listing.from).filter(path =>
     staysInEntry(input, path)

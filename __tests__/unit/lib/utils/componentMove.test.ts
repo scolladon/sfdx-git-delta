@@ -6,6 +6,7 @@ import type { MetadataRepository } from '../../../../src/metadata/MetadataReposi
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import { comparisonName } from '../../../../src/utils/comparisonName'
 import {
+  type Candidate,
   candidateOf,
   indexComponents,
   isKept,
@@ -14,7 +15,6 @@ import {
   type MoveEnv,
   type MoveGroup,
   movedPathsOf,
-  NO_COMPONENTS,
   type Probe,
   probesOf,
 } from '../../../../src/utils/componentMove'
@@ -237,19 +237,20 @@ describe('Given the pure component move checks', () => {
   })
 
   describe('indexComponents', () => {
-    it('When there is no candidate, Then the empty index is shared', () => {
+    it('When there is no candidate, Then nothing is indexed', () => {
       // Act
       const result = indexComponents([], sameBlobs, env)
 
       // Assert
-      expect(result).toBe(NO_COMPONENTS)
+      expect(result.from.size).toBe(0)
+      expect(result.to.size).toBe(0)
     })
 
-    it('When a candidate exists, Then ignored and out-of-source files are left out', () => {
+    it('When a candidate exists, Then ignored files are left out', () => {
       // Arrange
       const candidate = candidateOf(group, probesFor(group), sameBlobs, env)
       const view = viewOf(
-        { [OLD_CLS]: 'a1', [OLD_META]: 'b1', 'other/classes/Foo.cls': 'c1' },
+        { [OLD_CLS]: 'a1', [OLD_META]: 'b1' },
         { [NEW_CLS]: 'a1' }
       )
 
@@ -262,6 +263,26 @@ describe('Given the pure component move checks', () => {
       // Assert
       expect(result.from.get(group.name)).toEqual([OLD_CLS, OLD_META])
       expect(result.to.size).toBe(0)
+    })
+
+    it('When a candidate root holds a file outside the source, Then that file is left out', () => {
+      // Arrange
+      const outOfSource = `${NEW_DIR}/sub/Foo.cls`
+      const inSource = [OLD_CLS, OLD_META, NEW_CLS, NEW_META]
+      const candidate = candidateOf(group, probesFor(group), sameBlobs, env)
+      const view = viewOf(
+        { [OLD_CLS]: 'a1', [OLD_META]: 'b1' },
+        { [NEW_CLS]: 'a1', [NEW_META]: 'b1', [outOfSource]: 'c1' }
+      )
+
+      // Act
+      const result = indexComponents(candidate ? [candidate] : [], view, {
+        ...env,
+        source: inSource,
+      })
+
+      // Assert
+      expect(result.to.get(group.name)).toEqual([NEW_CLS, NEW_META])
     })
   })
 
@@ -314,6 +335,39 @@ describe('Given the pure component move checks', () => {
 
       // Assert
       expect(result).toBe(false)
+    })
+
+    it('When an unchanged same-named file sits under another candidate root, Then the component is still pure', () => {
+      // Arrange
+      const barOld = 'force-app/bar-old/classes/Bar.cls'
+      const barNew = 'force-app/bar-new/classes/Bar.cls'
+      const bystander = 'force-app/bar-new/classes/Foo.cls'
+      const bar = groupOf([barOld], [barNew])
+      const view = viewOf(
+        {
+          [OLD_CLS]: 'a1',
+          [OLD_META]: 'b1',
+          [barOld]: 'd1',
+          [bystander]: 'e1',
+        },
+        { [NEW_CLS]: 'a1', [NEW_META]: 'b1', [barNew]: 'd1', [bystander]: 'e1' }
+      )
+      const candidates = [group, bar].flatMap(moved => {
+        const found = candidateOf(moved, probesFor(moved), view, env)
+        return found ? [found] : []
+      })
+      const indexes = indexComponents(candidates, view, env)
+
+      // Act
+      const result = isPure(
+        group.name,
+        candidates[0] as Candidate,
+        view,
+        indexes
+      )
+
+      // Assert
+      expect(result).toBe(true)
     })
 
     it('When a sibling file of the component stayed behind, Then it is not pure', () => {

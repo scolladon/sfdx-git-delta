@@ -68,6 +68,18 @@ class ScanCountingMap extends Map<string, ObjectId> {
     return super.entries()
   }
 
+  override values(): MapIterator<ObjectId> {
+    this.onScan()
+    return super.values()
+  }
+
+  override forEach(
+    callback: (value: ObjectId, key: string, map: Map<string, ObjectId>) => void
+  ): void {
+    this.onScan()
+    super.forEach(callback)
+  }
+
   override [Symbol.iterator](): MapIterator<[string, ObjectId]> {
     this.onScan()
     return super[Symbol.iterator]()
@@ -276,18 +288,29 @@ describe('PureMoveResolver', () => {
   })
 
   describe('Given the revision view cannot load', () => {
-    it.each<[string, () => void]>([
+    const parseCause = (() => {
+      try {
+        JSON.parse('{nope')
+      } catch (error) {
+        return (error as Error).message
+      }
+      return ''
+    })()
+
+    it.each<[string, () => void, string]>([
       [
         'getBlobIds rejects',
         () => getBlobIds.mockRejectedValue(new Error('git exploded')),
+        'git exploded',
       ],
       [
         'sfdx-project.json is not JSON',
         () => getRootFileContent.mockResolvedValue('{nope'),
+        `Invalid sfdx-project.json: ${parseCause}`,
       ],
     ])(
       'When %s, Then lines are unchanged, checkSkipped is true and the cause is logged',
-      async (_title, setup) => {
+      async (_title, setup, cause) => {
         // Arrange
         setup()
         const sut = newSut()
@@ -297,7 +320,7 @@ describe('PureMoveResolver', () => {
 
         // Assert
         expect(result).toEqual({ lines, unions: NO_UNIONS, checkSkipped: true })
-        expect(Logger.debug).toHaveBeenCalled()
+        expect(debugMessages()).toContain(`Pure move check skipped: ${cause}`)
       }
     )
   })

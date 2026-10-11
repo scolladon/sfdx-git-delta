@@ -246,6 +246,53 @@ describe('pure-move-resolver-container-moves', () => {
   )
 })
 
+const FOLDER_FILES = 10_000
+
+const folderScenario = (): (() => Scenario) => {
+  let round = 0
+  return () => {
+    round += 1
+    const from = new Map<string, string>()
+    const to = new Map<string, string>()
+    const lines: string[] = []
+    const cancelled: DeferredDeletion[] = []
+    for (let index = 0; index < FOLDER_FILES; index++) {
+      const name = `Lib/f${index}.js`
+      const oldPath = `${OLD_ROOT}/staticresources/${name}`
+      const newPath = `${NEW_ROOT}/staticresources/${name}`
+      const deletion = `${DELETION}${TAB}${oldPath}`
+      from.set(oldPath, `s-${round}-${index}`)
+      to.set(newPath, `s-${round}-${index}`)
+      // Probing every addition too would push the row past the bench timeout;
+      // the cost under test is the grouping of the cancelled deletions.
+      if (index === 0) lines.push(`${ADDITION}${TAB}${newPath}`)
+      cancelled.push({
+        line: deletion,
+        name: comparisonName(metadata, deletion),
+      })
+    }
+    return { lines, cancelled, from, to }
+  }
+}
+
+describe('pure-move-resolver-folder-component', () => {
+  const nextRound = folderScenario()
+  let scenario: Scenario
+  let sut: PureMoveResolver
+  perfBench(
+    'one-folder-component-10k-files-moved',
+    async () => {
+      await sut.resolve(scenario.lines, scenario.cancelled)
+    },
+    {
+      beforeEach: () => {
+        scenario = nextRound()
+        sut = new PureMoveResolver(contextOf(baseConfig), portsOf(scenario))
+      },
+    }
+  )
+})
+
 const REPO_ROOT = await createTempDir('sgd-bench-labels-union-')
 const refs = buildLabelsUnionRepo(REPO_ROOT, LABELS_FILES, LABELS_PER_FILE)
 

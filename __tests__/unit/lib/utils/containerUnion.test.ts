@@ -91,8 +91,8 @@ describe('Given containerUnion path rules', () => {
       blobIds: new Map(paths.map(path => [path, OBJECT_ID])),
     })
 
-    const specOf = (overrides: Partial<UnionSpecInput> = {}) =>
-      buildUnionSpec({
+    const specOf = (overrides: Partial<UnionSpecInput> = {}) => {
+      const input: UnionSpecInput = {
         scope: LABELS_UNION_SCOPE,
         entry: ENTRY,
         listingRoots: [],
@@ -103,7 +103,9 @@ describe('Given containerUnion path rules', () => {
         to: sideOf([IN_A, IN_B, IN_OTHER_ENTRY, OUT_OF_SOURCE]),
         lines: [],
         ...overrides,
-      })
+      }
+      return buildUnionSpec(input, listUnionCandidates(input, [input]))
+    }
 
     it('When labels sit in two directories of one entry, Then both are bases and shields and other entries and out-of-source files are excluded', () => {
       // Act
@@ -206,6 +208,14 @@ describe('Given containerUnion path rules', () => {
 
       // Assert
       expect(result.droppedDeletions).toEqual([`D\t${IN_A}`])
+    })
+
+    it('When a base file also carries an M line, Then only its D lines are dropped', () => {
+      // Act
+      const result = specOf({ lines: [`M\t${IN_A}`, `D\t${IN_B}`] })
+
+      // Assert
+      expect(result.droppedDeletions).toEqual([`D\t${IN_B}`])
     })
 
     it('When several D lines target base files, Then they are dropped in the order of the input lines', () => {

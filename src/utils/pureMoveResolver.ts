@@ -140,11 +140,16 @@ export default class PureMoveResolver {
       string,
       { name: string; deletions: string[]; additions: string[] }
     >()
+    // A line determines its name, so one set de-duplicates across groups.
+    const seen = new Set<string>()
     for (const { line, name } of cancelled) {
       const group = groups.get(name) ?? { name, deletions: [], additions: [] }
-      // A source copied to several destinations is reported once per
+      // Rename detection may report one deleted source once per identical
       // destination, yet it is one deleted file.
-      if (!group.deletions.includes(line)) group.deletions.push(line)
+      if (!seen.has(line)) {
+        seen.add(line)
+        group.deletions.push(line)
+      }
       groups.set(name, group)
     }
     for (const line of lines) {
@@ -263,20 +268,21 @@ export default class PureMoveResolver {
     return mergeResults(results)
   }
 
-  private async diffEntry(
+  private specOf(
     target: UnionTarget,
     { lines, view, env, listing }: DiffContext
-  ): Promise<UnionResult> {
-    const spec = buildUnionSpec(
-      {
-        ...target,
-        ...env,
-        from: view.from,
-        to: view.to,
-        lines,
-      },
+  ) {
+    return buildUnionSpec(
+      { ...target, ...env, from: view.from, to: view.to, lines },
       listing
     )
+  }
+
+  private async diffEntry(
+    target: UnionTarget,
+    context: DiffContext
+  ): Promise<UnionResult> {
+    const spec = this.specOf(target, context)
     const label = `${target.scope} in ${String(target.entry)}`
     try {
       const outcomes = await this.unionDiff.runUnion(spec)

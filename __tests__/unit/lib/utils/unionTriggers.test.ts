@@ -88,6 +88,22 @@ describe('Given the union triggers of moved containers', () => {
       expect(result).toEqual([])
     })
 
+    it('When only some probes compare elements, Then one trigger is built', () => {
+      // Arrange
+      const group = groupOf([OLD_LABELS], [NEW_LABELS])
+      const probes = probesFor(group)
+      probes.set(group.additions[0] as string, {
+        ...comparing,
+        comparesElements: false,
+      })
+
+      // Act
+      const result = triggersOf(group, probes, view, env)
+
+      // Assert
+      expect(result).toHaveLength(1)
+    })
+
     it('When a line was not probed, Then there is no trigger', () => {
       // Arrange
       const group = groupOf([OLD_LABELS], [NEW_LABELS])
