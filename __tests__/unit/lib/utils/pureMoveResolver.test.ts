@@ -753,11 +753,13 @@ describe('PureMoveResolver', () => {
 
       // Assert
       expect(runUnion).toHaveBeenCalledTimes(2)
-      const entries = runUnion.mock.calls.map(([spec]) => spec)
-      expect(entries).toContainEqual(
-        expect.objectContaining({ entry: 'force-app' })
+      const specs = runUnion.mock.calls.map(([spec]) => spec)
+      expect(specs).toContainEqual(
+        expect.objectContaining({ shieldPaths: [LABELS_NEW] })
       )
-      expect(entries).toContainEqual(expect.objectContaining({ entry: null }))
+      expect(specs).toContainEqual(
+        expect.objectContaining({ shieldPaths: [OUTSIDE_NEW] })
+      )
     })
 
     it('When the files live outside their type directory, Then no spec is built', async () => {

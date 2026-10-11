@@ -1,4 +1,5 @@
 'use strict'
+import { ObjectId } from '@scolladon/tsgit'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 import type { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
@@ -13,6 +14,7 @@ import {
 } from '../../../../src/utils/containerUnion'
 import { SfdxProject } from '../../../../src/utils/sfdxProject'
 
+const OBJECT_ID = ObjectId.from('a'.repeat(40))
 const LABELS = 'force-app/a/labels/CustomLabels.labels-meta.xml'
 const OTHER_LABELS = 'force-app/b/labels/Other.labels-meta.xml'
 const DECOMPOSED = 'force-app/a/labels/D1.label-meta.xml'
@@ -85,7 +87,7 @@ describe('Given containerUnion path rules', () => {
     const SOURCE = ['force-app/a', 'force-app/b', 'other-app']
     const sideOf = (paths: readonly string[]) => ({
       project: PROJECT,
-      blobIds: new Map(paths.map(path => [path, 'id'])),
+      blobIds: new Map(paths.map(path => [path, OBJECT_ID])),
     })
 
     const specOf = (overrides: Partial<UnionSpecInput> = {}) =>
@@ -108,7 +110,6 @@ describe('Given containerUnion path rules', () => {
 
       // Assert
       expect(result).toEqual({
-        entry: ENTRY,
         additionBasePaths: [IN_A, IN_B],
         deletionBasePaths: [IN_A, IN_B],
         shieldPaths: [IN_A, IN_B],

@@ -1,0 +1,241 @@
+'use strict'
+import { dirname, posix } from 'node:path'
+
+import type { ObjectId } from '@scolladon/tsgit'
+
+import { buildScopeMatcher } from '../adapter/pathMatching.js'
+import type { MetadataRepository } from '../metadata/MetadataRepository.js'
+import { comparisonName } from './comparisonName.js'
+import { additionLineOf, pathOfLine } from './gitLine.js'
+import type { IgnoreHelper } from './ignoreHelper.js'
+import {
+  type BlobIds,
+  entryOf,
+  groupBy,
+  type RevisionView,
+} from './revisionSide.js'
+import { componentListingRoot } from './treeIndexScope.js'
+
+export type Probe = Readonly<{
+  type: string
+  member: string
+  comparesElements: boolean
+}>
+
+export type MoveGroup = Readonly<{
+  name: string
+  deletions: readonly string[]
+  additions: readonly string[]
+}>
+
+export type MovedPaths = Pick<MoveGroup, 'deletions' | 'additions'>
+
+export type Candidate = Readonly<{
+  moved: MovedPaths
+  roots: readonly string[]
+  label: string
+}>
+
+export type MoveEnv = Readonly<{
+  metadata: MetadataRepository
+  source: readonly string[]
+  ignore: Pick<IgnoreHelper, 'keep'>
+}>
+
+type ComponentIndex = ReadonlyMap<string, readonly string[]>
+
+export type ComponentIndexes = Readonly<{
+  from: ComponentIndex
+  to: ComponentIndex
+}>
+
+type Identity = Pick<Probe, 'type' | 'member'>
+
+export const NO_COMPONENTS: ComponentIndexes = {
+  from: new Map(),
+  to: new Map(),
+}
+
+export const movedPathsOf = (group: MoveGroup): MovedPaths => ({
+  deletions: group.deletions.map(pathOfLine),
+  additions: group.additions.map(pathOfLine),
+})
+
+export const probesOf = (
+  group: MoveGroup,
+  probes: ReadonlyMap<string, Probe>
+): readonly Probe[] | undefined => {
+  const found: Probe[] = []
+  for (const line of [...group.deletions, ...group.additions]) {
+    const probe = probes.get(line)
+    if (!probe) return undefined
+    found.push(probe)
+  }
+  return found
+}
+
+export const isKept = (
+  path: string,
+  ignore: Pick<IgnoreHelper, 'keep'>
+): boolean => ignore.keep(additionLineOf(path))
+
+export const listingRoots = (
+  moved: MovedPaths,
+  metadata: MetadataRepository
+): readonly string[] | undefined => {
+  const roots: string[] = []
+  for (const path of [...moved.deletions, ...moved.additions]) {
+    const root = componentListingRoot(path, metadata)
+    if (root === null) return undefined
+    roots.push(root)
+  }
+  return roots
+}
+
+const commonDirectory = (paths: readonly string[]): string =>
+  paths
+    .map(path => dirname(path).split('/'))
+    .reduce((shared, segments) =>
+      shared.filter((segment, index) => segments[index] === segment)
+    )
+    .join('/')
+
+const relativePaths = (paths: readonly string[]): readonly string[] => {
+  const root = commonDirectory(paths)
+  return paths.map(path => posix.relative(root, path)).sort()
+}
+
+const blobIdsByRelativePath = (
+  paths: readonly string[],
+  blobIds: BlobIds
+): ReadonlyMap<string, ObjectId | undefined> => {
+  const root = commonDirectory(paths)
+  return new Map(
+    paths.map(path => [posix.relative(root, path), blobIds.get(path)])
+  )
+}
+
+const sharedIdentity = (probes: readonly Probe[]): Identity | undefined => {
+  const [first, ...rest] = probes
+  if (!first) return undefined
+  const { type, member } = first
+  const shared = rest.every(
+    probe => probe.type === type && probe.member === member
+  )
+  return shared ? { type, member } : undefined
+}
+
+const sameEntry = (moved: MovedPaths, view: RevisionView): boolean => {
+  const entries = new Set([
+    ...moved.deletions.map(path => entryOf(view.from, path)),
+    ...moved.additions.map(path => entryOf(view.to, path)),
+  ])
+  return entries.size === 1
+}
+
+const sameSet = (
+  found: readonly string[],
+  expected: readonly string[]
+): boolean => {
+  const wanted = new Set(expected)
+  return found.length === wanted.size && found.every(path => wanted.has(path))
+}
+
+const sameList = (left: readonly string[], right: readonly string[]): boolean =>
+  left.length === right.length &&
+  left.every((path, index) => path === right[index])
+
+const sameContent = (moved: MovedPaths, view: RevisionView): boolean => {
+  const before = blobIdsByRelativePath(moved.deletions, view.from.blobIds)
+  const after = blobIdsByRelativePath(moved.additions, view.to.blobIds)
+  return (
+    sameList(relativePaths(moved.deletions), relativePaths(moved.additions)) &&
+    [...before].every(
+      ([path, id]) => id !== undefined && id === after.get(path)
+    )
+  )
+}
+
+const isComplete = (
+  name: string,
+  { moved, roots }: Candidate,
+  indexes: ComponentIndexes
+): boolean => {
+  const inRoots = buildScopeMatcher(roots)
+  const listed = (index: ComponentIndex): readonly string[] =>
+    (index.get(name) ?? []).filter(inRoots)
+  return (
+    sameSet(listed(indexes.from), moved.deletions) &&
+    sameSet(listed(indexes.to), moved.additions)
+  )
+}
+
+export const isPure = (
+  name: string,
+  candidate: Candidate,
+  view: RevisionView,
+  indexes: ComponentIndexes
+): boolean =>
+  isComplete(name, candidate, indexes) && sameContent(candidate.moved, view)
+
+export const candidateOf = (
+  group: MoveGroup,
+  probes: ReadonlyMap<string, Probe>,
+  view: RevisionView,
+  env: MoveEnv
+): Candidate | undefined => {
+  const known = probesOf(group, probes)
+  if (!known || known.some(probe => probe.comparesElements)) return undefined
+  const identity = sharedIdentity(known)
+  if (!identity) return undefined
+  const moved = movedPathsOf(group)
+  if (!moved.deletions.every(path => isKept(path, env.ignore))) {
+    return undefined
+  }
+  if (!sameEntry(moved, view)) return undefined
+  const roots = listingRoots(moved, env.metadata)
+  const label = `${identity.type}:${identity.member}`
+  return roots ? { moved, roots, label } : undefined
+}
+
+type SideScope = Readonly<{
+  inSource: (path: string) => boolean
+  inCandidateRoots: (path: string) => boolean
+}>
+
+const indexSide = (
+  blobIds: BlobIds,
+  env: MoveEnv,
+  scope: SideScope
+): ComponentIndex => {
+  const isIndexed = (path: string): boolean => {
+    const line = additionLineOf(path)
+    return (
+      scope.inSource(path) && env.metadata.has(line) && env.ignore.keep(line)
+    )
+  }
+  const paths = [...blobIds.keys()]
+    .filter(scope.inCandidateRoots)
+    .filter(isIndexed)
+  return groupBy(paths, path =>
+    comparisonName(env.metadata, additionLineOf(path))
+  )
+}
+
+export const indexComponents = (
+  candidates: readonly Candidate[],
+  view: RevisionView,
+  env: MoveEnv
+): ComponentIndexes => {
+  if (candidates.length === 0) return NO_COMPONENTS
+  const scope: SideScope = {
+    inSource: buildScopeMatcher(env.source),
+    inCandidateRoots: buildScopeMatcher(
+      candidates.flatMap(candidate => candidate.roots)
+    ),
+  }
+  return {
+    from: indexSide(view.from.blobIds, env, scope),
+    to: indexSide(view.to.blobIds, env, scope),
+  }
+}

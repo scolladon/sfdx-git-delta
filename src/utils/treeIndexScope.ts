@@ -1,6 +1,5 @@
 'use strict'
 import { PATH_SEP } from '../constant/fsConstants.js'
-import { GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
 import {
   CONTENT_CONTAINER_ADAPTERS,
   DASHBOARD_TYPE,
@@ -10,6 +9,7 @@ import {
 } from '../constant/metadataConstants.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Metadata } from '../types/metadata.js'
+import { pathOfLine } from './gitLine.js'
 
 const TREE_INDEX_XML_NAMES = new Set([
   OBJECT_TYPE,
@@ -67,7 +67,7 @@ const scopeForLine = (
   line: string,
   metadata: MetadataRepository
 ): string | null => {
-  const path = line.replace(GIT_DIFF_TYPE_REGEX, '')
+  const path = pathOfLine(line)
   const indexedType = indexedTypeOf(path, metadata)
   if (!indexedType || !needsTreeIndex(indexedType)) return null
 

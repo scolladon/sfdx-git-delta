@@ -14,11 +14,7 @@ import { getWork } from '../../../../__utils__/testWork'
 
 const mockGetStringContent =
   vi.fn<(ref: { path: string; oid: string }) => Promise<string>>()
-vi.mock('../../../../../src/adapter/GitAdapter', () => ({
-  default: {
-    getInstance: () => ({ getStringContent: mockGetStringContent }),
-  },
-}))
+const reader = { getStringContent: mockGetStringContent }
 
 const XML_HEADER = `<?xml version="1.0" encoding="UTF-8"?>`
 const NAMESPACE = `xmlns="http://soap.sforce.com/2006/04/metadata"`
@@ -68,7 +64,7 @@ describe('MetadataDiff.runUnion', () => {
     // Arrange
     const xml = labelsFile(label('A1'), label('A2'))
     serve({ [`${FROM}:base.xml`]: xml, [`${TO}:member.xml`]: xml })
-    const sut = new MetadataDiff(work.config, inFileAttributes)
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
 
     // Act
     const result = await sut.runUnion(input())
@@ -88,7 +84,7 @@ describe('MetadataDiff.runUnion', () => {
       [`${TO}:m1.xml`]: labelsFile(label('A1')),
       [`${TO}:m2.xml`]: labelsFile(label('A1')),
     })
-    const sut = new MetadataDiff(work.config, inFileAttributes)
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
 
     // Act
     const result = await sut.runUnion(
@@ -111,7 +107,7 @@ describe('MetadataDiff.runUnion', () => {
       [`${TO}:m1.xml`]: labelsFile(label('A1')),
       [`${TO}:m2.xml`]: labelsFile(label('Moved')),
     })
-    const sut = new MetadataDiff(work.config, inFileAttributes)
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
 
     // Act
     const result = await sut.runUnion(
@@ -133,7 +129,7 @@ describe('MetadataDiff.runUnion', () => {
       [`${FROM}:extra.xml`]: labelsFile(label('Extra')),
       [`${TO}:member.xml`]: labelsFile(label('A1')),
     })
-    const sut = new MetadataDiff(work.config, inFileAttributes)
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
 
     // Act
     const result = await sut.runUnion(
@@ -158,7 +154,7 @@ describe('MetadataDiff.runUnion', () => {
       if (path === 'a.xml') await new Promise(r => setTimeout(r, 20))
       return files[`${oid}:${path}`] ?? ''
     })
-    const sut = new MetadataDiff(work.config, inFileAttributes)
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
 
     // Act
     const result = await sut.runUnion(
@@ -181,7 +177,7 @@ describe('MetadataDiff.runUnion', () => {
       [`${TO}:m1.xml`]: xml,
       [`${TO}:m2.xml`]: xml,
     })
-    const sut = new MetadataDiff(work.config, inFileAttributes)
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
 
     // Act
     await sut.runUnion(
@@ -213,7 +209,7 @@ describe('MetadataDiff.runUnion', () => {
       [`${FROM}:base.xml`]: labelsFile(label('A1', 'old')),
       [`${TO}:member.xml`]: labelsFile(label('A1', 'new')),
     })
-    const sut = new MetadataDiff(work.config, inFileAttributes)
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
 
     // Act
     const result = await sut.runUnion(input())
@@ -230,7 +226,7 @@ describe('MetadataDiff.runUnion', () => {
       [`${TO}:member.xml`]: labelsFile(label('A1', 'new')),
       [`${TO}:shield.xml`]: labelsFile(label('A1', 'old')),
     })
-    const sut = new MetadataDiff(work.config, inFileAttributes)
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
 
     // Act
     const result = await sut.runUnion(
@@ -248,7 +244,7 @@ describe('MetadataDiff.runUnion', () => {
       [`${FROM}:base.xml`]: labelsFile(label('A1')),
       [`${TO}:member.xml`]: '',
     })
-    const sut = new MetadataDiff(work.config, inFileAttributes)
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
 
     // Act
     const result = await sut.runUnion(input())
@@ -266,7 +262,7 @@ describe('MetadataDiff.runUnion', () => {
       [`${FROM}:base.xml`]: '<CustomLabels></></CustomLabels>',
       [`${TO}:member.xml`]: labelsFile(label('A1')),
     })
-    const sut = new MetadataDiff(work.config, inFileAttributes)
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
 
     // Act
     const result = await sut.runUnion(input())
@@ -281,7 +277,7 @@ describe('MetadataDiff.runUnion', () => {
       [`${FROM}:base.xml`]: labelsFile(label('A1')),
       [`${TO}:member.xml`]: '<CustomLabels><labels><fullName>',
     })
-    const sut = new MetadataDiff(work.config, inFileAttributes)
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
 
     // Act
     const act = sut.runUnion(input())
@@ -293,7 +289,7 @@ describe('MetadataDiff.runUnion', () => {
   it('Given a git read failure, When runUnion runs, Then it rejects', async () => {
     // Arrange
     serve({ [`${FROM}:base.xml`]: labelsFile(label('A1')) })
-    const sut = new MetadataDiff(work.config, inFileAttributes)
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
 
     // Act
     const act = sut.runUnion(input())

@@ -37,6 +37,8 @@ export type UnionDiffInput = Readonly<{
   memberPaths: readonly string[]
 }>
 
+type ReaderPort = Pick<GitAdapter, 'getStringContent'>
+
 type RecordedElement = readonly [string, XmlContent]
 
 const entryKey = (entry: CompareEntry): string =>
@@ -59,6 +61,23 @@ const commonEntries = (
   return first.filter(entry => others.every(keys => keys.has(entryKey(entry))))
 }
 
+const outcomeOf = (
+  engine: StreamingDiff,
+  rootCapture: RootCapture | null
+): DiffOutcome => {
+  const outcome = engine.finalize()
+  const writer = engine.buildWriter(rootCapture)
+  return {
+    manifests: {
+      added: outcome.added,
+      modified: outcome.modified,
+      deleted: outcome.deleted,
+    },
+    hasPackageContent: outcome.hasPackageContent,
+    ...(writer ? { writer } : {}),
+  }
+}
+
 /**
  * Streaming metadata diff engine. `run(path)` parses both revisions of
  * the given file via the streaming xmlEventReader, runs the two-pass
@@ -68,7 +87,8 @@ const commonEntries = (
 export default class MetadataDiff {
   constructor(
     private readonly config: Config,
-    private readonly inFileAttributes: Map<string, SharedFileMetadata>
+    private readonly inFileAttributes: Map<string, SharedFileMetadata>,
+    private readonly reader: ReaderPort = GitAdapter.getInstance(config)
   ) {}
 
   @log
@@ -102,17 +122,7 @@ export default class MetadataDiff {
     const rootCapture: RootCapture | null = toSource
       ? await parseToSidePropagating(toSource, engine.onToElement)
       : null
-    const outcome = engine.finalize()
-    const writer = engine.buildWriter(rootCapture)
-    return {
-      manifests: {
-        added: outcome.added,
-        modified: outcome.modified,
-        deleted: outcome.deleted,
-      },
-      hasPackageContent: outcome.hasPackageContent,
-      ...(writer ? { writer } : {}),
-    }
+    return outcomeOf(engine, rootCapture)
   }
 
   @log
@@ -120,16 +130,10 @@ export default class MetadataDiff {
     const recorded = await this._readBase(input.additionBasePaths)
     const deletable = this._deletableKeys(recorded, input.deletionBasePaths)
     const members = new Set(input.memberPaths)
-    const outcomes = new Map<string, DiffOutcome>()
-    await eachLimit(
+    const outcomes = await this._diffShieldFiles(
       input.shieldPaths,
-      getConcurrencyThreshold(),
-      async path => {
-        outcomes.set(
-          path,
-          await this._diffShieldFile(path, recorded, members.has(path))
-        )
-      }
+      members,
+      recorded
     )
     const deleted = commonEntries(
       [...outcomes.values()].map(outcome => outcome.manifests.deleted)
@@ -144,13 +148,35 @@ export default class MetadataDiff {
     )
   }
 
+  private async _diffShieldFiles(
+    shieldPaths: readonly string[],
+    members: ReadonlySet<string>,
+    recorded: ReadonlyMap<string, readonly RecordedElement[]>
+  ): Promise<Map<string, DiffOutcome>> {
+    const outcomes = new Map<string, DiffOutcome>()
+    await eachLimit(shieldPaths, getConcurrencyThreshold(), async path => {
+      const engine = members.has(path)
+        ? this._memberEngine()
+        : this._shieldOnlyEngine()
+      outcomes.set(path, await this._diffShieldFile(path, recorded, engine))
+    })
+    return outcomes
+  }
+
+  private _memberEngine(): StreamingDiff {
+    return new StreamingDiff(this.inFileAttributes, this.config.generateDelta)
+  }
+
+  private _shieldOnlyEngine(): StreamingDiff {
+    return new StreamingDiff(this.inFileAttributes, false)
+  }
+
   private async _readBase(
     paths: readonly string[]
   ): Promise<Map<string, RecordedElement[]>> {
     const recorded = new Map<string, RecordedElement[]>()
-    const gitAdapter = GitAdapter.getInstance(this.config)
     await eachLimit(paths, getConcurrencyThreshold(), async path => {
-      const source = await gitAdapter.getStringContent({
+      const source = await this.reader.getStringContent({
         path,
         oid: this.config.from,
       })
@@ -180,29 +206,16 @@ export default class MetadataDiff {
   private async _diffShieldFile(
     path: string,
     recorded: ReadonlyMap<string, readonly RecordedElement[]>,
-    emits: boolean
+    engine: StreamingDiff
   ): Promise<DiffOutcome> {
-    const engine = new StreamingDiff(
-      this.inFileAttributes,
-      this.config.generateDelta && emits
-    )
     for (const elements of recorded.values()) replay(engine, elements)
-    const toSource = await GitAdapter.getInstance(this.config).getStringContent(
-      { path, oid: this.config.to }
-    )
+    const toSource = await this.reader.getStringContent({
+      path,
+      oid: this.config.to,
+    })
     const rootCapture: RootCapture | null = toSource
       ? await parseToSidePropagating(toSource, engine.onToElement)
       : null
-    const outcome = engine.finalize()
-    const writer = engine.buildWriter(rootCapture)
-    return {
-      manifests: {
-        added: outcome.added,
-        modified: outcome.modified,
-        deleted: outcome.deleted,
-      },
-      hasPackageContent: outcome.hasPackageContent,
-      ...(writer ? { writer } : {}),
-    }
+    return outcomeOf(engine, rootCapture)
   }
 }

@@ -1,11 +1,7 @@
 'use strict'
 
-import { dirname, posix } from 'node:path'
-
 import type GitAdapter from '../adapter/GitAdapter.js'
-import { buildScopeMatcher } from '../adapter/pathMatching.js'
-import { TAB } from '../constant/cliConstants.js'
-import { ADDITION, GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
+import { ADDITION } from '../constant/gitConstants.js'
 import { getInFileAttributes } from '../metadata/metadataManager.js'
 import TypeHandlerFactory from '../service/typeHandlerFactory.js'
 import {
@@ -14,27 +10,36 @@ import {
   type UnionOutcomes,
 } from '../types/runContext.js'
 import { comparisonName } from './comparisonName.js'
+import {
+  type Candidate,
+  candidateOf,
+  indexComponents,
+  isPure,
+  type MoveEnv,
+  type MoveGroup,
+  type Probe,
+} from './componentMove.js'
 import { eachLimit } from './concurrency/index.js'
 import { getConcurrencyThreshold } from './concurrencyUtils.js'
 import {
   buildUnionSpec,
   listUnionCandidates,
-  type RevisionSide,
   type UnionListing,
-  unionScopeOf,
 } from './containerUnion.js'
 import { getErrorMessage } from './errorUtils.js'
-import { buildIgnoreHelper, type IgnoreHelper } from './ignoreHelper.js'
+import { buildIgnoreHelper } from './ignoreHelper.js'
 import { log } from './LoggingDecorator.js'
 import { Logger, lazy } from './LoggingService.js'
 import MetadataDiff, { type DiffOutcome } from './metadataDiff/index.js'
 import type { DeferredDeletion } from './repoGitDiff.js'
+import { type RevisionSide, type RevisionView } from './revisionSide.js'
+import { loadSfdxProject } from './sfdxProject.js'
 import {
-  loadSfdxProject,
-  type PackageDirectoryKey,
-  type SfdxProject,
-} from './sfdxProject.js'
-import { componentListingRoot } from './treeIndexScope.js'
+  toUnionTargets,
+  triggersOf,
+  type UnionTarget,
+  type UnionTrigger,
+} from './unionTriggers.js'
 
 export type MoveResolution = Readonly<{
   lines: readonly string[]
@@ -44,126 +49,31 @@ export type MoveResolution = Readonly<{
 
 export type MovePorts = Pick<GitAdapter, 'getBlobIds' | 'getRootFileContent'>
 
-type BlobIds = RevisionSide['blobIds']
-
 export type UnionDiffPort = Pick<MetadataDiff, 'runUnion'>
 
-type Probe = Readonly<{
-  type: string
-  member: string
-  comparesElements: boolean
-}>
-
-type MoveGroup = Readonly<{
-  name: string
-  deletions: readonly string[]
-  additions: readonly string[]
-}>
-
-type MovedPaths = Pick<MoveGroup, 'deletions' | 'additions'>
-
-type RevisionView = Readonly<{ from: RevisionSide; to: RevisionSide }>
-
-type ComponentIndex = ReadonlyMap<string, readonly string[]>
-
-type ComponentIndexes = Readonly<{ from: ComponentIndex; to: ComponentIndex }>
-
-type Candidate = Readonly<{ moved: MovedPaths; roots: readonly string[] }>
-
-const NO_COMPONENTS: ComponentIndexes = { from: new Map(), to: new Map() }
-
-type UnionTriggers = Map<string, Map<PackageDirectoryKey, Set<string>>>
-
 type Judgement = Readonly<{
-  dropped: Set<string>
-  triggers: UnionTriggers
-}>
-
-type UnionTarget = Readonly<{
-  scope: string
-  entry: PackageDirectoryKey
-  listingRoots: readonly string[]
+  dropped: ReadonlySet<string>
+  triggers: readonly UnionTrigger[]
 }>
 
 type UnionResult = Readonly<{
-  outcomes: Map<string, DiffOutcome>
-  dropped: Set<string>
+  outcomes: ReadonlyMap<string, DiffOutcome>
+  dropped: ReadonlySet<string>
 }>
 
-const groupByEntry = (
-  paths: readonly string[],
-  project: SfdxProject
-): ReadonlyMap<PackageDirectoryKey, readonly string[]> => {
-  const grouped = new Map<PackageDirectoryKey, string[]>()
-  for (const path of paths) {
-    const entry = project.packageDirectoryOf(path)
-    const bucket = grouped.get(entry) ?? []
-    bucket.push(path)
-    grouped.set(entry, bucket)
-  }
-  return grouped
-}
+type DiffContext = Readonly<{
+  lines: readonly string[]
+  view: RevisionView
+  env: MoveEnv
+  listing: UnionListing
+}>
 
-const pathOf = (line: string): string => line.replace(GIT_DIFF_TYPE_REGEX, '')
+const NO_RESULT: UnionResult = { outcomes: new Map(), dropped: new Set() }
 
-const commonDirectory = (paths: readonly string[]): string =>
-  paths
-    .map(path => dirname(path).split('/'))
-    .reduce((shared, segments) =>
-      shared.filter((segment, index) => segments[index] === segment)
-    )
-    .join('/')
-
-const relativePaths = (paths: readonly string[]): readonly string[] => {
-  const root = commonDirectory(paths)
-  return paths.map(path => posix.relative(root, path)).sort()
-}
-
-const blobIdsByRelativePath = (
-  paths: readonly string[],
-  blobIds: BlobIds
-): ReadonlyMap<string, unknown> => {
-  const root = commonDirectory(paths)
-  return new Map(
-    paths.map(path => [posix.relative(root, path), blobIds.get(path)])
-  )
-}
-
-const sameIdentity = (probes: readonly Probe[]): boolean =>
-  probes.every(
-    probe =>
-      probe.type === probes[0]!.type && probe.member === probes[0]!.member
-  )
-
-const sameEntry = (group: MovedPaths, view: RevisionView): boolean => {
-  const entries = new Set([
-    ...group.deletions.map(path => view.from.project.packageDirectoryOf(path)),
-    ...group.additions.map(path => view.to.project.packageDirectoryOf(path)),
-  ])
-  return entries.size === 1
-}
-
-const sameSet = (
-  found: readonly string[],
-  expected: readonly string[]
-): boolean => {
-  const wanted = new Set(expected)
-  return found.length === wanted.size && found.every(path => wanted.has(path))
-}
-
-const sameContent = (group: MovedPaths, view: RevisionView): boolean => {
-  const before = blobIdsByRelativePath(group.deletions, view.from.blobIds)
-  const after = blobIdsByRelativePath(group.additions, view.to.blobIds)
-  const sameShape =
-    relativePaths(group.deletions).join('\0') ===
-    relativePaths(group.additions).join('\0')
-  return (
-    sameShape &&
-    [...before].every(
-      ([path, id]) => id !== undefined && id === after.get(path)
-    )
-  )
-}
+const mergeResults = (results: readonly UnionResult[]): UnionResult => ({
+  outcomes: new Map(results.flatMap(result => [...result.outcomes])),
+  dropped: new Set(results.flatMap(result => [...result.dropped])),
+})
 
 export default class PureMoveResolver {
   private readonly factory: TypeHandlerFactory
@@ -188,30 +98,37 @@ export default class PureMoveResolver {
       return { lines, unions: NO_UNIONS, checkSkipped: false }
     }
     try {
-      const [view, ignoreHelper] = await Promise.all([
-        this.loadView(),
-        buildIgnoreHelper(this.ctx.config),
-      ])
-      const groups = this.groupMoves(lines, cancelled)
-      const probes = await this.probeAll(groups)
-      const judged = this.judge(groups, probes, view, ignoreHelper)
-      const unions = await this.diffUnions(
-        judged.triggers,
-        lines,
-        view,
-        ignoreHelper
-      )
-      const dropped = new Set([...judged.dropped, ...unions.dropped])
-      return {
-        lines: lines.filter(line => !dropped.has(line)),
-        unions: unions.outcomes,
-        checkSkipped: false,
-      }
+      return await this.suppress(lines, cancelled)
     } catch (error) {
       Logger.debug(
         lazy`Pure move check skipped: ${() => getErrorMessage(error)}`
       )
       return { lines, unions: NO_UNIONS, checkSkipped: true }
+    }
+  }
+
+  private async suppress(
+    lines: readonly string[],
+    cancelled: readonly DeferredDeletion[]
+  ): Promise<MoveResolution> {
+    const [view, ignore] = await Promise.all([
+      this.loadView(),
+      buildIgnoreHelper(this.ctx.config),
+    ])
+    const env: MoveEnv = {
+      metadata: this.ctx.metadata,
+      source: this.ctx.config.source,
+      ignore,
+    }
+    const groups = this.groupMoves(lines, cancelled)
+    const probes = await this.probeAll(groups)
+    const judged = this.judge(groups, probes, view, env)
+    const unions = await this.diffUnions(judged.triggers, { lines, view, env })
+    const dropped = new Set([...judged.dropped, ...unions.dropped])
+    return {
+      lines: lines.filter(line => !dropped.has(line)),
+      unions: unions.outcomes,
+      checkSkipped: false,
     }
   }
 
@@ -251,155 +168,6 @@ export default class PureMoveResolver {
     return { project, blobIds }
   }
 
-  private judge(
-    groups: readonly MoveGroup[],
-    probes: ReadonlyMap<string, Probe>,
-    view: RevisionView,
-    ignoreHelper: IgnoreHelper
-  ): Judgement {
-    const dropped = new Set<string>()
-    const triggers: UnionTriggers = new Map()
-    const members: string[] = []
-    const candidates = new Map<MoveGroup, Candidate>()
-    for (const group of groups) {
-      const candidate = this.candidateOf(group, probes, view, ignoreHelper)
-      if (candidate) candidates.set(group, candidate)
-    }
-    const indexes = this.indexComponents(
-      [...candidates.values()],
-      view,
-      ignoreHelper
-    )
-    for (const group of groups) {
-      const candidate = candidates.get(group)
-      if (candidate && this.isPure(group, candidate, view, indexes)) {
-        for (const line of group.additions) dropped.add(line)
-        members.push(this.labelOf(group, probes))
-        continue
-      }
-      this.collectTriggers(group, probes, view, ignoreHelper, triggers)
-    }
-    if (members.length > 0) {
-      Logger.debug(
-        lazy`Pure move(s) suppressed: ${() => members.sort().join(', ')}`
-      )
-    }
-    return { dropped, triggers }
-  }
-
-  private collectTriggers(
-    group: MoveGroup,
-    probes: ReadonlyMap<string, Probe>,
-    view: RevisionView,
-    ignoreHelper: IgnoreHelper,
-    triggers: UnionTriggers
-  ): void {
-    const known = this.probesOf(group, probes)
-    if (!known?.some(probe => probe.comparesElements)) return
-    const deletions = group.deletions.map(pathOf)
-    const scope = unionScopeOf(deletions[0]!, this.ctx.metadata)
-    const added = groupByEntry(group.additions.map(pathOf), view.to.project)
-    const visible = deletions.filter(path => this.isKept(path, ignoreHelper))
-    for (const [entry, old] of groupByEntry(visible, view.from.project)) {
-      const arrived = added.get(entry)
-      if (!arrived) continue
-      const roots = this.listingRoots({ deletions: old, additions: arrived })
-      if (roots) this.record(triggers, scope, entry, roots)
-    }
-  }
-
-  private record(
-    triggers: UnionTriggers,
-    scope: string,
-    entry: PackageDirectoryKey,
-    roots: readonly string[]
-  ): void {
-    const entries = triggers.get(scope) ?? new Map()
-    const known: Set<string> = entries.get(entry) ?? new Set()
-    for (const root of roots) known.add(root)
-    entries.set(entry, known)
-    triggers.set(scope, entries)
-  }
-
-  private async diffUnions(
-    triggers: UnionTriggers,
-    lines: readonly string[],
-    view: RevisionView,
-    ignoreHelper: IgnoreHelper
-  ): Promise<UnionResult> {
-    const result: UnionResult = { outcomes: new Map(), dropped: new Set() }
-    const targets = [...triggers].flatMap(([scope, entries]) =>
-      [...entries].map(([entry, roots]) => ({
-        scope,
-        entry,
-        listingRoots: [...roots].sort(),
-      }))
-    )
-    if (targets.length === 0) return result
-    const listing = listUnionCandidates(
-      {
-        metadata: this.ctx.metadata,
-        source: this.ctx.config.source,
-        from: view.from,
-        to: view.to,
-        lines,
-      },
-      targets
-    )
-    for (const target of targets) {
-      await this.diffEntry(
-        target,
-        { lines, view, ignoreHelper, listing },
-        result
-      )
-    }
-    return result
-  }
-
-  private async diffEntry(
-    target: UnionTarget,
-    context: Readonly<{
-      lines: readonly string[]
-      view: RevisionView
-      ignoreHelper: IgnoreHelper
-      listing: UnionListing
-    }>,
-    result: UnionResult
-  ): Promise<void> {
-    const spec = buildUnionSpec(
-      {
-        ...target,
-        metadata: this.ctx.metadata,
-        source: this.ctx.config.source,
-        ignore: context.ignoreHelper,
-        from: context.view.from,
-        to: context.view.to,
-        lines: context.lines,
-      },
-      context.listing
-    )
-    try {
-      const outcomes = await this.unionDiff.runUnion(spec)
-      for (const [path, outcome] of outcomes) result.outcomes.set(path, outcome)
-      for (const line of spec.droppedDeletions) result.dropped.add(line)
-      Logger.debug(
-        lazy`Union diff of ${target.scope} in ${String(target.entry)}: ${spec.memberPaths.length} member(s)`
-      )
-    } catch (error) {
-      Logger.debug(
-        lazy`Union diff of ${target.scope} in ${String(target.entry)} kept as is: ${() => getErrorMessage(error)}`
-      )
-    }
-  }
-
-  private labelOf(
-    group: MoveGroup,
-    probes: ReadonlyMap<string, Probe>
-  ): string {
-    const { type, member } = probes.get(group.deletions[0]!)!
-    return `${type}:${member}`
-  }
-
   private async probeAll(
     groups: readonly MoveGroup[]
   ): Promise<ReadonlyMap<string, Probe>> {
@@ -409,119 +177,116 @@ export default class PureMoveResolver {
       ...group.additions,
     ])
     await eachLimit(lines, getConcurrencyThreshold(), async line => {
-      try {
-        const handler = await this.factory.getTypeHandler(line)
-        probes.set(line, {
-          ...handler.getElementDescriptor(),
-          comparesElements: handler.comparesElements(),
-        })
-      } catch (error) {
-        Logger.debug(
-          lazy`Pure move probe failed for ${line}: ${() => getErrorMessage(error)}`
-        )
-      }
+      const probe = await this.probe(line)
+      if (probe) probes.set(line, probe)
     })
     return probes
   }
 
-  private candidateOf(
-    group: MoveGroup,
-    probes: ReadonlyMap<string, Probe>,
-    view: RevisionView,
-    ignoreHelper: IgnoreHelper
-  ): Candidate | undefined {
-    const known = this.probesOf(group, probes)
-    if (!known || !sameIdentity(known)) return undefined
-    if (known.some(probe => probe.comparesElements)) return undefined
-    const moved = {
-      deletions: group.deletions.map(pathOf),
-      additions: group.additions.map(pathOf),
-    }
-    if (!moved.deletions.every(path => this.isKept(path, ignoreHelper))) {
+  private async probe(line: string): Promise<Probe | undefined> {
+    try {
+      const handler = await this.factory.getTypeHandler(line)
+      return {
+        ...handler.getElementDescriptor(),
+        comparesElements: handler.comparesElements(),
+      }
+    } catch (error) {
+      Logger.debug(
+        lazy`Pure move probe failed for ${line}: ${() => getErrorMessage(error)}`
+      )
       return undefined
     }
-    if (!sameEntry(moved, view)) return undefined
-    const roots = this.listingRoots(moved)
-    return roots ? { moved, roots } : undefined
   }
 
-  private isPure(
-    group: MoveGroup,
-    candidate: Candidate,
+  private judge(
+    groups: readonly MoveGroup[],
+    probes: ReadonlyMap<string, Probe>,
     view: RevisionView,
-    indexes: ComponentIndexes
-  ): boolean {
-    return (
-      this.isComplete(group.name, candidate, indexes) &&
-      sameContent(candidate.moved, view)
+    env: MoveEnv
+  ): Judgement {
+    const candidates = this.candidatesOf(groups, probes, view, env)
+    const indexes = indexComponents([...candidates.values()], view, env)
+    const pure = [...candidates].filter(([group, candidate]) =>
+      isPure(group.name, candidate, view, indexes)
     )
-  }
-
-  private isKept(path: string, ignoreHelper: IgnoreHelper): boolean {
-    return ignoreHelper.keep(`${ADDITION}${TAB}${path}`)
-  }
-
-  private isComplete(
-    name: string,
-    { moved, roots }: Candidate,
-    indexes: ComponentIndexes
-  ): boolean {
-    const inRoots = buildScopeMatcher(roots)
-    const listed = (index: ComponentIndex): string[] =>
-      (index.get(name) ?? []).filter(inRoots)
-    return (
-      sameSet(listed(indexes.from), moved.deletions) &&
-      sameSet(listed(indexes.to), moved.additions)
-    )
-  }
-
-  private listingRoots(moved: MovedPaths): readonly string[] | undefined {
-    const roots: string[] = []
-    for (const path of [...moved.deletions, ...moved.additions]) {
-      const root = componentListingRoot(path, this.ctx.metadata)
-      if (root === null) return undefined
-      roots.push(root)
+    const pureGroups = new Set(pure.map(([group]) => group))
+    const labels = pure.map(([, candidate]) => candidate.label)
+    if (labels.length > 0) {
+      Logger.debug(
+        lazy`Pure move(s) suppressed: ${() => [...labels].sort().join(', ')}`
+      )
     }
-    return roots
+    return {
+      dropped: new Set(pure.flatMap(([group]) => group.additions)),
+      triggers: groups
+        .filter(group => !pureGroups.has(group))
+        .flatMap(group => triggersOf(group, probes, view, env)),
+    }
   }
 
-  private indexComponents(
-    candidates: readonly Candidate[],
+  private candidatesOf(
+    groups: readonly MoveGroup[],
+    probes: ReadonlyMap<string, Probe>,
     view: RevisionView,
-    ignoreHelper: IgnoreHelper
-  ): ComponentIndexes {
-    if (candidates.length === 0) return NO_COMPONENTS
-    const inSource = buildScopeMatcher(this.ctx.config.source)
-    const inCandidateRoots = buildScopeMatcher(
-      candidates.flatMap(candidate => candidate.roots)
+    env: MoveEnv
+  ): ReadonlyMap<MoveGroup, Candidate> {
+    return new Map(
+      groups.flatMap((group): [MoveGroup, Candidate][] => {
+        const candidate = candidateOf(group, probes, view, env)
+        return candidate ? [[group, candidate]] : []
+      })
     )
-    const indexOf = (blobIds: BlobIds): ComponentIndex => {
-      const index = new Map<string, string[]>()
-      for (const path of blobIds.keys()) {
-        if (!inCandidateRoots(path)) continue
-        const line = `${ADDITION}${TAB}${path}`
-        if (!inSource(path) || !this.ctx.metadata.has(line)) continue
-        if (!ignoreHelper.keep(line)) continue
-        const name = comparisonName(this.ctx.metadata, line)
-        const bucket = index.get(name) ?? []
-        bucket.push(path)
-        index.set(name, bucket)
-      }
-      return index
-    }
-    return { from: indexOf(view.from.blobIds), to: indexOf(view.to.blobIds) }
   }
 
-  private probesOf(
-    group: MoveGroup,
-    probes: ReadonlyMap<string, Probe>
-  ): readonly Probe[] | undefined {
-    const found: Probe[] = []
-    for (const line of [...group.deletions, ...group.additions]) {
-      const probe = probes.get(line)
-      if (!probe) return undefined
-      found.push(probe)
+  private async diffUnions(
+    triggers: readonly UnionTrigger[],
+    base: Omit<DiffContext, 'listing'>
+  ): Promise<UnionResult> {
+    const targets = toUnionTargets(triggers)
+    if (targets.length === 0) return NO_RESULT
+    const listing = listUnionCandidates(
+      {
+        metadata: base.env.metadata,
+        source: base.env.source,
+        from: base.view.from,
+        to: base.view.to,
+        lines: base.lines,
+      },
+      targets
+    )
+    const results: UnionResult[] = []
+    for (const target of targets) {
+      results.push(await this.diffEntry(target, { ...base, listing }))
     }
-    return found
+    return mergeResults(results)
+  }
+
+  private async diffEntry(
+    target: UnionTarget,
+    { lines, view, env, listing }: DiffContext
+  ): Promise<UnionResult> {
+    const spec = buildUnionSpec(
+      {
+        ...target,
+        ...env,
+        from: view.from,
+        to: view.to,
+        lines,
+      },
+      listing
+    )
+    const label = `${target.scope} in ${String(target.entry)}`
+    try {
+      const outcomes = await this.unionDiff.runUnion(spec)
+      Logger.debug(
+        lazy`Union diff of ${label}: ${spec.memberPaths.length} member(s)`
+      )
+      return { outcomes, dropped: new Set(spec.droppedDeletions) }
+    } catch (error) {
+      Logger.debug(
+        lazy`Union diff of ${label} kept as is: ${() => getErrorMessage(error)}`
+      )
+      return NO_RESULT
+    }
   }
 }

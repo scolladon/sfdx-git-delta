@@ -331,14 +331,15 @@ export default class GitAdapter implements GitBlobReader {
       const entry = entries.find(
         ({ name, mode }) => name === fileName && BLOB_MODES.has(mode)
       )
-      if (!entry) {
-        return undefined
-      }
-      const { content } = await repo.primitives.readBlob(entry.id)
-      return Buffer.from(content).toString(UTF8_ENCODING)
+      return entry ? await this.readBlobText(repo, entry.id) : undefined
     } catch (error) {
       throw this.mapError(error, revision)
     }
+  }
+
+  private async readBlobText(repo: Repository, id: ObjectId): Promise<string> {
+    const { content } = await repo.primitives.readBlob(id)
+    return Buffer.from(content).toString(UTF8_ENCODING)
   }
 
   // Shares the per-revision memo with buildTreeIndex, so a revision already

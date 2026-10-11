@@ -1,36 +1,38 @@
 'use strict'
-import { basename } from 'node:path/posix'
+import { basename, extname } from 'node:path/posix'
 
 import { buildScopeMatcher } from '../adapter/pathMatching.js'
-import { TAB } from '../constant/cliConstants.js'
-import { DOT } from '../constant/fsConstants.js'
-import {
-  ADDITION,
-  DELETION,
-  GIT_DIFF_TYPE_REGEX,
-  MODIFICATION,
-} from '../constant/gitConstants.js'
+import { ADDITION, DELETION, MODIFICATION } from '../constant/gitConstants.js'
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import { comparisonName } from './comparisonName.js'
+import { additionLineOf, lineOf, pathOfLine } from './gitLine.js'
 import type { IgnoreHelper } from './ignoreHelper.js'
 import type { UnionDiffInput } from './metadataDiff/index.js'
-import type { PackageDirectoryKey, SfdxProject } from './sfdxProject.js'
+import {
+  entryOf,
+  groupBy,
+  groupByEntry,
+  type RevisionSide,
+} from './revisionSide.js'
+import type { PackageDirectoryKey } from './sfdxProject.js'
 
 export const LABELS_UNION_SCOPE = 'CustomLabels'
 
 const LABELS_XML_NAME = 'CustomLabel'
 const LABELS_EXTENSION = 'labels'
 
+const LABELS_FILE_EXTENSION = `.${LABELS_EXTENSION}`
+
 const extensionOf = (path: string): string =>
-  basename(path).replace(METAFILE_SUFFIX, '').split(DOT).pop() as string
+  extname(basename(path).replace(METAFILE_SUFFIX, ''))
 
 export const isLabelsContainer = (
   path: string,
   metadata: MetadataRepository
 ): boolean =>
   metadata.get(path)?.xmlName === LABELS_XML_NAME &&
-  extensionOf(path) === LABELS_EXTENSION
+  extensionOf(path) === LABELS_FILE_EXTENSION
 
 export const unionScopeOf = (
   path: string,
@@ -38,17 +40,12 @@ export const unionScopeOf = (
 ): string =>
   isLabelsContainer(path, metadata)
     ? LABELS_UNION_SCOPE
-    : comparisonName(metadata, `${ADDITION}${TAB}${path}`)
+    : comparisonName(metadata, additionLineOf(path))
 
 const LABELS_FILE_SUFFIX = `.${LABELS_EXTENSION}${METAFILE_SUFFIX}`
 
-export type RevisionSide = Readonly<{
-  project: SfdxProject
-  blobIds: ReadonlyMap<string, unknown>
-}>
-
 export type UnionSpec = UnionDiffInput &
-  Readonly<{ entry: PackageDirectoryKey; droppedDeletions: readonly string[] }>
+  Readonly<{ droppedDeletions: readonly string[] }>
 
 export type UnionSpecInput = Readonly<{
   scope: string
@@ -62,8 +59,6 @@ export type UnionSpecInput = Readonly<{
   lines: readonly string[]
 }>
 
-const pathOf = (line: string): string => line.replace(GIT_DIFF_TYPE_REGEX, '')
-
 type ListingTarget = Pick<UnionSpecInput, 'scope' | 'listingRoots'>
 
 type ListingInput = Pick<
@@ -71,14 +66,11 @@ type ListingInput = Pick<
   'metadata' | 'source' | 'from' | 'to' | 'lines'
 >
 
-type Buckets = Map<string, Map<PackageDirectoryKey, string[]>>
-
 type DeletionLine = Readonly<{ line: string; position: number }>
 
-type ListedSide = ReadonlyMap<
-  string,
-  ReadonlyMap<PackageDirectoryKey, readonly string[]>
->
+type ListedSideEntries = ReadonlyMap<PackageDirectoryKey, readonly string[]>
+
+type ListedSide = ReadonlyMap<string, ListedSideEntries>
 
 export type UnionListing = Readonly<{
   from: ListedSide
@@ -94,24 +86,24 @@ const listSide = (
   input: ListingInput,
   side: RevisionSide,
   targets: readonly ListingTarget[]
-): Buckets => {
+): ListedSide => {
   const inSource = buildScopeMatcher(input.source)
   const inAnyRoots = buildScopeMatcher(
     targets.flatMap(target => target.listingRoots)
   )
-  const buckets: Buckets = new Map()
-  for (const path of side.blobIds.keys()) {
-    if (!inSource(path) || !(isLabelsFile(path) || inAnyRoots(path))) continue
-    if (!input.metadata.has(path)) continue
-    const scope = unionScopeOf(path, input.metadata)
-    const entries = buckets.get(scope) ?? new Map()
-    const entry = side.project.packageDirectoryOf(path)
-    const paths = entries.get(entry) ?? []
-    paths.push(path)
-    entries.set(entry, paths)
-    buckets.set(scope, entries)
-  }
-  return buckets
+  const isListed = (path: string): boolean =>
+    inSource(path) &&
+    (isLabelsFile(path) || inAnyRoots(path)) &&
+    input.metadata.has(path)
+  const byScope = groupBy([...side.blobIds.keys()].filter(isListed), path =>
+    unionScopeOf(path, input.metadata)
+  )
+  return new Map(
+    [...byScope].map(([scope, paths]): [string, ListedSideEntries] => [
+      scope,
+      groupByEntry(paths, side),
+    ])
+  )
 }
 
 const deletionLines = (
@@ -120,7 +112,7 @@ const deletionLines = (
   const found = new Map<string, DeletionLine[]>()
   lines.forEach((line, position) => {
     if (line.charAt(0) !== DELETION) return
-    const path = pathOf(line)
+    const path = pathOfLine(line)
     const same = found.get(path) ?? []
     same.push({ line, position })
     found.set(path, same)
@@ -155,11 +147,10 @@ const keeps = (
   ignore: Pick<IgnoreHelper, 'keep'>,
   type: string,
   path: string
-): boolean => ignore.keep(`${type}${TAB}${path}`)
+): boolean => ignore.keep(lineOf(type, path))
 
 const staysInEntry = (input: UnionSpecInput, path: string): boolean =>
-  !input.to.blobIds.has(path) ||
-  input.to.project.packageDirectoryOf(path) === input.entry
+  !input.to.blobIds.has(path) || entryOf(input.to, path) === input.entry
 
 // A deleted file under the destructive ignore cannot vouch for additions.
 const vouchesForAdditions = (input: UnionSpecInput, path: string): boolean =>
@@ -173,8 +164,17 @@ const emitting = (lines: readonly string[]): ReadonlySet<string> =>
   new Set(
     lines
       .filter(line => [ADDITION, MODIFICATION].includes(line.charAt(0)))
-      .map(pathOf)
+      .map(pathOfLine)
   )
+
+const droppedDeletionsOf = (
+  deletionBase: readonly string[],
+  listing: UnionListing
+): readonly string[] =>
+  deletionBase
+    .flatMap(path => listing.deletions.get(path) ?? [])
+    .sort((a, b) => a.position - b.position)
+    .map(({ line }) => line)
 
 export const buildUnionSpec = (
   input: UnionSpecInput,
@@ -183,22 +183,17 @@ export const buildUnionSpec = (
   const fromPaths = candidates(input, listing.from).filter(path =>
     staysInEntry(input, path)
   )
-  const additionBase = fromPaths.filter(path =>
-    vouchesForAdditions(input, path)
-  )
   const deletionBase = fromPaths.filter(path =>
     vouchesForDeletions(input, path)
   )
   const shields = candidates(input, listing.to)
   return {
-    entry: input.entry,
-    additionBasePaths: additionBase,
+    additionBasePaths: fromPaths.filter(path =>
+      vouchesForAdditions(input, path)
+    ),
     deletionBasePaths: deletionBase,
     shieldPaths: shields,
     memberPaths: shields.filter(path => listing.emitted.has(path)),
-    droppedDeletions: deletionBase
-      .flatMap(path => listing.deletions.get(path) ?? [])
-      .sort((a, b) => a.position - b.position)
-      .map(({ line }) => line),
+    droppedDeletions: droppedDeletionsOf(deletionBase, listing),
   }
 }
