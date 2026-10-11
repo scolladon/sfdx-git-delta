@@ -9,6 +9,7 @@ import {
   RENAMED,
 } from '../constant/gitConstants.js'
 import { treatPathSep } from '../utils/fsUtils.js'
+import { lineOf } from '../utils/gitLine.js'
 import type { Pathspec } from '../utils/pathspec.js'
 
 export const ROOT_PATHS = new Set(['', '.', './'])
@@ -80,12 +81,12 @@ export function* toDiffLines(
   switch (change.type) {
     case 'add':
       if (keepSide(change.newMode, change.newPath, scopes)) {
-        yield `${ADDITION}${TAB}${treatPathSep(change.newPath)}`
+        yield lineOf(ADDITION, treatPathSep(change.newPath))
       }
       break
     case 'delete':
       if (keepSide(change.oldMode, change.oldPath, scopes)) {
-        yield `${DELETION}${TAB}${treatPathSep(change.oldPath)}`
+        yield lineOf(DELETION, treatPathSep(change.oldPath))
       }
       break
     case 'modify':
@@ -93,7 +94,7 @@ export function* toDiffLines(
         change.oldMode !== GITLINK_MODE &&
         keepSide(change.newMode, change.path, scopes)
       ) {
-        yield `${MODIFICATION}${TAB}${treatPathSep(change.path)}`
+        yield lineOf(MODIFICATION, treatPathSep(change.path))
       }
       break
     case 'rename': {
@@ -102,9 +103,9 @@ export function* toDiffLines(
       if (oldKept && newKept) {
         yield `${RENAMED}${similarityPercent(change.similarity)}${TAB}${treatPathSep(change.oldPath)}${TAB}${treatPathSep(change.newPath)}`
       } else if (newKept) {
-        yield `${ADDITION}${TAB}${treatPathSep(change.newPath)}`
+        yield lineOf(ADDITION, treatPathSep(change.newPath))
       } else if (oldKept) {
-        yield `${DELETION}${TAB}${treatPathSep(change.oldPath)}`
+        yield lineOf(DELETION, treatPathSep(change.oldPath))
       }
       break
     }

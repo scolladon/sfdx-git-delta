@@ -1,9 +1,10 @@
 'use strict'
-import { DELETION, GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
+import { DELETION } from '../constant/gitConstants.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
 import { Metadata } from '../types/metadata.js'
 import type { RunContext } from '../types/runContext.js'
+import { pathOfLine } from '../utils/gitLine.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { MetadataBoundaryResolver } from '../utils/metadataBoundaryResolver.js'
 
@@ -93,7 +94,7 @@ export default class TypeHandlerFactory {
     // Stryker disable next-line MethodExpression -- equivalent: line.charAt(0) extracts the first character (A/M/D/R); mutating to `line` returns the full line which is then matched against DELETION constant — only the first-char comparison logic matters and the rest of the path proceeds with the now-truthy changeType assignment
     const changeType = line.charAt(0)
     // Stryker disable next-line StringLiteral -- equivalent: replace strips the leading "<changeType>\t" prefix; tests assert on the (changeType, element) pair returned, not on the literal replacement string
-    const path = line.replace(GIT_DIFF_TYPE_REGEX, '')
+    const path = pathOfLine(line)
     const type = this.metadata.get(path)
     // Stryker disable ConditionalExpression,BlockStatement,StringLiteral -- equivalent: upstream RepoGitDiff pre-filters with metadata.has(), so `type` is always defined and the throw branch is unreachable
     /* v8 ignore next 3 -- defensive: see stryker disable comment above */

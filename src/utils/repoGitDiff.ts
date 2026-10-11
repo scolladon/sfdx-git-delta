@@ -9,6 +9,7 @@ import { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { Config } from '../types/config.js'
 
 import { comparisonName } from './comparisonName.js'
+import { additionLineOf, lineOf } from './gitLine.js'
 import { buildIgnoreHelper, type IgnoreHelper } from './ignoreHelper.js'
 import { Logger, lazy } from './LoggingService.js'
 
@@ -191,8 +192,8 @@ export default class RepoGitDiff {
     const fromPath = parts[1]!
     const toPath = parts[2]!
     this.renamePairs.push({ fromPath, toPath })
-    yield `${DELETION}${TAB}${fromPath}`
-    yield `${ADDITION}${TAB}${toPath}`
+    yield lineOf(DELETION, fromPath)
+    yield additionLineOf(toPath)
   }
 
   protected _extractComparisonName(line: string) {
@@ -251,7 +252,7 @@ export default class RepoGitDiff {
     }
     const visible = new Set<string>()
     for (const path of listing) {
-      const line = `${ADDITION}${TAB}${path}`
+      const line = additionLineOf(path)
       if (!this.metadata.has(line)) continue
       const name = this._extractComparisonName(line)
       if (candidates.has(name) && ignoreHelper.keep(line)) visible.add(name)

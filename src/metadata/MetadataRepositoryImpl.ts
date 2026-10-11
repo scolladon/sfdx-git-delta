@@ -7,7 +7,6 @@ import {
   EXTENSION_SUFFIX_REGEX,
   PATH_SEP,
 } from '../constant/fsConstants.js'
-import { GIT_DIFF_TYPE_REGEX } from '../constant/gitConstants.js'
 import {
   CONTENT_CONTAINER_ADAPTERS,
   CUSTOM_APPLICATION_SUFFIX,
@@ -29,15 +28,9 @@ import {
   WORKFLOW_TYPE,
 } from '../constant/metadataConstants.js'
 import type { Metadata } from '../types/metadata.js'
+import { pathOfLine } from '../utils/gitLine.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { MetadataRepository } from './MetadataRepository.js'
-
-// Callers hand over a git diff line as readily as a bare path, and the
-// status prefix rides on the first segment — which is exactly where a
-// repository laid out at its own root keeps the type directory — so nothing
-// may compare segments before this has run.
-const asFilePath = (path: string): string =>
-  path.replace(GIT_DIFF_TYPE_REGEX, '')
 
 // Shared by every scoped-name arm that owns a metaFile companion, so the
 // `-meta.xml` strip is a single call site both `containerName` and
@@ -133,7 +126,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
   }
 
   public get(path: string): Metadata | undefined {
-    return this.resolve(asFilePath(path))
+    return this.resolve(pathOfLine(path))
   }
 
   // Split out of get() so the key rule, which already holds the stripped
@@ -222,7 +215,7 @@ export class MetadataRepositoryImpl implements MetadataRepository {
 
   @log
   public getFullyQualifiedName(path: string): string {
-    const filePath = asFilePath(path)
+    const filePath = pathOfLine(path)
     const type = this.resolve(filePath)
     if (!type) return parse(filePath).base
     if (MetadataRepositoryImpl.HOLDER_SCOPED_COMPOSED_TYPES.has(type.xmlName!))
