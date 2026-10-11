@@ -13,36 +13,81 @@ export type FileCopyOperation = Exclude<
   GitComponentCopyOperation
 >
 
-type ExpandedPaths = Map<string, Set<string>>
+// request path -> its files, in listing order
+type OwnedFiles = Map<string, string[]>
+
+type Requests = Readonly<{
+  byRevision: Map<string, OwnedFiles>
+  // index of each distinct request's first occurrence -> its files
+  byFirstIndex: Map<number, string[]>
+}>
+
+const NOT_FOUND = -1
+const COMPONENT_NAME_END = /[./]/
 
 const parentOf = (path: string): string =>
   path.substring(0, path.lastIndexOf(PATH_SEP))
 
-const isExpanded = (
-  expanded: ExpandedPaths,
-  { revision, path }: GitComponentCopyOperation
-): boolean => expanded.get(revision)?.has(path) ?? false
-
-const markExpanded = (
-  expanded: ExpandedPaths,
-  { revision, path }: GitComponentCopyOperation
+const addRequest = (
+  { byRevision, byFirstIndex }: Requests,
+  { revision, path }: GitComponentCopyOperation,
+  index: number
 ): void => {
-  const paths = expanded.get(revision) ?? new Set<string>()
-  paths.add(path)
-  expanded.set(revision, paths)
+  const owned = byRevision.get(revision) ?? new Map<string, string[]>()
+  byRevision.set(revision, owned)
+  if (owned.has(path)) return
+  const files: string[] = []
+  owned.set(path, files)
+  byFirstIndex.set(index, files)
 }
 
-const isMemberOf =
-  (component: string) =>
-  (file: string): boolean =>
-    file.startsWith(`${component}${PATH_SEP}`) ||
-    file.startsWith(`${component}${DOT}`)
+const collectRequests = (copies: readonly CopyOperation[]): Requests => {
+  const requests: Requests = { byRevision: new Map(), byFirstIndex: new Map() }
+  for (const [index, op] of copies.entries()) {
+    if (op.kind === CopyOperationKind.GitComponentCopy) {
+      addRequest(requests, op, index)
+    }
+  }
+  return requests
+}
 
-const componentFiles = (
+const nextCut = (file: string, from: number): number => {
+  const offset = file.slice(from).search(COMPONENT_NAME_END)
+  return offset === NOT_FOUND ? NOT_FOUND : from + offset
+}
+
+const assignCuts = (owned: OwnedFiles, file: string, from: number): void => {
+  const cut = nextCut(file, from)
+  if (cut === NOT_FOUND) return
+  owned.get(file.slice(0, cut))?.push(file)
+  if (file[cut] === DOT) assignCuts(owned, file, cut + DOT.length)
+}
+
+const assignListing = (
   trees: TreeReader,
-  { revision, path }: GitComponentCopyOperation
-): string[] =>
-  trees.filesUnder(revision, parentOf(path)).filter(isMemberOf(path))
+  revision: string,
+  parent: string,
+  owned: OwnedFiles
+): void => {
+  // At the root listing (empty parent) this starts one character in, which
+  // only skips a leading dot whose cut would be the empty path.
+  const nameStart = parent.length + PATH_SEP.length
+  for (const file of trees.filesUnder(revision, parent)) {
+    assignCuts(owned, file, nameStart)
+  }
+}
+
+const listEachParentOnce = (
+  trees: TreeReader,
+  revision: string,
+  owned: OwnedFiles
+): void => {
+  const parents = new Set(Array.from(owned.keys(), parentOf))
+  for (const parent of parents) assignListing(trees, revision, parent, owned)
+}
+
+const filesAt = ({ byFirstIndex }: Requests, index: number): string[] =>
+  byFirstIndex.get(index) ?? []
 
 const gitCopyOf = (path: string, revision: string): FileCopyOperation => ({
   kind: CopyOperationKind.GitCopy,
@@ -54,11 +99,12 @@ export const expandComponentCopies = (
   copies: readonly CopyOperation[],
   trees: TreeReader
 ): FileCopyOperation[] => {
-  const expanded: ExpandedPaths = new Map()
-  return copies.flatMap(op => {
+  const requests = collectRequests(copies)
+  for (const [revision, owned] of requests.byRevision) {
+    listEachParentOnce(trees, revision, owned)
+  }
+  return copies.flatMap((op, index) => {
     if (op.kind !== CopyOperationKind.GitComponentCopy) return [op]
-    if (isExpanded(expanded, op)) return []
-    markExpanded(expanded, op)
-    return componentFiles(trees, op).map(path => gitCopyOf(path, op.revision))
+    return filesAt(requests, index).map(path => gitCopyOf(path, op.revision))
   })
 }
