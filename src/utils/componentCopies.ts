@@ -57,10 +57,12 @@ const nextCut = (file: string, from: number): number => {
 }
 
 const assignCuts = (owned: OwnedFiles, file: string, from: number): void => {
-  const cut = nextCut(file, from)
-  if (cut === NOT_FOUND) return
-  owned.get(file.slice(0, cut))?.push(file)
-  if (file[cut] === DOT) assignCuts(owned, file, cut + DOT.length)
+  let cut = nextCut(file, from)
+  while (cut !== NOT_FOUND) {
+    owned.get(file.slice(0, cut))?.push(file)
+    if (file[cut] !== DOT) return
+    cut = nextCut(file, cut + DOT.length)
+  }
 }
 
 const assignListing = (

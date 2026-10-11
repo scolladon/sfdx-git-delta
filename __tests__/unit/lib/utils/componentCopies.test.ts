@@ -16,6 +16,7 @@ import { expandComponentCopies } from '../../../../src/utils/componentCopies'
 const TO = 'to-revision'
 const OTHER = 'other-revision'
 const ROOT = 'force-app/main/default/staticresources'
+const DOTS_BEYOND_STACK_DEPTH = 10_000
 
 const indexOf = (paths: string[]): TreeIndex => {
   const index = new TreeIndex()
@@ -489,6 +490,21 @@ describe('expandComponentCopies', () => {
         gitCopy(`${ROOT}/B/b.js`),
         gitCopy(`${a}/z.js`, OTHER),
       ])
+    })
+  })
+
+  describe('Given a sibling file whose name holds thousands of dots', () => {
+    it('When expanded, Then it is assigned without exhausting the stack', () => {
+      // Arrange
+      const sut = expandComponentCopies
+      const dotted = `${ROOT}/Lib${DOT.repeat(DOTS_BEYOND_STACK_DEPTH)}`
+      const trees = readerOf([dotted])
+
+      // Act
+      const result = sut([request(`${ROOT}/Lib`)], trees)
+
+      // Assert
+      expect(pathsOf(result)).toEqual([dotted])
     })
   })
 })
