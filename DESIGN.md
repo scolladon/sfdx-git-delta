@@ -323,7 +323,7 @@ Extends shared folder behavior: changing any sub-file also forces inclusion of t
 **Extends**: StandardHandler
 **Used by**: ExperienceBundle, GenAiPlannerBundle, LightningTypeBundle, StaticResource, WaveTemplateBundle (and any type with `adapter: "bundle"` or `adapter: "mixedContent"` not explicitly overridden)
 
-Handles bundle-like resources where changing any file within the bundle triggers the entire bundle to be redeployed. On deletion, checks if the bundle root still has content — if yes, treats as modification instead of deletion (the bundle still exists with remaining files). The check reads the run's `to` index through `fsHelper.pathExists` over `RunContext.trees`, which `main.ts` builds in every mode, so the answer is the same with and without `--generate-delta`.
+Handles bundle-like resources where changing any file within the bundle triggers the entire bundle to be redeployed. On deletion, checks if the bundle root still has content — if yes, treats as modification instead of deletion (the bundle still exists with remaining files). The check reads the run's `to` index through `fsHelper.pathExists` over `RunContext.trees`, which `main.ts` builds in every mode, so the answer is the same with and without `--generate-delta`. With `--generate-delta` it requests its component once per changed line instead of listing it; the listing happens at I/O time, once per component.
 
 #### BundleHandler
 
@@ -505,11 +505,12 @@ Package.xml remains byte-identical to the pre-feature output because `InFileHand
 
 **Entry**: `IOExecutor.execute(copies)` (`src/adapter/ioExecutor.ts`)
 
-Executes the accumulated copy operations with concurrency bounded by `getConcurrencyThreshold()`. Three operation kinds:
+Executes the accumulated copy operations with concurrency bounded by `getConcurrencyThreshold()`. Four operation kinds:
 
 | Kind              | Description                                                                                                        |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `GitCopy`         | Reads a single file from a specific git revision by resolving its path to a blob `ObjectId` (via the per-revision blob index) and reading it straight out of the object store with `repo.primitives.readBlob`, then writes it to the output directory. Blobs above `SIZE_THRESHOLD` (1 MB) escalate to the streaming path via `EscalateToStreamingSignal` and pipe through an atomic `.tmp` + `rename` to bound peak memory. Does not require the tree index. |
+| `GitComponentCopy` | Emitted by `InResourceHandler` and its subclasses under `--generate-delta`, one per changed line. `execute` expands each distinct (revision, path) once, at the first request's position, into per-file `GitCopy` operations — every file under the request's parent directory whose path contains the request path followed by `/` or `.`; later identical requests vanish. Each expanded file then takes the ordinary `GitCopy` path (processedPaths, ignore, out-of-output guard, LFS, streaming escalation). |
 | `GitDirCopy`      | Enumerates all files under a directory path via `getFilesPath` (requires tree index). Below `GIT_ARCHIVE_DIR_THRESHOLD` (25 files) each file is fetched with one `readBlob` call per file; above the threshold the executor switches to `streamArchive`, which streams every blob under the path — reusing the same per-revision blob index, no second tree walk — via `repo.primitives.streamBlob`, piping each entry directly into a sibling `.tmp` + `rename` (replaces N per-file reads for ExperienceBundle / static-resource folders). Defence-in-depth path-prefix check rejects any entry whose resolved destination escapes `config.output`. |
 | `StreamedContent` | Writes content emitted by a handler/collector-supplied producer function (typically pruned XML from `InFileHandler`, `ObjectTranslationHandler`, `FlowTranslationProcessor`, and `PackageGenerator`). The executor pipes the producer into a sibling `.tmp` file and renames atomically on success — handles back-pressure via the writer's own `drain` await and survives EXDEV cross-filesystem rename hazards (Docker overlayfs + tmpfs `/tmp`). |
 
@@ -667,7 +668,7 @@ Universal handler/collector output — a flat, readonly description of what the 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
 | `elements` | `readonly ManifestElement[]` | The `{target, type, member, changeKind}` entries this handler/collector produced |
-| `copies` | `readonly CopyOperation[]` | `GitCopy`, `GitDirCopy`, or `StreamedContent` operations |
+| `copies` | `readonly CopyOperation[]` | `GitCopy`, `GitComponentCopy`, `GitDirCopy`, or `StreamedContent` operations |
 | `warnings` | `readonly Error[]` | Non-fatal warnings |
 
 `emptyResult()` and `mergeResults(...results)` (both in `src/types/handlerResult.ts`) are the two module-level helpers: `emptyResult()` is a factory returning a fresh empty value, and `mergeResults` concatenates each axis across multiple results — a plain array `flatMap`, with no index structure to rebuild.

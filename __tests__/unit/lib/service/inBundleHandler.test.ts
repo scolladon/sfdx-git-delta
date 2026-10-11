@@ -5,15 +5,17 @@ import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import InBundleHandler from '../../../../src/service/inBundleHandler'
 import type { Config } from '../../../../src/types/config'
-import { ManifestTarget } from '../../../../src/types/handlerResult'
+import {
+  CopyOperationKind,
+  ManifestTarget,
+} from '../../../../src/types/handlerResult'
 import type { RunContext } from '../../../../src/types/runContext'
-import { pathExists, readDirs } from '../../../../src/utils/fsHelper'
+import { pathExists } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
-const mockedReadDirs = vi.mocked(readDirs)
 const mockedPathExists = vi.mocked(pathExists)
 
 const objectType = {
@@ -33,12 +35,13 @@ const contentTypeFilePath = `${root}/site/Site_A/sfdc_cms__view/file.json`
 const pageFolder = `${root}/site/Site_A/sfdc_cms__view/page_a`
 const pageContentPath = `${pageFolder}/content.json`
 const pageVariantPath = `${pageFolder}/mobile/mobile.json`
-const pageFolderListing = [
-  `${pageFolder}/content.json`,
-  `${pageFolder}/_meta.json`,
-  `${pageFolder}/mobile/mobile.json`,
-  `${pageFolder}/tablet/tablet.json`,
-]
+const pageRequest = () => ({
+  kind: CopyOperationKind.GitComponentCopy,
+  path: pageFolder,
+  revision: config.to,
+})
+const requestsOf = (copies: readonly { kind: string }[]) =>
+  copies.filter(copy => copy.kind === CopyOperationKind.GitComponentCopy)
 
 let config: Config
 // One context per test, built once and reused for both construction and
@@ -166,7 +169,6 @@ describe('InBundleHandler', () => {
   describe('collect', () => {
     it('Given meta file addition, When collect, Then returns manifest with correct bundle element name', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([])
       const sut = buildSut(line)
 
       // Act
@@ -183,14 +185,20 @@ describe('InBundleHandler', () => {
         ])
       )
       // bundle element copies the content file + its meta companion
-      // (_shouldCopyMetaFile stays true on the coarse path)
-      expect(result.copies).toHaveLength(2)
+      // (_shouldCopyMetaFile stays true on the coarse path) and requests
+      // its component
+      expect(result.copies).toHaveLength(3)
+      expect(result.copies).toContainEqual({
+        kind: CopyOperationKind.GitComponentCopy,
+        path: createElement(line, objectType, globalMetadata).element
+          .componentPath,
+        revision: config.to,
+      })
       expect(result.warnings).toHaveLength(0)
     })
 
     it('Given sub workspace file addition, When collect, Then returns manifest with parent bundle name', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([])
       const sut = buildSut(
         'A       force-app/main/default/digitalExperiences/site/component/workspace/file.json'
       )
@@ -213,7 +221,6 @@ describe('InBundleHandler', () => {
 
     it('Given a page content file addition, When collect, Then adds a page-scoped member and copies the full content folder recursively', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([...pageFolderListing])
       const sut = buildSut(`A       ${pageContentPath}`)
 
       // Act
@@ -229,43 +236,30 @@ describe('InBundleHandler', () => {
           }),
         ])
       )
-      expect(new Set(result.copies.map(copy => copy.path))).toEqual(
-        new Set(pageFolderListing)
-      )
+      expect(requestsOf(result.copies)).toEqual([pageRequest()])
+      expect(result.copies).toHaveLength(2)
       expect(result.warnings).toHaveLength(0)
     })
 
     it('Given a page content change with a sibling page present, When collect, Then no sibling path is copied', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([
-        ...pageFolderListing,
-        `${root}/site/Site_A/sfdc_cms__view/page_b/content.json`,
-      ])
       const sut = buildSut(`A       ${pageContentPath}`)
 
       // Act
       const result = await sut.collect()
 
       // Assert
-      // the scan root is the content-type folder — dirname of the page-scoped
-      // metadataName (`_getMetadataName`) — proving the copy scope is derived
-      // from the page folder, not the whole bundle
-      expect(mockedReadDirs).toHaveBeenCalledWith(
-        `${root}/site/Site_A/sfdc_cms__view`,
-        ctx
-      )
-      expect(result.copies.some(copy => copy.path.includes('/page_b/'))).toBe(
+      // the request targets the page folder, not the whole bundle
+      expect(result.copies.some(copy => copy.path.includes('/page_b'))).toBe(
         false
       )
-      expect(new Set(result.copies.map(copy => copy.path))).toEqual(
-        new Set(pageFolderListing)
-      )
+      expect(requestsOf(result.copies)).toEqual([pageRequest()])
+      expect(result.copies).toHaveLength(2)
       expect(result.warnings).toHaveLength(0)
     })
 
     it('Given a page variant file change, When collect, Then the full page_a tree still ships and the member stays page-scoped', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([...pageFolderListing])
       const sut = buildSut(`M       ${pageVariantPath}`)
 
       // Act
@@ -281,15 +275,13 @@ describe('InBundleHandler', () => {
           }),
         ])
       )
-      expect(new Set(result.copies.map(copy => copy.path))).toEqual(
-        new Set(pageFolderListing)
-      )
+      expect(requestsOf(result.copies)).toEqual([pageRequest()])
+      expect(result.copies).toHaveLength(2)
       expect(result.warnings).toHaveLength(0)
     })
 
     it('Given a page content file modification, When collect, Then adds a page-scoped DigitalExperience member to the package manifest', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([`${pageFolder}/content.json`])
       const sut = buildSut(`M       ${pageContentPath}`)
 
       // Act
@@ -310,7 +302,6 @@ describe('InBundleHandler', () => {
 
     it('Given a page content file deletion where the page folder is gone, When collect, Then adds a page-scoped DigitalExperience member to the destructiveChanges manifest', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([])
       mockedPathExists.mockResolvedValue(false)
       const sut = buildSut(`D       ${pageContentPath}`)
 
@@ -332,7 +323,6 @@ describe('InBundleHandler', () => {
 
     it('Given a page content file deletion where the page folder still exists, When collect, Then treats it as a modification on the package manifest', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([`${pageFolder}/_meta.json`])
       mockedPathExists.mockResolvedValue(true)
       const sut = buildSut(`D       ${pageContentPath}`)
 

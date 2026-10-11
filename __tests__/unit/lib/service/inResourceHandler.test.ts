@@ -18,7 +18,6 @@ import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 
-const mockedReadDirs = vi.mocked(readDirs)
 const mockedPathExists = vi.mocked(pathExists)
 
 const lwcType = {
@@ -55,6 +54,11 @@ let config: Config
 // context it was given; rebuilding it in the assertion would not, since a
 // fresh metadata mock is never deep-equal to the original.
 let ctx: RunContext
+const componentRequest = (path: string) => ({
+  kind: CopyOperationKind.GitComponentCopy,
+  path,
+  revision: config.to,
+})
 beforeEach(() => {
   vi.clearAllMocks()
   config = getConfig()
@@ -71,7 +75,6 @@ describe('InResourceHandler', () => {
     describe('when not generating delta', () => {
       beforeEach(() => {
         config.generateDelta = false
-        mockedReadDirs.mockResolvedValue([])
       })
       it('should add manifest entry', async () => {
         // Arrange
@@ -124,10 +127,6 @@ describe('InResourceHandler', () => {
 
       it('Given generateDelta false with matching resources, When collect, Then no resource copies are produced', async () => {
         // Arrange
-        mockedReadDirs.mockResolvedValue([
-          `${basePath}/${elementName}.js`,
-          `${basePath}/${elementName}.${type}${METAFILE_SUFFIX}`,
-        ])
         const { changeType, element } = createElement(
           line,
           staticResourceType,
@@ -182,20 +181,12 @@ describe('InResourceHandler', () => {
         config.generateDelta = true
       })
       describe('when matching resource exist', () => {
-        it('should copy lwc bundle folder and its files (and exclude not matching files)', async () => {
+        it('should copy the changed lwc file and request its bundle folder', async () => {
           // Arrange
           const base = 'force-app/main/default/'
           const entity = 'myComponent'
           const path = `${entity}/${entity}.js`
           const line = `A       ${base}${lwcType.directoryName}/${path}`
-          mockedReadDirs.mockResolvedValue([
-            `${base}${lwcType.directoryName}/${entity}/${entity}.js`,
-            `${base}${lwcType.directoryName}/${entity}/${entity}.css`,
-            `${base}${lwcType.directoryName}/${entity}/${entity}.html`,
-            `${base}${lwcType.directoryName}/${entity}/${entity}.js-meta.xml`,
-            `${base}${lwcType.directoryName}/myComponentForExperienceCloud/`,
-            `${base}${lwcType.directoryName}/myComponentForExperienceCloud/myComponentForExperienceCloud.js`,
-          ])
           const { changeType, element } = createElement(
             line,
             lwcType,
@@ -220,21 +211,16 @@ describe('InResourceHandler', () => {
             expect.arrayContaining([
               expect.objectContaining({
                 kind: CopyOperationKind.GitCopy,
-                path: `${base}${lwcType.directoryName}/${path}`,
+                path: 'force-app/main/default/lwc/myComponent/myComponent.js',
               }),
-              expect.objectContaining({
-                kind: CopyOperationKind.GitCopy,
-                path: `${base}${lwcType.directoryName}/${entity}/${entity}.js-meta.xml`,
-              }),
+              componentRequest('force-app/main/default/lwc/myComponent'),
             ])
           )
-          expect(result.copies).not.toEqual(
-            expect.arrayContaining([
-              expect.objectContaining({
-                path: expect.stringContaining('myComponentForExperienceCloud'),
-              }),
-            ])
-          )
+          expect(
+            result.copies.filter(
+              op => op.kind === CopyOperationKind.GitComponentCopy
+            )
+          ).toHaveLength(1)
         })
 
         it('should copy static resource file and its meta at same level', async () => {
@@ -243,10 +229,6 @@ describe('InResourceHandler', () => {
           const entity = 'imageFile'
           const path = `${entity}.png`
           const line = `A       ${base}${staticResourceType.directoryName}/${path}`
-          mockedReadDirs.mockResolvedValue([
-            `${base}${staticResourceType.directoryName}/${entity}.resource-meta.xml`,
-            `${base}${staticResourceType.directoryName}/other.resource-meta.xml`,
-          ])
           const { changeType, element } = createElement(
             line,
             staticResourceType,
@@ -277,6 +259,9 @@ describe('InResourceHandler', () => {
                 kind: CopyOperationKind.GitCopy,
                 path: `${base}${staticResourceType.directoryName}/${entity}.${staticResourceType.suffix}${METAFILE_SUFFIX}`,
               }),
+              componentRequest(
+                'force-app/main/default/staticresources/imageFile'
+              ),
             ])
           )
         })
@@ -287,12 +272,6 @@ describe('InResourceHandler', () => {
           const entity = 'singleFile'
           const path = `${entity}.xlsx`
           const singleFileLine = `A       ${base}${staticResourceType.directoryName}/${path}`
-          mockedReadDirs.mockResolvedValue([
-            `${base}${staticResourceType.directoryName}/${entity}.xlsx`,
-            `${base}${staticResourceType.directoryName}/${entity}.resource-meta.xml`,
-            `${base}${staticResourceType.directoryName}/otherResource.png`,
-            `${base}${staticResourceType.directoryName}/otherResource.resource-meta.xml`,
-          ])
           const { changeType, element } = createElement(
             singleFileLine,
             staticResourceType,
@@ -312,6 +291,9 @@ describe('InResourceHandler', () => {
               expect.objectContaining({
                 path: `${base}${staticResourceType.directoryName}/${entity}.${staticResourceType.suffix}${METAFILE_SUFFIX}`,
               }),
+              componentRequest(
+                'force-app/main/default/staticresources/singleFile'
+              ),
             ])
           )
           expect(result.copies).not.toEqual(
@@ -323,13 +305,12 @@ describe('InResourceHandler', () => {
           )
         })
 
-        it('Given single-file static resource added, When collecting, Then readDirs scans the type directory', async () => {
+        it('Given single-file static resource added, When collecting, Then it requests the component path without listing', async () => {
           // Arrange
           const base = 'force-app/main/default/'
           const entity = 'myFile'
           const path = `${entity}.png`
           const singleFileLine = `A       ${base}${staticResourceType.directoryName}/${path}`
-          mockedReadDirs.mockResolvedValue([])
           const { changeType, element } = createElement(
             singleFileLine,
             staticResourceType,
@@ -338,13 +319,13 @@ describe('InResourceHandler', () => {
           const sut = new InResourceHandler(changeType, element, ctx)
 
           // Act
-          await sut.collect()
+          const result = await sut.collect()
 
           // Assert
-          expect(readDirs).toHaveBeenCalledWith(
-            `${base}${staticResourceType.directoryName}`,
-            ctx
+          expect(result.copies).toContainEqual(
+            componentRequest('force-app/main/default/staticresources/myFile')
           )
+          expect(readDirs).not.toHaveBeenCalled()
         })
 
         it('should copy static resource folder content and its meta', async () => {
@@ -353,9 +334,6 @@ describe('InResourceHandler', () => {
           const entity = 'imageFolder'
           const path = `${entity}/logo.png`
           const line = `A       ${base}${staticResourceType.directoryName}/${path}`
-          mockedReadDirs.mockResolvedValue([
-            `${base}${staticResourceType.directoryName}/${entity}.${staticResourceType.suffix}${METAFILE_SUFFIX}`,
-          ])
           const { changeType, element } = createElement(
             line,
             staticResourceType,
@@ -386,6 +364,9 @@ describe('InResourceHandler', () => {
                 kind: CopyOperationKind.GitCopy,
                 path: `${base}${staticResourceType.directoryName}/${entity}.${staticResourceType.suffix}${METAFILE_SUFFIX}`,
               }),
+              componentRequest(
+                'force-app/main/default/staticresources/imageFolder'
+              ),
             ])
           )
         })
@@ -396,11 +377,6 @@ describe('InResourceHandler', () => {
           const entity = 'my_experience_bundle'
           const path = `${entity}/config/myexperiencebundle.json`
           const line = `A       ${base}${experienceBundleType.directoryName}/${path}`
-          mockedReadDirs.mockResolvedValue([
-            `${base}${experienceBundleType.directoryName}/${entity}.site-meta.xml`,
-            `${base}${experienceBundleType.directoryName}/${entity}/config/myexperiencebundle.json`,
-            `${base}${experienceBundleType.directoryName}/other_experience_bundle.resource-meta.xml`,
-          ])
           const { changeType, element } = createElement(
             line,
             experienceBundleType,
@@ -431,6 +407,9 @@ describe('InResourceHandler', () => {
                 kind: CopyOperationKind.GitCopy,
                 path: `${base}${experienceBundleType.directoryName}/${entity}.${experienceBundleType.suffix}${METAFILE_SUFFIX}`,
               }),
+              componentRequest(
+                'force-app/main/default/experiences/my_experience_bundle'
+              ),
             ])
           )
         })
@@ -445,7 +424,6 @@ describe('InResourceHandler', () => {
             globalMetadata
           )
           const sut = new InResourceHandler(changeType, element, ctx)
-          mockedReadDirs.mockResolvedValueOnce([])
 
           // Act
           const result = await sut.collect()
@@ -470,6 +448,7 @@ describe('InResourceHandler', () => {
                 kind: CopyOperationKind.GitCopy,
                 path: `${basePath}/${elementName}.${type}${METAFILE_SUFFIX}`,
               }),
+              componentRequest(`${basePath}/${elementName}`),
             ])
           )
         })
@@ -546,20 +525,13 @@ describe('InResourceHandler', () => {
         )
       })
     })
-    describe('When resource name contains regex special characters', () => {
-      it('Given resource name with a dot, When collecting with matching files, Then escapeRegex prevents mismatched resource files from being copied', async () => {
-        // Arrange — resource named "my.Resource" contains a dot which is a regex special char.
-        // Without proper escaping, the regex would treat "." as "any char" and could match
-        // unrelated files like "myXResource.js". escapeRegex must escape it to "my\\.Resource".
+    describe('Given a deleted file whose component still exists at to and generate-delta on', () => {
+      it('When collect, Then it requests the component like a modification', async () => {
+        // Arrange
         config.generateDelta = true
-        const specialName = 'my.Resource'
-        const specialBase = 'force-app/main/default/staticresources'
-        const specialLine = `A       ${specialBase}/${specialName}.js`
-        const unrelatedFile = `${specialBase}/myXResource.resource-meta.xml`
-        const matchingFile = `${specialBase}/${specialName}.resource-meta.xml`
-        mockedReadDirs.mockResolvedValue([matchingFile, unrelatedFile])
+        mockedPathExists.mockResolvedValue(true)
         const { changeType, element } = createElement(
-          specialLine,
+          `D       ${entityPath}`,
           staticResourceType,
           globalMetadata
         )
@@ -568,20 +540,9 @@ describe('InResourceHandler', () => {
         // Act
         const result = await sut.collect()
 
-        // Assert — the unrelated file must NOT appear in copies
-        expect(result.copies).not.toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ path: unrelatedFile }),
-          ])
-        )
-        // The matching file (escaped dot) should be copied
-        expect(result.copies).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              kind: CopyOperationKind.GitCopy,
-              path: matchingFile,
-            }),
-          ])
+        // Assert
+        expect(result.copies).toContainEqual(
+          componentRequest(`${basePath}/${elementName}`)
         )
       })
     })

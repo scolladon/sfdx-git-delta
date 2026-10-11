@@ -11,14 +11,11 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import LwcHandler from '../../../../src/service/lwcHandler'
 import type { Config } from '../../../../src/types/config'
 import { ManifestTarget } from '../../../../src/types/handlerResult'
-import { readDirs } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
-
-const mockedReadDirs = vi.mocked(readDirs)
 
 const objectType = {
   directoryName: 'lwc',
@@ -34,7 +31,6 @@ let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
   config = getConfig()
-  mockedReadDirs.mockResolvedValue([])
 })
 
 describe('lwcHandler', () => {
