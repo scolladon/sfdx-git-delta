@@ -131,6 +131,17 @@ describe('Given SfdxProject.parse', () => {
     ).toThrow(SfdxProjectError)
   })
 
+  it('When the json is invalid, Then the error is named, says which file is invalid and keeps its cause', () => {
+    // Arrange & Act & Assert
+    expect(() => SfdxProject.parse('{nope')).toThrow(
+      expect.objectContaining({
+        name: 'SfdxProjectError',
+        message: expect.stringMatching(/^Invalid sfdx-project\.json: .+/),
+        cause: expect.any(SyntaxError),
+      })
+    )
+  })
+
   it('When the error is raised, Then it is an SgdError', () => {
     // Arrange & Act & Assert
     expect(() => SfdxProject.parse('[')).toThrow(SgdError)

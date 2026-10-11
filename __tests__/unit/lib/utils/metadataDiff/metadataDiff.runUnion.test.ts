@@ -168,6 +168,43 @@ describe('MetadataDiff.runUnion', () => {
     expect(result.get('member.xml')?.manifests.modified).toEqual([])
   })
 
+  it.each([
+    ['a.xml', 'b.xml', 'c.xml'],
+    ['a.xml', 'c.xml', 'b.xml'],
+    ['b.xml', 'a.xml', 'c.xml'],
+    ['b.xml', 'c.xml', 'a.xml'],
+    ['c.xml', 'a.xml', 'b.xml'],
+    ['c.xml', 'b.xml', 'a.xml'],
+  ])(
+    'Given three base files completing their reads in the order %s %s %s, When runUnion runs, Then the last path in sorted order wins the duplicate label',
+    async (...completion) => {
+      // Arrange
+      const files: Record<string, string> = {
+        [`${FROM}:a.xml`]: labelsFile(label('X', 'one')),
+        [`${FROM}:b.xml`]: labelsFile(label('X', 'two')),
+        [`${FROM}:c.xml`]: labelsFile(label('X', 'three')),
+        [`${TO}:member.xml`]: labelsFile(label('X', 'three')),
+      }
+      mockGetStringContent.mockImplementation(async ({ path, oid }) => {
+        const rank = completion.indexOf(path)
+        if (oid === FROM) await new Promise(r => setTimeout(r, rank * 15))
+        return files[`${oid}:${path}`] ?? ''
+      })
+      const sut = new MetadataDiff(work.config, inFileAttributes, reader)
+
+      // Act
+      const result = await sut.runUnion(
+        input({
+          additionBasePaths: ['a.xml', 'b.xml', 'c.xml'],
+          deletionBasePaths: ['a.xml', 'b.xml', 'c.xml'],
+        })
+      )
+
+      // Assert
+      expect(result.get('member.xml')?.manifests.modified).toEqual([])
+    }
+  )
+
   it('Given base and shield files, When runUnion runs, Then every base file is read once at from and every shield file once at to', async () => {
     // Arrange
     const xml = labelsFile(label('A1'))

@@ -205,6 +205,44 @@ describe('Given the pure component move checks', () => {
       expect(result).toBeUndefined()
     })
 
+    it('When the probes disagree on the type, Then it is no candidate', () => {
+      // Arrange
+      const probes = probesFor(group)
+      probes.set(group.additions[0] as string, {
+        ...probe(),
+        type: 'ApexTrigger',
+      })
+
+      // Act
+      const result = candidateOf(group, probes, sameBlobs, env)
+
+      // Assert
+      expect(result).toBeUndefined()
+    })
+
+    it('When only one probe compares elements, Then it is no candidate', () => {
+      // Arrange
+      const probes = probesFor(group)
+      probes.set(group.additions[0] as string, probe('Foo', true))
+
+      // Act
+      const result = candidateOf(group, probes, sameBlobs, env)
+
+      // Assert
+      expect(result).toBeUndefined()
+    })
+
+    it('When only one deleted file is ignored, Then it is no candidate', () => {
+      // Act
+      const result = candidateOf(group, probesFor(group), sameBlobs, {
+        ...env,
+        ignore: { keep: line => line !== `A\t${OLD_META}` },
+      })
+
+      // Assert
+      expect(result).toBeUndefined()
+    })
+
     it('When the files change package directory, Then it is no candidate', () => {
       // Arrange
       const project = SfdxProject.parse(
@@ -283,6 +321,22 @@ describe('Given the pure component move checks', () => {
 
       // Assert
       expect(result.to.get(group.name)).toEqual([NEW_CLS, NEW_META])
+    })
+
+    it('When a same-named file sits outside every candidate root, Then it is left out', () => {
+      // Arrange
+      const elsewhere = 'force-app/elsewhere/classes/Foo.cls'
+      const candidate = candidateOf(group, probesFor(group), sameBlobs, env)
+      const view = viewOf(
+        { [OLD_CLS]: 'a1', [OLD_META]: 'b1', [elsewhere]: 'c1' },
+        { [NEW_CLS]: 'a1', [NEW_META]: 'b1' }
+      )
+
+      // Act
+      const result = indexComponents(candidate ? [candidate] : [], view, env)
+
+      // Assert
+      expect(result.from.get(group.name)).toEqual([OLD_CLS, OLD_META])
     })
   })
 
@@ -415,6 +469,14 @@ describe('Given the pure component move checks', () => {
         expect(result).toBe(false)
       })
 
+      it('When a file arrives that was not in the source, Then it is not pure', () => {
+        // Act
+        const result = bundleVerdict(undefined, [...files, 'z.css'])
+
+        // Assert
+        expect(result).toBe(false)
+      })
+
       it('When a nested file lands at another relative path, Then it is not pure', () => {
         // Act
         const result = bundleVerdict(undefined, [
@@ -458,6 +520,124 @@ describe('Given the pure component move checks', () => {
 
       // Act
       const result = isPure(scattered.name, candidate, view, indexes)
+
+      // Assert
+      expect(result).toBe(false)
+    })
+
+    it('When the component moves between differently named subfolders, Then it is pure', () => {
+      // Arrange
+      const before = [`${OLD_DIR}/a/Foo.cls`, `${OLD_DIR}/a/Foo.cls-meta.xml`]
+      const after = [`${NEW_DIR}/b/Foo.cls`, `${NEW_DIR}/b/Foo.cls-meta.xml`]
+      const nested = groupOf(before, after)
+      const view = viewOf(
+        { [before[0] as string]: 'a1', [before[1] as string]: 'b1' },
+        { [after[0] as string]: 'a1', [after[1] as string]: 'b1' }
+      )
+      const candidate = candidateOf(nested, probesFor(nested), view, env)
+      const indexes = indexComponents(candidate ? [candidate] : [], view, env)
+
+      // Act
+      const result = candidate
+        ? isPure(nested.name, candidate, view, indexes)
+        : undefined
+
+      // Assert
+      expect(result).toBe(true)
+    })
+
+    it('When the destination lists the files in another order, Then it is still pure', () => {
+      // Arrange
+      const reordered = groupOf([OLD_CLS, OLD_META], [NEW_META, NEW_CLS])
+      const candidate = candidateOf(
+        reordered,
+        probesFor(reordered),
+        sameBlobs,
+        env
+      )
+      const indexes = indexComponents(
+        candidate ? [candidate] : [],
+        sameBlobs,
+        env
+      )
+
+      // Act
+      const result = candidate
+        ? isPure(reordered.name, candidate, sameBlobs, indexes)
+        : undefined
+
+      // Assert
+      expect(result).toBe(true)
+    })
+
+    it('When an added file of the component is ignored, Then it is not pure', () => {
+      // Arrange
+      const ignoring = {
+        ...env,
+        ignore: { keep: (line: string) => line !== `A\t${NEW_META}` },
+      }
+      const candidate = candidateOf(
+        group,
+        probesFor(group),
+        sameBlobs,
+        ignoring
+      )
+      const indexes = indexComponents(
+        candidate ? [candidate] : [],
+        sameBlobs,
+        ignoring
+      )
+
+      // Act
+      const result = candidate
+        ? isPure(group.name, candidate, sameBlobs, indexes)
+        : undefined
+
+      // Assert
+      expect(result).toBe(false)
+    })
+
+    it('When an ignored added file is replaced by an unmoved same-named file, Then it is not pure', () => {
+      // Arrange
+      const bystander = `${NEW_DIR}/sub/Foo.cls`
+      const ignoring = {
+        ...env,
+        ignore: { keep: (line: string) => line !== `A\t${NEW_META}` },
+      }
+      const view = viewOf(
+        { [OLD_CLS]: 'a1', [OLD_META]: 'b1' },
+        { [NEW_CLS]: 'a1', [NEW_META]: 'b1', [bystander]: 'c1' }
+      )
+      const candidate = candidateOf(group, probesFor(group), view, ignoring)
+      const indexes = indexComponents(
+        candidate ? [candidate] : [],
+        view,
+        ignoring
+      )
+
+      // Act
+      const result = candidate
+        ? isPure(group.name, candidate, view, indexes)
+        : undefined
+
+      // Assert
+      expect(result).toBe(false)
+    })
+
+    it('When the revisions hold no blob for the moved files, Then it is not pure', () => {
+      // Arrange
+      const candidate = candidateOf(group, probesFor(group), sameBlobs, env)
+      const indexes = indexComponents(
+        candidate ? [candidate] : [],
+        sameBlobs,
+        env
+      )
+      const blobless = viewOf({}, {})
+
+      // Act
+      const result = candidate
+        ? isPure(group.name, candidate, blobless, indexes)
+        : undefined
 
       // Assert
       expect(result).toBe(false)

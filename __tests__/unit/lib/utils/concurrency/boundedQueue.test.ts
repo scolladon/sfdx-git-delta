@@ -7,6 +7,12 @@ import { BoundedQueue } from '../../../../../src/utils/concurrency/boundedQueue'
 
 const microtask = () => setImmediate()
 
+class InspectableQueue<T> extends BoundedQueue<T> {
+  public retained(): number {
+    return this.pending.length
+  }
+}
+
 describe('BoundedQueue', () => {
   describe('Given an empty queue', () => {
     it('When constructed, Then idle returns true', () => {
@@ -199,6 +205,32 @@ describe('BoundedQueue', () => {
       expect(shiftCalls).toBe(0)
       expect(seen).toEqual(Array.from({ length: 50 }, (_, item) => item))
       expect(sut.idle()).toBe(true)
+    })
+
+    it('When the backlog is drained, Then no consumed item stays retained', async () => {
+      // Arrange
+      const sut = new InspectableQueue<number>(async () => undefined, 1)
+
+      // Act
+      for (let item = 0; item < 5; item++) sut.push(item)
+      await sut.drain()
+
+      // Assert
+      expect(sut.retained()).toBe(0)
+    })
+
+    it('When a worker fails with items still waiting, Then the waiting items are released', async () => {
+      // Arrange
+      const sut = new InspectableQueue<number>(async () => {
+        throw new Error('worker exploded')
+      }, 1)
+
+      // Act
+      for (let item = 0; item < 5; item++) sut.push(item)
+      await expect(sut.drain()).rejects.toThrow('worker exploded')
+
+      // Assert
+      expect(sut.retained()).toBe(0)
     })
 
     it('When refilled after a drain, Then the new items run', async () => {

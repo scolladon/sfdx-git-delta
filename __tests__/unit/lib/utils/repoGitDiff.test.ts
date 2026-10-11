@@ -461,6 +461,14 @@ describe('Given a RepoGitDiff', () => {
       expect(sut.getRenamePairs()).toEqual([])
     })
 
+    it('Given a freshly constructed RepoGitDiff, When getCancelledDeletions is read before getLines is called, Then it returns an empty array', () => {
+      // Arrange
+      const sut = new RepoGitDiff(config, globalMetadata)
+
+      // Act & Assert
+      expect(sut.getCancelledDeletions()).toEqual([])
+    })
+
     it('Given an R-line, When getLines, Then it is split into synthetic A and D lines and exposed via getRenamePairs', async () => {
       // Arrange
       mockGetDiffLines.mockReturnValue([

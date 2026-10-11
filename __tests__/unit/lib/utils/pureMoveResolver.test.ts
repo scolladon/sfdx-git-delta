@@ -199,6 +199,20 @@ describe('PureMoveResolver', () => {
     })
   })
 
+  describe('Given a modified file named like the moved component', () => {
+    it('When resolve runs, Then it is not counted among the moved additions and the move stays pure', async () => {
+      // Arrange
+      const modified = 'M\tforce-app/third/classes/Foo.cls'
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve([...lines, modified], cancelled())
+
+      // Assert
+      expect(result.lines).toEqual([lines[1], lines[3], modified])
+    })
+  })
+
   describe('Given the same deletion reported once per rename destination', () => {
     it('When resolve runs, Then the move is judged as if it was reported once', async () => {
       // Arrange
@@ -322,6 +336,29 @@ describe('PureMoveResolver', () => {
       // Assert
       expect(result.lines).toEqual(lines)
       expect(mockGetTypeHandler).toHaveBeenCalledTimes(4)
+    })
+  })
+
+  describe('Given a spanning move whose first line cannot be probed', () => {
+    it('When resolve runs, Then the group is kept without probing its other lines', async () => {
+      // Arrange
+      const crossEntryProject = JSON.stringify({
+        packageDirectories: [
+          { path: 'force-app/main' },
+          { path: 'force-app/other' },
+        ],
+      })
+      arrange(sameBlobs, crossEntryProject)
+      mockGetTypeHandler.mockRejectedValue(new Error('lookup failed'))
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(lines, cancelled())
+
+      // Assert
+      expect(result.lines).toEqual(lines)
+      expect(result.checkSkipped).toBe(false)
+      expect(mockGetTypeHandler).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -748,6 +785,35 @@ describe('PureMoveResolver', () => {
       expect(suppressed[0]).not.toContain('Bar')
     })
 
+    it('When several moves are pure, Then one debug line names them sorted and comma separated', async () => {
+      // Arrange
+      const barOld = `${OLD_DIR}/Bar.cls`
+      const barNew = `${NEW_DIR}/Bar.cls`
+      arrange({
+        from: { ...sameBlobs.from, [barOld]: 'c2' },
+        to: { ...sameBlobs.to, [barNew]: 'c2' },
+      })
+      mockGetTypeHandler.mockImplementation(async (line: string) => ({
+        getElementDescriptor: () => ({
+          type: 'ApexClass',
+          member: line.includes('Bar') ? 'Bar' : 'Foo',
+        }),
+        comparesElements: () => false,
+      }))
+      const sut = newSut()
+
+      // Act
+      await sut.resolve(
+        [...lines, `A\t${barNew}`],
+        [...cancelled(), deletion(barOld)]
+      )
+
+      // Assert
+      expect(debugMessages()).toContain(
+        'Pure move(s) suppressed: ApexClass:Bar, ApexClass:Foo'
+      )
+    })
+
     it('When no move is pure, Then no suppression line is logged', async () => {
       // Arrange
       arrange({ from: sameBlobs.from, to: { [NEW_CLS]: 'a1' } })
@@ -815,6 +881,20 @@ describe('PureMoveResolver', () => {
       )
       expect(result.unions).toEqual(new Map([[LABELS_NEW, OUTCOME]]))
       expect(result.lines).toEqual(labelLines)
+    })
+
+    it('When the union diff succeeds, Then the debug line names the scope, the entry and the member count', async () => {
+      // Arrange
+      arrangeLabels(labelsMove)
+      const sut = newSut()
+
+      // Act
+      await sut.resolve([`A\t${LABELS_NEW}`], [deletion(LABELS_OLD)])
+
+      // Assert
+      expect(debugMessages()).toContain(
+        'Union diff of CustomLabels in force-app: 1 member(s)'
+      )
     })
 
     it('When two labels keys land in one entry, Then one spec covers both', async () => {

@@ -35,6 +35,11 @@ describe('Given containerUnion path rules', () => {
       ['a decomposed label', DECOMPOSED, false],
       ['a workflow', WORKFLOW, false],
       ['a class', CLASS, false],
+      [
+        'a labels-named file of no known type',
+        'force-app/a/misc/Unknown.labels-meta.xml',
+        false,
+      ],
     ])(
       'When the path is %s, Then the answer is %s',
       (_title, path, expected) => {
@@ -200,6 +205,26 @@ describe('Given containerUnion path rules', () => {
       expect(result.memberPaths).toEqual([IN_A, IN_B])
     })
 
+    it('When candidates are read from unordered listings, Then bases and shields come out in path order', () => {
+      // Act
+      const result = specOf({
+        from: sideOf([IN_B, IN_A]),
+        to: sideOf([IN_B, IN_A]),
+      })
+
+      // Assert
+      expect(result.additionBasePaths).toEqual([IN_A, IN_B])
+      expect(result.shieldPaths).toEqual([IN_A, IN_B])
+    })
+
+    it('When a D line names a file still present at --to, Then it is no member', () => {
+      // Act
+      const result = specOf({ lines: [`D\t${IN_A}`, `A\t${IN_B}`] })
+
+      // Assert
+      expect(result.memberPaths).toEqual([IN_B])
+    })
+
     it('When a D line targets a base file, Then it is dropped; a D line of a non-base file is not', () => {
       // Act
       const result = specOf({
@@ -259,6 +284,28 @@ describe('Given containerUnion path rules', () => {
         expect(result.additionBasePaths).toEqual([])
       }
     )
+
+    it('When a file sits outside the listing roots of every target, Then it is not listed', () => {
+      // Arrange
+      const input: UnionSpecInput = {
+        scope: LABELS_UNION_SCOPE,
+        entry: ENTRY,
+        listingRoots: [],
+        metadata,
+        source: SOURCE,
+        ignore: { keep: () => true },
+        from: sideOf([IN_A, CLASS]),
+        to: sideOf([IN_A, CLASS]),
+        lines: [],
+      }
+
+      // Act
+      const listing = listUnionCandidates(input, [input])
+
+      // Assert
+      expect([...listing.from.keys()]).toEqual([LABELS_UNION_SCOPE])
+      expect([...listing.to.keys()]).toEqual([LABELS_UNION_SCOPE])
+    })
 
     it('When the scope is a workflow, Then candidates come from the listing roots of the spec under that cancellation key', () => {
       // Arrange
