@@ -59,7 +59,7 @@ describe('DiffLineInterpreter with resource components', () => {
       expect(result.copies).toHaveLength(CHANGED_LINES * OPERATIONS_PER_LINE)
     })
 
-    it('When the copies are expanded, Then each file is copied once beside the repeated base copies', async () => {
+    it('When the copies are expanded, Then they hold the repeated base copies plus one copy per component file', async () => {
       // Arrange
       const { result, trees } = await processChangedLines()
 
@@ -68,6 +68,19 @@ describe('DiffLineInterpreter with resource components', () => {
 
       // Assert
       expect(expanded).toHaveLength(2 * CHANGED_LINES + COMPONENT_FILE_COUNT)
+    })
+
+    it('When the copies are expanded, Then they target only the component files', async () => {
+      // Arrange
+      const { result, trees } = await processChangedLines()
+
+      // Act
+      const expanded = expandComponentCopies(result.copies, trees)
+
+      // Assert
+      expect(new Set(expanded.map(op => op.path))).toEqual(
+        new Set([...FOLDER_FILES, META_FILE])
+      )
     })
   })
 })

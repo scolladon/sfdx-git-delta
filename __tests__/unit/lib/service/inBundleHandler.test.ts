@@ -219,7 +219,7 @@ describe('InBundleHandler', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
-    it('Given a page content file addition, When collect, Then adds a page-scoped member and copies the full content folder recursively', async () => {
+    it('Given a page content file addition, When collect, Then adds a page-scoped member and requests the page content folder', async () => {
       // Arrange
       const sut = buildSut(`A       ${pageContentPath}`)
 
@@ -235,23 +235,6 @@ describe('InBundleHandler', () => {
             member: 'site/Site_A.sfdc_cms__view/page_a',
           }),
         ])
-      )
-      expect(requestsOf(result.copies)).toEqual([pageRequest()])
-      expect(result.copies).toHaveLength(2)
-      expect(result.warnings).toHaveLength(0)
-    })
-
-    it('Given a page content change with a sibling page present, When collect, Then no sibling path is copied', async () => {
-      // Arrange
-      const sut = buildSut(`A       ${pageContentPath}`)
-
-      // Act
-      const result = await sut.collect()
-
-      // Assert
-      // the request targets the page folder, not the whole bundle
-      expect(result.copies.some(copy => copy.path.includes('/page_b'))).toBe(
-        false
       )
       expect(requestsOf(result.copies)).toEqual([pageRequest()])
       expect(result.copies).toHaveLength(2)

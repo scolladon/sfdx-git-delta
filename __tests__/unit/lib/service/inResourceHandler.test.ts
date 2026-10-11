@@ -125,7 +125,7 @@ describe('InResourceHandler', () => {
         )
       })
 
-      it('Given generateDelta false with matching resources, When collect, Then no resource copies are produced', async () => {
+      it('Given generateDelta false, When collect, Then no copy or component request is produced', async () => {
         // Arrange
         const { changeType, element } = createElement(
           line,

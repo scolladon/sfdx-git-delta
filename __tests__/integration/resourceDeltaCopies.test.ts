@@ -76,10 +76,13 @@ const TRANSLATION = [
   ),
   file(
     FIELD_TRANSLATION,
-    '<?xml version="1.0" encoding="UTF-8"?>\n<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">\n    <label>Nombre</label>\n    <name>Name</name>\n</CustomFieldTranslation>\n'
+    '<?xml version="1.0" encoding="UTF-8"?>\n<CustomFieldTranslation xmlns="http://soap.sforce.com/2006/04/metadata">\n    <label>Account name</label>\n    <name>Name</name>\n</CustomFieldTranslation>\n'
   ),
 ] as const
-const TRANSLATION_EDITED = TRANSLATION[1].content.replace('Nombre', 'Nom')
+const TRANSLATION_EDITED = TRANSLATION[1].content.replace(
+  'Account name',
+  'Customer name'
+)
 
 const pathOf = ({ path }: FixtureFile): string => path
 const pathsOf = (files: readonly FixtureFile[]): string[] =>
@@ -246,14 +249,14 @@ describe.each(cases)('Given $title', testCase => {
     expectOutcome(result, { ...expected, copied: pathsOf(copiedAtTo) })
   })
 
-  it('When sgd runs, Then the copied bytes match the to state', async () => {
-    // Arrange
-    if (testCase.verifyBytes === false) return
+  it.skipIf(testCase.verifyBytes === false)(
+    'When sgd runs, Then the copied bytes match the to state',
+    async () => {
+      // Act
+      const result = await copiedContentOf({ refs, overrides })
 
-    // Act
-    const result = await copiedContentOf({ refs, overrides })
-
-    // Assert
-    expect(result).toEqual(contentsOf(copiedAtTo))
-  })
+      // Assert
+      expect(result).toEqual(contentsOf(copiedAtTo))
+    }
+  )
 })
