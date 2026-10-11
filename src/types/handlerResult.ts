@@ -21,6 +21,7 @@ export type AddKind = ChangeKind.Add | ChangeKind.Modify | ChangeKind.Delete
 export enum CopyOperationKind {
   GitCopy = 'gitCopy',
   GitDirCopy = 'gitDirCopy',
+  GitComponentCopy = 'gitComponentCopy',
   StreamedContent = 'streamedContent',
 }
 
@@ -43,6 +44,14 @@ export type GitDirCopyOperation = {
   revision: string
 }
 
+// Every file at revision inside the component folder path or named as a dotted
+// sibling of it, resolved once per run however many lines asked for it.
+export type GitComponentCopyOperation = {
+  kind: CopyOperationKind.GitComponentCopy
+  path: string
+  revision: string
+}
+
 export type StreamedContentOperation = {
   kind: CopyOperationKind.StreamedContent
   path: string
@@ -52,6 +61,7 @@ export type StreamedContentOperation = {
 export type CopyOperation =
   | GitCopyOperation
   | GitDirCopyOperation
+  | GitComponentCopyOperation
   | StreamedContentOperation
 
 // Handlers and collectors emit a HandlerResult describing only what they

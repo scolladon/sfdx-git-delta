@@ -66,6 +66,7 @@ export type PureMoveHarness = Readonly<{
     change: readonly FixtureOp[]
   ) => ScenarioRefs
   outcomeOf: (run: Run) => Promise<Outcome>
+  copiedContentOf: (run: Run) => Promise<Record<string, string>>
   ignoreOverrides: (
     ignores: Pick<Case, 'ignore' | 'ignoreDestructive'>
   ) => Promise<Partial<ConfigInput>>
@@ -219,6 +220,19 @@ export const usePureMoveHarness = (label: string): PureMoveHarness => {
     }
   }
 
+  const copiedContentOf = async (run: Run): Promise<Record<string, string>> => {
+    const { work } = await runSgd(run)
+    const output = work.config.output
+    const paths = await copiedFiles(output)
+    const entries = await Promise.all(
+      paths.map(
+        async path =>
+          [path, await readFile(join(output, path), 'utf8')] as const
+      )
+    )
+    return Object.fromEntries(entries)
+  }
+
   const ignoreFile = async (lines: readonly string[]): Promise<string> => {
     // _buildIgnore reads with a plain fs.readFile, so the path must be absolute.
     const path = join(
@@ -244,5 +258,5 @@ export const usePureMoveHarness = (label: string): PureMoveHarness => {
   const build: PureMoveHarness['build'] = (name, base, change) =>
     buildScenario(fixtureDir, name, base, change)
 
-  return { build, outcomeOf, ignoreOverrides }
+  return { build, outcomeOf, copiedContentOf, ignoreOverrides }
 }
