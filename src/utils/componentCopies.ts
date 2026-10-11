@@ -13,13 +13,11 @@ export type FileCopyOperation = Exclude<
   GitComponentCopyOperation
 >
 
-// request path -> its files, in listing order
-type OwnedFiles = Map<string, string[]>
+type FilesByComponent = Map<string, string[]>
 
 type Requests = Readonly<{
-  byRevision: Map<string, OwnedFiles>
-  // index of each distinct request's first occurrence -> its files
-  byFirstIndex: Map<number, string[]>
+  byRevision: Map<string, FilesByComponent>
+  filesByFirstOccurrence: Map<number, string[]>
 }>
 
 const NOT_FOUND = -1
@@ -29,7 +27,7 @@ const parentOf = (path: string): string =>
   path.substring(0, path.lastIndexOf(PATH_SEP))
 
 const addRequest = (
-  { byRevision, byFirstIndex }: Requests,
+  { byRevision, filesByFirstOccurrence }: Requests,
   { revision, path }: GitComponentCopyOperation,
   index: number
 ): void => {
@@ -38,11 +36,14 @@ const addRequest = (
   if (owned.has(path)) return
   const files: string[] = []
   owned.set(path, files)
-  byFirstIndex.set(index, files)
+  filesByFirstOccurrence.set(index, files)
 }
 
 const collectRequests = (copies: readonly CopyOperation[]): Requests => {
-  const requests: Requests = { byRevision: new Map(), byFirstIndex: new Map() }
+  const requests: Requests = {
+    byRevision: new Map(),
+    filesByFirstOccurrence: new Map(),
+  }
   for (const [index, op] of copies.entries()) {
     if (op.kind === CopyOperationKind.GitComponentCopy) {
       addRequest(requests, op, index)
@@ -56,7 +57,11 @@ const nextCut = (file: string, from: number): number => {
   return offset === NOT_FOUND ? NOT_FOUND : from + offset
 }
 
-const assignCuts = (owned: OwnedFiles, file: string, from: number): void => {
+const assignCuts = (
+  owned: FilesByComponent,
+  file: string,
+  from: number
+): void => {
   let cut = nextCut(file, from)
   while (cut !== NOT_FOUND) {
     owned.get(file.slice(0, cut))?.push(file)
@@ -69,7 +74,7 @@ const assignListing = (
   trees: TreeReader,
   revision: string,
   parent: string,
-  owned: OwnedFiles
+  owned: FilesByComponent
 ): void => {
   // At the root listing (empty parent) this starts one character in, which
   // only skips a leading dot whose cut would be the empty path.
@@ -82,14 +87,16 @@ const assignListing = (
 const listEachParentOnce = (
   trees: TreeReader,
   revision: string,
-  owned: OwnedFiles
+  owned: FilesByComponent
 ): void => {
   const parents = new Set(Array.from(owned.keys(), parentOf))
   for (const parent of parents) assignListing(trees, revision, parent, owned)
 }
 
-const filesAt = ({ byFirstIndex }: Requests, index: number): string[] =>
-  byFirstIndex.get(index) ?? []
+const filesAt = (
+  { filesByFirstOccurrence }: Requests,
+  index: number
+): string[] => filesByFirstOccurrence.get(index) ?? []
 
 const gitCopyOf = (path: string, revision: string): FileCopyOperation => ({
   kind: CopyOperationKind.GitCopy,
