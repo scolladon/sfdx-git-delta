@@ -4,6 +4,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.5.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.4.6...v7.5.0) (2026-10-11)
+
+
+### Features
+
+* suppress pure moves from the manifests and the delta copy ([0fc81f0](https://github.com/scolladon/sfdx-git-delta/commit/0fc81f0f5a092187884393555945c7edb4d6da77))
+
+
+### Bug Fixes
+
+* anchor component copies and list each type directory once under generate-delta ([feeb283](https://github.com/scolladon/sfdx-git-delta/commit/feeb28325fc0e362c9d41b716f970320ada19550))
+* copy only files whose path starts with the component path ([feeb283](https://github.com/scolladon/sfdx-git-delta/commit/feeb28325fc0e362c9d41b716f970320ada19550))
+* list each resource component once under generate-delta ([e606fd1](https://github.com/scolladon/sfdx-git-delta/commit/e606fd1bc7729d05c77acf0b9d3fe7eb24c66f26))
+
+
+### Performance Improvements
+
+* list each component parent directory once per revision ([feeb283](https://github.com/scolladon/sfdx-git-delta/commit/feeb28325fc0e362c9d41b716f970320ada19550))
+
 ## [7.4.6](https://github.com/scolladon/sfdx-git-delta/compare/v7.4.5...v7.4.6) (2026-10-07)
 
 
