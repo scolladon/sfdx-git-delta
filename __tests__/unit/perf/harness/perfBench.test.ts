@@ -13,7 +13,10 @@ vi.mock('vitest', async () => {
 import type { PerfBenchHooks } from '../../../perf/harness/perfBench'
 import {
   assertMeanWithinCeiling,
+  assertScalesLinearly,
   deriveCeilingMs,
+  GROWTH_TOLERANCE,
+  MIN_SIZE_RATIO,
   perfBench,
   RUNNER_NOISE_FACTOR,
 } from '../../../perf/harness/perfBench'
@@ -198,6 +201,123 @@ describe('Given assertMeanWithinCeiling', () => {
 
     // Assert
     expect(act).not.toThrow()
+  })
+})
+
+describe('Given assertScalesLinearly', () => {
+  const rowOf = (samplesMs: readonly number[], label = 'expand-4k') => ({
+    label,
+    samplesMs,
+  })
+  const baselineOf = (samplesMs: readonly number[]) =>
+    rowOf(samplesMs, 'expand-2k')
+
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, -2, 0, 1.5])(
+    'When the size ratio is %s, Then it throws naming the ratio',
+    sizeRatio => {
+      // Arrange
+      const sut = assertScalesLinearly
+
+      // Act
+      const act = () => sut(baselineOf([10]), rowOf([20]), sizeRatio)
+
+      // Assert
+      expect(act).toThrow(
+        `assertScalesLinearly requires a finite sizeRatio of at least 2; got ${sizeRatio}`
+      )
+    }
+  )
+
+  it('When no baseline samples were recorded, Then it throws naming the baseline row as absent from the run', () => {
+    // Arrange
+    const sut = assertScalesLinearly
+
+    // Act
+    const act = () => sut(baselineOf([]), rowOf([10]), 2)
+
+    // Assert
+    expect(act).toThrow(
+      'expand-4k needs expand-2k in the same run, which recorded no samples (filtered out with -t?)'
+    )
+  })
+
+  it('When no scaled samples were recorded, Then it throws naming the label', () => {
+    // Arrange
+    const sut = assertScalesLinearly
+
+    // Act
+    const act = () => sut(baselineOf([10]), rowOf([]), 2)
+
+    // Assert
+    expect(act).toThrow('expand-4k recorded no samples to compare')
+  })
+
+  it('When the fastest baseline sample took no time, Then it throws instead of passing an undefined growth', () => {
+    // Arrange
+    const sut = assertScalesLinearly
+
+    // Act
+    const act = () => sut(baselineOf([0]), rowOf([0]), 2)
+
+    // Assert
+    expect(act).toThrow(
+      'expand-4k cannot be compared against expand-2k, whose fastest sample took no time'
+    )
+  })
+
+  it('When the fastest samples grow beyond the linear bound, Then it throws naming the growth and the bound', () => {
+    // Arrange
+    const sut = assertScalesLinearly
+
+    // Act
+    const act = () => sut(baselineOf([10, 50]), rowOf([40, 90]), 2)
+
+    // Assert
+    expect(act).toThrow(
+      'expand-4k grew 4.00x over expand-2k for a 2x larger input, exceeding the 3x linear-scaling bound'
+    )
+  })
+
+  it('When the fastest samples grow linearly while slower ones do not, Then it does not throw', () => {
+    // Arrange
+    const sut = assertScalesLinearly
+
+    // Act
+    const act = () => sut(baselineOf([10, 50]), rowOf([20, 200]), 2)
+
+    // Assert
+    expect(act).not.toThrow()
+  })
+
+  it('When the fastest samples grow exactly to the bound, Then it does not throw', () => {
+    // Arrange
+    const sut = assertScalesLinearly
+
+    // Act
+    const act = () => sut(baselineOf([10]), rowOf([30]), 2)
+
+    // Assert
+    expect(act).not.toThrow()
+  })
+})
+
+describe('Given MIN_SIZE_RATIO', () => {
+  it('When read, Then it is 2', () => {
+    // Arrange
+    const sut = MIN_SIZE_RATIO
+
+    // Assert
+    expect(sut).toBe(2)
+  })
+})
+
+describe('Given GROWTH_TOLERANCE', () => {
+  it('When read, Then it is 1.5', () => {
+    // Arrange
+    const sut = GROWTH_TOLERANCE
+
+    // Assert
+    expect(sut).toBe(1.5)
   })
 })
 

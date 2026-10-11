@@ -107,3 +107,68 @@ export const assertMeanWithinCeiling = (
     )
   }
 }
+
+// Doubling the input of a linear cost doubles it and of a quadratic cost
+// quadruples it; 1.5x the size ratio sits between the two, so the bound
+// catches a lost linearity without a CI-seeded absolute ceiling.
+export const GROWTH_TOLERANCE = 1.5
+
+// At or below 1.5x, size ratio x tolerance meets or exceeds the quadratic
+// growth (1.5 x 1.5 = 1.5^2), so the bound could not fail on what it exists
+// to catch; a doubling keeps a clear margin above that.
+export const MIN_SIZE_RATIO = 2
+
+export type SampledRow = Readonly<{
+  label: string
+  samplesMs: readonly number[]
+}>
+
+const requireMeaningfulSizeRatio = (sizeRatio: number): void => {
+  if (!Number.isFinite(sizeRatio) || sizeRatio < MIN_SIZE_RATIO) {
+    throw new Error(
+      `assertScalesLinearly requires a finite sizeRatio of at least ${MIN_SIZE_RATIO}; got ${sizeRatio}`
+    )
+  }
+}
+
+// A filtered run (`-t <scaled row>`) skips the baseline row, so its absence
+// is named as such rather than read as the scaled row's own failure.
+const requireSamples = (baseline: SampledRow, scaled: SampledRow): void => {
+  if (baseline.samplesMs.length === 0) {
+    throw new Error(
+      `${scaled.label} needs ${baseline.label} in the same run, which recorded no samples (filtered out with -t?)`
+    )
+  }
+  if (scaled.samplesMs.length === 0) {
+    throw new Error(`${scaled.label} recorded no samples to compare`)
+  }
+}
+
+const fastestGrowth = (baseline: SampledRow, scaled: SampledRow): number => {
+  const growth = Math.min(...scaled.samplesMs) / Math.min(...baseline.samplesMs)
+  if (!Number.isFinite(growth)) {
+    throw new Error(
+      `${scaled.label} cannot be compared against ${baseline.label}, whose fastest sample took no time`
+    )
+  }
+  return growth
+}
+
+// A shape bound, not a time budget: two rows measured in the same run share
+// the runner's speed, so their ratio needs no seed. Fastest samples, because
+// load only ever adds time and a ratio of means would amplify it.
+export const assertScalesLinearly = (
+  baseline: SampledRow,
+  scaled: SampledRow,
+  sizeRatio: number
+): void => {
+  requireMeaningfulSizeRatio(sizeRatio)
+  requireSamples(baseline, scaled)
+  const growth = fastestGrowth(baseline, scaled)
+  const bound = sizeRatio * GROWTH_TOLERANCE
+  if (growth > bound) {
+    throw new Error(
+      `${scaled.label} grew ${growth.toFixed(2)}x over ${baseline.label} for a ${sizeRatio}x larger input, exceeding the ${bound}x linear-scaling bound`
+    )
+  }
+}
