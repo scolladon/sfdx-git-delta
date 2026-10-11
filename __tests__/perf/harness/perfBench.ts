@@ -107,3 +107,32 @@ export const assertMeanWithinCeiling = (
     )
   }
 }
+
+// Doubling the input of a linear cost doubles it and of a quadratic cost
+// quadruples it; 1.5x the size ratio sits between the two, so the bound
+// catches a lost linearity without a CI-seeded absolute ceiling.
+export const GROWTH_TOLERANCE = 1.5
+
+// A shape bound, not a time budget: two rows measured in the same run share
+// the runner's speed, so their ratio needs no seed. Fastest samples, because
+// load only ever adds time and a ratio of means would amplify it.
+export const assertScalesLinearly = (
+  label: string,
+  baselineMs: readonly number[],
+  scaledMs: readonly number[],
+  sizeRatio: number
+): void => {
+  if (baselineMs.length === 0) {
+    throw new Error(`${label} recorded no baseline samples to compare`)
+  }
+  if (scaledMs.length === 0) {
+    throw new Error(`${label} recorded no samples to compare`)
+  }
+  const growth = Math.min(...scaledMs) / Math.min(...baselineMs)
+  const bound = sizeRatio * GROWTH_TOLERANCE
+  if (growth > bound) {
+    throw new Error(
+      `${label} grew ${growth.toFixed(2)}x for a ${sizeRatio}x larger input, exceeding the ${bound}x linear-scaling bound`
+    )
+  }
+}

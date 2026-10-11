@@ -13,6 +13,7 @@ import { NO_UNIONS } from '../../lib/types/runContext.js'
 import { expandComponentCopies } from '../../lib/utils/componentCopies.js'
 import {
   assertMeanWithinCeiling,
+  assertScalesLinearly,
   deriveCeilingMs,
   perfBench,
 } from './harness/perfBench.ts'
@@ -36,13 +37,14 @@ const RESOURCES = 'force-app/main/default/staticresources'
 const WORST_MEAN_MS = {
   'resource-copies-2k-files': 12.76,
   'resource-copies-10k-files': 63.49,
-  // Provisional: the CI-seeded 2k-files mean and twice it, to be replaced from
-  // this branch's first ubuntu CI run.
-  'resource-copies-2k-components': 12.76,
-  'resource-copies-4k-components': 25.52,
 } as const
 
 type CeiledRow = keyof typeof WORST_MEAN_MS
+
+type Budget = (elapsedMs: readonly number[]) => void
+
+// The 2k-components row is the baseline its 4k sibling is bounded against.
+const NO_BUDGET: Budget = () => undefined
 
 const metadata = await getDefinition({})
 
@@ -100,11 +102,15 @@ const manyComponents = (componentCount: number): Fixture => ({
   buildLines: () => linesOf(changedFiles(componentCount)),
 })
 
-const runRow = (name: CeiledRow, { trees, buildLines }: Fixture) => {
+const runRow = (
+  name: string,
+  { trees, buildLines }: Fixture,
+  budget: Budget
+): readonly number[] => {
   const ctx = { config, metadata, trees, unions: NO_UNIONS }
+  const elapsedMs: number[] = []
   let lines: string[] = []
   describe(name, () => {
-    const elapsedMs: number[] = []
     perfBench(
       name,
       async () => {
@@ -114,21 +120,51 @@ const runRow = (name: CeiledRow, { trees, buildLines }: Fixture) => {
         elapsedMs.push(performance.now() - start)
       },
       {
-        afterRun: () =>
-          assertMeanWithinCeiling(
-            name,
-            elapsedMs,
-            deriveCeilingMs(WORST_MEAN_MS[name])
-          ),
+        afterRun: () => budget(elapsedMs),
         beforeEach: () => {
           lines = buildLines()
         },
       }
     )
   })
+  return elapsedMs
 }
 
-runRow('resource-copies-2k-files', oneFolder(FILES_2K))
-runRow('resource-copies-10k-files', oneFolder(FILES_10K))
-runRow('resource-copies-2k-components', manyComponents(COMPONENTS_2K))
-runRow('resource-copies-4k-components', manyComponents(COMPONENTS_4K))
+const withinCeiling =
+  (name: CeiledRow): Budget =>
+  elapsedMs =>
+    assertMeanWithinCeiling(
+      name,
+      elapsedMs,
+      deriveCeilingMs(WORST_MEAN_MS[name])
+    )
+
+const linearFrom =
+  (name: string, baselineMs: readonly number[], sizeRatio: number): Budget =>
+  elapsedMs =>
+    assertScalesLinearly(name, baselineMs, elapsedMs, sizeRatio)
+
+runRow(
+  'resource-copies-2k-files',
+  oneFolder(FILES_2K),
+  withinCeiling('resource-copies-2k-files')
+)
+runRow(
+  'resource-copies-10k-files',
+  oneFolder(FILES_10K),
+  withinCeiling('resource-copies-10k-files')
+)
+const components2kMs = runRow(
+  'resource-copies-2k-components',
+  manyComponents(COMPONENTS_2K),
+  NO_BUDGET
+)
+runRow(
+  'resource-copies-4k-components',
+  manyComponents(COMPONENTS_4K),
+  linearFrom(
+    'resource-copies-4k-components',
+    components2kMs,
+    COMPONENTS_4K / COMPONENTS_2K
+  )
+)

@@ -13,7 +13,9 @@ vi.mock('vitest', async () => {
 import type { PerfBenchHooks } from '../../../perf/harness/perfBench'
 import {
   assertMeanWithinCeiling,
+  assertScalesLinearly,
   deriveCeilingMs,
+  GROWTH_TOLERANCE,
   perfBench,
   RUNNER_NOISE_FACTOR,
 } from '../../../perf/harness/perfBench'
@@ -198,6 +200,75 @@ describe('Given assertMeanWithinCeiling', () => {
 
     // Assert
     expect(act).not.toThrow()
+  })
+})
+
+describe('Given assertScalesLinearly', () => {
+  it('When no baseline samples were recorded, Then it throws naming the label', () => {
+    // Arrange
+    const sut = assertScalesLinearly
+
+    // Act
+    const act = () => sut('expand-4k', [], [10], 2)
+
+    // Assert
+    expect(act).toThrow('expand-4k recorded no baseline samples to compare')
+  })
+
+  it('When no scaled samples were recorded, Then it throws naming the label', () => {
+    // Arrange
+    const sut = assertScalesLinearly
+
+    // Act
+    const act = () => sut('expand-4k', [10], [], 2)
+
+    // Assert
+    expect(act).toThrow('expand-4k recorded no samples to compare')
+  })
+
+  it('When the fastest samples grow beyond the linear bound, Then it throws naming the growth and the bound', () => {
+    // Arrange
+    const sut = assertScalesLinearly
+
+    // Act
+    const act = () => sut('expand-4k', [10, 50], [40, 90], 2)
+
+    // Assert
+    expect(act).toThrow(
+      'expand-4k grew 4.00x for a 2x larger input, exceeding the 3x linear-scaling bound'
+    )
+  })
+
+  it('When the fastest samples grow linearly while slower ones do not, Then it does not throw', () => {
+    // Arrange
+    const sut = assertScalesLinearly
+
+    // Act
+    const act = () => sut('expand-4k', [10, 50], [20, 200], 2)
+
+    // Assert
+    expect(act).not.toThrow()
+  })
+
+  it('When the fastest samples grow exactly to the bound, Then it does not throw', () => {
+    // Arrange
+    const sut = assertScalesLinearly
+
+    // Act
+    const act = () => sut('expand-4k', [10], [30], 2)
+
+    // Assert
+    expect(act).not.toThrow()
+  })
+})
+
+describe('Given GROWTH_TOLERANCE', () => {
+  it('When read, Then it is 1.5', () => {
+    // Arrange
+    const sut = GROWTH_TOLERANCE
+
+    // Assert
+    expect(sut).toBe(1.5)
   })
 })
 
