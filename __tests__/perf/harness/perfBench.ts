@@ -113,9 +113,9 @@ export const assertMeanWithinCeiling = (
 // catches a lost linearity without a CI-seeded absolute ceiling.
 export const GROWTH_TOLERANCE = 1.5
 
-// Below a doubling, size ratio x tolerance overtakes the quadratic growth
-// (1.25 x 1.5 > 1.25^2), so the bound could no longer fail on what it exists
-// to catch.
+// At or below 1.5x, size ratio x tolerance meets or exceeds the quadratic
+// growth (1.5 x 1.5 = 1.5^2), so the bound could not fail on what it exists
+// to catch; a doubling keeps a clear margin above that.
 export const MIN_SIZE_RATIO = 2
 
 export type SampledRow = Readonly<{
