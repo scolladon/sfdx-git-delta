@@ -246,30 +246,39 @@ describe('pure-move-resolver-container-moves', () => {
   )
 })
 
-const FOLDER_FILES = 10_000
+// Sized so the fixed iteration budget stays well inside the bench timeout on
+// the slower CI runners; the cost per file is linear.
+const FOLDER_FILES = 2_000
+
+const moveFolderFile = (scenario: Scenario, name: string, id: string): void => {
+  const oldPath = `${OLD_ROOT}/staticresources/${name}`
+  const newPath = `${NEW_ROOT}/staticresources/${name}`
+  const deletion = `${DELETION}${TAB}${oldPath}`
+  scenario.from.set(oldPath, id)
+  scenario.to.set(newPath, id)
+  scenario.lines.push(`${ADDITION}${TAB}${newPath}`)
+  scenario.cancelled.push({
+    line: deletion,
+    name: comparisonName(metadata, deletion),
+  })
+}
 
 const folderScenario = (): (() => Scenario) => {
   let round = 0
   return () => {
     round += 1
-    const from = new Map<string, string>()
-    const to = new Map<string, string>()
-    const lines: string[] = []
-    const cancelled: DeferredDeletion[] = []
-    for (let index = 0; index < FOLDER_FILES; index++) {
-      const name = `Lib/f${index}.js`
-      const oldPath = `${OLD_ROOT}/staticresources/${name}`
-      const newPath = `${NEW_ROOT}/staticresources/${name}`
-      const deletion = `${DELETION}${TAB}${oldPath}`
-      from.set(oldPath, `s-${round}-${index}`)
-      to.set(newPath, `s-${round}-${index}`)
-      lines.push(`${ADDITION}${TAB}${newPath}`)
-      cancelled.push({
-        line: deletion,
-        name: comparisonName(metadata, deletion),
-      })
+    const from = unrelatedTree(CONTAINER_TREE_SIZE, round)
+    const scenario: Scenario = {
+      lines: [],
+      cancelled: [],
+      from,
+      to: new Map(from),
     }
-    return { lines, cancelled, from, to }
+    moveFolderFile(scenario, 'Lib.resource-meta.xml', `m-${round}`)
+    for (let index = 0; index < FOLDER_FILES; index++) {
+      moveFolderFile(scenario, `Lib/f${index}.js`, `s-${round}-${index}`)
+    }
+    return scenario
   }
 }
 
@@ -287,7 +296,7 @@ describe('pure-move-resolver-folder-component', () => {
   let scenario: Scenario
   let sut: PureMoveResolver
   perfBench(
-    'one-folder-component-10k-files-moved',
+    'one-folder-component-2k-files-moved',
     async () => {
       await sut.resolve(scenario.lines, scenario.cancelled)
     },
