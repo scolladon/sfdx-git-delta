@@ -18,7 +18,9 @@ import { eachLimit } from './concurrency/index.js'
 import { getConcurrencyThreshold } from './concurrencyUtils.js'
 import {
   buildUnionSpec,
+  listUnionCandidates,
   type RevisionSide,
+  type UnionListing,
   unionScopeOf,
 } from './containerUnion.js'
 import { getErrorMessage } from './errorUtils.js'
@@ -66,6 +68,10 @@ type ComponentIndex = ReadonlyMap<string, readonly string[]>
 
 type ComponentIndexes = Readonly<{ from: ComponentIndex; to: ComponentIndex }>
 
+type Candidate = Readonly<{ moved: MovedPaths; roots: readonly string[] }>
+
+const NO_COMPONENTS: ComponentIndexes = { from: new Map(), to: new Map() }
+
 type UnionTriggers = Map<string, Map<PackageDirectoryKey, Set<string>>>
 
 type Judgement = Readonly<{
@@ -91,7 +97,9 @@ const groupByEntry = (
   const grouped = new Map<PackageDirectoryKey, string[]>()
   for (const path of paths) {
     const entry = project.packageDirectoryOf(path)
-    grouped.set(entry, [...(grouped.get(entry) ?? []), path])
+    const bucket = grouped.get(entry) ?? []
+    bucket.push(path)
+    grouped.set(entry, bucket)
   }
   return grouped
 }
@@ -252,9 +260,19 @@ export default class PureMoveResolver {
     const dropped = new Set<string>()
     const triggers: UnionTriggers = new Map()
     const members: string[] = []
-    const indexes = this.indexComponents(view, ignoreHelper)
+    const candidates = new Map<MoveGroup, Candidate>()
     for (const group of groups) {
-      if (this.isPure(group, probes, view, ignoreHelper, indexes)) {
+      const candidate = this.candidateOf(group, probes, view, ignoreHelper)
+      if (candidate) candidates.set(group, candidate)
+    }
+    const indexes = this.indexComponents(
+      [...candidates.values()],
+      view,
+      ignoreHelper
+    )
+    for (const group of groups) {
+      const candidate = candidates.get(group)
+      if (candidate && this.isPure(group, candidate, view, indexes)) {
         for (const line of group.additions) dropped.add(line)
         members.push(this.labelOf(group, probes))
         continue
@@ -310,14 +328,30 @@ export default class PureMoveResolver {
     ignoreHelper: IgnoreHelper
   ): Promise<UnionResult> {
     const result: UnionResult = { outcomes: new Map(), dropped: new Set() }
-    for (const [scope, entries] of triggers) {
-      for (const [entry, roots] of entries) {
-        await this.diffEntry(
-          { scope, entry, listingRoots: [...roots].sort() },
-          { lines, view, ignoreHelper },
-          result
-        )
-      }
+    const targets = [...triggers].flatMap(([scope, entries]) =>
+      [...entries].map(([entry, roots]) => ({
+        scope,
+        entry,
+        listingRoots: [...roots].sort(),
+      }))
+    )
+    if (targets.length === 0) return result
+    const listing = listUnionCandidates(
+      {
+        metadata: this.ctx.metadata,
+        source: this.ctx.config.source,
+        from: view.from,
+        to: view.to,
+        lines,
+      },
+      targets
+    )
+    for (const target of targets) {
+      await this.diffEntry(
+        target,
+        { lines, view, ignoreHelper, listing },
+        result
+      )
     }
     return result
   }
@@ -328,18 +362,22 @@ export default class PureMoveResolver {
       lines: readonly string[]
       view: RevisionView
       ignoreHelper: IgnoreHelper
+      listing: UnionListing
     }>,
     result: UnionResult
   ): Promise<void> {
-    const spec = buildUnionSpec({
-      ...target,
-      metadata: this.ctx.metadata,
-      source: this.ctx.config.source,
-      ignore: context.ignoreHelper,
-      from: context.view.from,
-      to: context.view.to,
-      lines: context.lines,
-    })
+    const spec = buildUnionSpec(
+      {
+        ...target,
+        metadata: this.ctx.metadata,
+        source: this.ctx.config.source,
+        ignore: context.ignoreHelper,
+        from: context.view.from,
+        to: context.view.to,
+        lines: context.lines,
+      },
+      context.listing
+    )
     try {
       const outcomes = await this.unionDiff.runUnion(spec)
       for (const [path, outcome] of outcomes) result.outcomes.set(path, outcome)
@@ -386,25 +424,36 @@ export default class PureMoveResolver {
     return probes
   }
 
-  private isPure(
+  private candidateOf(
     group: MoveGroup,
     probes: ReadonlyMap<string, Probe>,
     view: RevisionView,
-    ignoreHelper: IgnoreHelper,
-    indexes: ComponentIndexes
-  ): boolean {
+    ignoreHelper: IgnoreHelper
+  ): Candidate | undefined {
     const known = this.probesOf(group, probes)
-    if (!known || !sameIdentity(known)) return false
-    if (known.some(probe => probe.comparesElements)) return false
+    if (!known || !sameIdentity(known)) return undefined
+    if (known.some(probe => probe.comparesElements)) return undefined
     const moved = {
       deletions: group.deletions.map(pathOf),
       additions: group.additions.map(pathOf),
     }
+    if (!moved.deletions.every(path => this.isKept(path, ignoreHelper))) {
+      return undefined
+    }
+    if (!sameEntry(moved, view)) return undefined
+    const roots = this.listingRoots(moved)
+    return roots ? { moved, roots } : undefined
+  }
+
+  private isPure(
+    group: MoveGroup,
+    candidate: Candidate,
+    view: RevisionView,
+    indexes: ComponentIndexes
+  ): boolean {
     return (
-      moved.deletions.every(path => this.isKept(path, ignoreHelper)) &&
-      sameEntry(moved, view) &&
-      this.isComplete(group.name, moved, indexes) &&
-      sameContent(moved, view)
+      this.isComplete(group.name, candidate, indexes) &&
+      sameContent(candidate.moved, view)
     )
   }
 
@@ -414,11 +463,9 @@ export default class PureMoveResolver {
 
   private isComplete(
     name: string,
-    moved: MovedPaths,
+    { moved, roots }: Candidate,
     indexes: ComponentIndexes
   ): boolean {
-    const roots = this.listingRoots(moved)
-    if (!roots) return false
     const inRoots = buildScopeMatcher(roots)
     const listed = (index: ComponentIndex): string[] =>
       (index.get(name) ?? []).filter(inRoots)
@@ -439,18 +486,26 @@ export default class PureMoveResolver {
   }
 
   private indexComponents(
+    candidates: readonly Candidate[],
     view: RevisionView,
     ignoreHelper: IgnoreHelper
   ): ComponentIndexes {
+    if (candidates.length === 0) return NO_COMPONENTS
     const inSource = buildScopeMatcher(this.ctx.config.source)
+    const inCandidateRoots = buildScopeMatcher(
+      candidates.flatMap(candidate => candidate.roots)
+    )
     const indexOf = (blobIds: BlobIds): ComponentIndex => {
       const index = new Map<string, string[]>()
       for (const path of blobIds.keys()) {
+        if (!inCandidateRoots(path)) continue
         const line = `${ADDITION}${TAB}${path}`
         if (!inSource(path) || !this.ctx.metadata.has(line)) continue
         if (!ignoreHelper.keep(line)) continue
         const name = comparisonName(this.ctx.metadata, line)
-        index.set(name, [...(index.get(name) ?? []), path])
+        const bucket = index.get(name) ?? []
+        bucket.push(path)
+        index.set(name, bucket)
       }
       return index
     }

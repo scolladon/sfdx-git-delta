@@ -9,6 +9,7 @@ import { NO_UNIONS, type RunContext } from '../../lib/types/runContext.js'
 import { comparisonName } from '../../lib/utils/comparisonName.js'
 import PureMoveResolver, {
   type MovePorts,
+  type UnionDiffPort,
 } from '../../lib/utils/pureMoveResolver.js'
 import type { DeferredDeletion } from '../../lib/utils/repoGitDiff.js'
 import { createTempDir } from '../__utils__/gitTestHarness.ts'
@@ -90,11 +91,14 @@ const createScenario = (movedCount: number, editedCount: number) => {
   }
 }
 
-const portsOf = (scenario: Scenario): MovePorts =>
+const portsOf = (
+  scenario: Scenario,
+  rootFile: string | undefined = undefined
+): MovePorts =>
   ({
     getBlobIds: async (revision: string) =>
       revision === baseConfig.from ? scenario.from : scenario.to,
-    getRootFileContent: async () => undefined,
+    getRootFileContent: async () => rootFile,
   }) as unknown as MovePorts
 
 const runScenario = (name: string, movedCount: number, editedCount: number) =>
@@ -136,6 +140,111 @@ runScenario(
   COMPONENT_COUNT / 2,
   COMPONENT_COUNT / 2
 )
+
+const TREE_SIZE = 50_000
+const STATIC_RESOURCE_FILES = 10_000
+const CONTAINER_TREE_SIZE = 20_000
+const MOVED_WORKFLOWS = 200
+const SHARED_ROOT = 'force-app/main/default'
+const WORKFLOW_NEW_ROOT = 'force-app/sales'
+const SFDX_PROJECT = JSON.stringify({
+  packageDirectories: [{ path: 'force-app' }],
+})
+
+const unrelatedTree = (size: number, round: number): Map<string, string> => {
+  const tree = new Map<string, string>()
+  for (let index = 0; tree.size < size; index++) {
+    tree.set(`${SHARED_ROOT}/classes/Other${index}.cls`, `o-${round}-${index}`)
+    tree.set(
+      `${SHARED_ROOT}/objects/O${index % 500}/fields/F${index}.field-meta.xml`,
+      `f-${round}-${index}`
+    )
+  }
+  return tree
+}
+
+const largeTreeScenario = (): (() => Scenario) => {
+  let round = 0
+  return () => {
+    round += 1
+    const from = unrelatedTree(TREE_SIZE, round)
+    for (let index = 0; index < STATIC_RESOURCE_FILES; index++) {
+      from.set(`${SHARED_ROOT}/staticresources/Lib/f${index}.js`, `s-${index}`)
+    }
+    from.set(`${SHARED_ROOT}/staticresources/Lib.resource-meta.xml`, 'meta')
+    const to = new Map(from)
+    const moved = createScenario(1, 0)()
+    for (const [path, id] of moved.from) from.set(path, id)
+    for (const [path, id] of moved.to) to.set(path, id)
+    return { ...moved, from, to }
+  }
+}
+
+describe('pure-move-resolver-large-tree', () => {
+  const nextRound = largeTreeScenario()
+  let scenario: Scenario
+  let sut: PureMoveResolver
+  perfBench(
+    'pure-move-1-in-50k-tree',
+    async () => {
+      await sut.resolve(scenario.lines, scenario.cancelled)
+    },
+    {
+      beforeEach: () => {
+        scenario = nextRound()
+        sut = new PureMoveResolver(contextOf(baseConfig), portsOf(scenario))
+      },
+    }
+  )
+})
+
+const containerScenario = (): (() => Scenario) => {
+  let round = 0
+  return () => {
+    round += 1
+    const from = unrelatedTree(CONTAINER_TREE_SIZE, round)
+    const to = new Map(from)
+    const lines: string[] = []
+    const cancelled: DeferredDeletion[] = []
+    for (let index = 0; index < MOVED_WORKFLOWS; index++) {
+      const name = `Wf${index}.workflow-meta.xml`
+      const oldPath = `${SHARED_ROOT}/workflows/${name}`
+      const newPath = `${WORKFLOW_NEW_ROOT}/workflows/${name}`
+      const deletion = `${DELETION}${TAB}${oldPath}`
+      from.set(oldPath, `w-${round}-${index}`)
+      to.set(newPath, `w-${round}-${index}-edited`)
+      lines.push(`${ADDITION}${TAB}${newPath}`)
+      cancelled.push({
+        line: deletion,
+        name: comparisonName(metadata, deletion),
+      })
+    }
+    return { lines, cancelled, from, to }
+  }
+}
+
+describe('pure-move-resolver-container-moves', () => {
+  const nextRound = containerScenario()
+  const unionDiff: UnionDiffPort = { runUnion: async () => new Map() }
+  let scenario: Scenario
+  let sut: PureMoveResolver
+  perfBench(
+    'container-moves-200-in-20k-tree',
+    async () => {
+      await sut.resolve(scenario.lines, scenario.cancelled)
+    },
+    {
+      beforeEach: () => {
+        scenario = nextRound()
+        sut = new PureMoveResolver(
+          contextOf(baseConfig),
+          portsOf(scenario, SFDX_PROJECT),
+          unionDiff
+        )
+      },
+    }
+  )
+})
 
 const REPO_ROOT = await createTempDir('sgd-bench-labels-union-')
 const refs = buildLabelsUnionRepo(REPO_ROOT, LABELS_FILES, LABELS_PER_FILE)

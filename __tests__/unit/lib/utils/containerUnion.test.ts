@@ -206,6 +206,48 @@ describe('Given containerUnion path rules', () => {
       expect(result.droppedDeletions).toEqual([`D\t${IN_A}`])
     })
 
+    it('When several D lines target base files, Then they are dropped in the order of the input lines', () => {
+      // Arrange
+      const lines = [`D\t${IN_B}`, `D\t${IN_A}`]
+
+      // Act
+      const result = specOf({ lines })
+
+      // Assert
+      expect(result.droppedDeletions).toEqual(lines)
+    })
+
+    it('When a labels-named file is unknown to the metadata, Then it is no candidate', () => {
+      // Arrange
+      const unknown = 'force-app/a/misc/Unknown.labels-meta.xml'
+
+      // Act
+      const result = specOf({ from: sideOf([unknown]), to: sideOf([unknown]) })
+
+      // Assert
+      expect(result.shieldPaths).toEqual([])
+      expect(result.additionBasePaths).toEqual([])
+    })
+
+    it.each([
+      ['no file of the scope', []],
+      ['no file in the entry', [IN_A]],
+    ])(
+      'When the listing holds %s for the entry, Then the spec is empty',
+      (_title, paths) => {
+        // Act
+        const result = specOf({
+          entry: 'other-app',
+          from: sideOf(paths),
+          to: sideOf(paths),
+        })
+
+        // Assert
+        expect(result.shieldPaths).toEqual([])
+        expect(result.additionBasePaths).toEqual([])
+      }
+    )
+
     it('When the scope is a workflow, Then candidates come from the listing roots under that cancellation key', () => {
       // Arrange
       const mine = 'force-app/a/workflows/Account.workflow-meta.xml'

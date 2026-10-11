@@ -17,6 +17,7 @@ import PureMoveResolver, {
   type MovePorts,
 } from '../../../../src/utils/pureMoveResolver'
 import type { DeferredDeletion } from '../../../../src/utils/repoGitDiff'
+import { sourceDirs } from '../../../__utils__/sourceDirs'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const mockGetTypeHandler = vi.fn()
@@ -392,6 +393,54 @@ describe('PureMoveResolver', () => {
     })
   })
 
+  describe('Given a sibling of the moved component ignored by the ignore file', () => {
+    it('When the sibling sits in the same type directory, Then the move is still pure', async () => {
+      // Arrange
+      const sibling = `${OLD_DIR}/Ignored.cls`
+      arrange({
+        from: { ...sameBlobs.from, [sibling]: 'c3' },
+        to: sameBlobs.to,
+      })
+      mockKeep.mockImplementation(line => !line.endsWith(sibling))
+      const sut = newSut()
+
+      // Act
+      const result = await sut.resolve(lines, cancelled())
+
+      // Assert
+      expect(result.lines).toEqual([lines[1], lines[3]])
+    })
+  })
+
+  describe('Given a sibling of the moved component outside the source', () => {
+    it('When the sibling sits in the same type directory, Then the move is still pure', async () => {
+      // Arrange
+      arrange({
+        from: { ...sameBlobs.from, [`${OLD_DIR}/Outside.cls`]: 'c3' },
+        to: sameBlobs.to,
+      })
+      const sut = new PureMoveResolver(
+        getContext({
+          config: {
+            ...getConfig(),
+            from: FROM,
+            to: TO,
+            source: sourceDirs(OLD_CLS, OLD_META, NEW_CLS, NEW_META),
+          },
+          metadata,
+        }),
+        ports,
+        { runUnion }
+      )
+
+      // Act
+      const result = await sut.resolve(lines, cancelled())
+
+      // Assert
+      expect(result.lines).toEqual([lines[1], lines[3]])
+    })
+  })
+
   describe('Given many moved components', () => {
     it('When resolve runs, Then each revision listing is scanned once', async () => {
       // Arrange
@@ -426,6 +475,70 @@ describe('PureMoveResolver', () => {
 
       // Assert
       expect(result.lines).toEqual([])
+      expect(scans.get(FROM)).toBe(1)
+      expect(scans.get(TO)).toBe(1)
+    })
+  })
+
+  describe('Given moves needing no listing', () => {
+    it('When no group passes the cheap checks, Then no revision listing is scanned', async () => {
+      // Arrange
+      let scans = 0
+      const countingBlobs = () => {
+        const map = new ScanCountingMap(() => scans++)
+        map.set(OLD_CLS, ObjectId.from('a1'.padEnd(40, '0')))
+        return map
+      }
+      getBlobIds.mockImplementation(async () => countingBlobs())
+      mockGetTypeHandler.mockImplementation(async (line: string) =>
+        handlerAnswering(line.startsWith('D') ? 'Foo' : 'foo')
+      )
+      const sut = newSut()
+
+      // Act
+      await sut.resolve(lines, cancelled())
+
+      // Assert
+      expect(scans).toBe(0)
+    })
+  })
+
+  describe('Given many union specs', () => {
+    it('When resolve runs, Then each revision listing is scanned once', async () => {
+      // Arrange
+      const scans = new Map<string, number>()
+      const count = 50
+      const OLD_ROOT = 'force-app/main/default'
+      const NEW_ROOT = 'force-app/other'
+      const workflowsIn = (dir: string) =>
+        Array.from(
+          { length: count },
+          (_, index) => `${dir}/workflows/Wf${index}.workflow-meta.xml`
+        )
+      const countingBlobs = (rev: string, dir: string) => {
+        const map = new ScanCountingMap(() =>
+          scans.set(rev, (scans.get(rev) ?? 0) + 1)
+        )
+        for (const path of workflowsIn(dir)) {
+          map.set(path, ObjectId.from('a1'.padEnd(40, '0')))
+        }
+        return map
+      }
+      getBlobIds.mockImplementation(async (rev: string) =>
+        countingBlobs(rev, rev === FROM ? OLD_ROOT : NEW_ROOT)
+      )
+      mockGetTypeHandler.mockImplementation(async () =>
+        handlerAnswering('Wf', true)
+      )
+      const input = workflowsIn(NEW_ROOT).map(path => `A\t${path}`)
+      const moved = workflowsIn(OLD_ROOT).map(path => deletion(path))
+      const sut = newSut()
+
+      // Act
+      await sut.resolve(input, moved)
+
+      // Assert
+      expect(runUnion).toHaveBeenCalledTimes(count)
       expect(scans.get(FROM)).toBe(1)
       expect(scans.get(TO)).toBe(1)
     })

@@ -64,33 +64,92 @@ export type UnionSpecInput = Readonly<{
 
 const pathOf = (line: string): string => line.replace(GIT_DIFF_TYPE_REGEX, '')
 
-const inScopeOf = (input: UnionSpecInput): ((path: string) => boolean) => {
-  if (input.scope === LABELS_UNION_SCOPE) {
-    return path =>
-      path.endsWith(LABELS_FILE_SUFFIX) &&
-      isLabelsContainer(path, input.metadata)
+type ListingTarget = Pick<UnionSpecInput, 'scope' | 'listingRoots'>
+
+type ListingInput = Pick<
+  UnionSpecInput,
+  'metadata' | 'source' | 'from' | 'to' | 'lines'
+>
+
+type Buckets = Map<string, Map<PackageDirectoryKey, string[]>>
+
+type DeletionLine = Readonly<{ line: string; position: number }>
+
+type ListedSide = ReadonlyMap<
+  string,
+  ReadonlyMap<PackageDirectoryKey, readonly string[]>
+>
+
+export type UnionListing = Readonly<{
+  from: ListedSide
+  to: ListedSide
+  emitted: ReadonlySet<string>
+  deletions: ReadonlyMap<string, readonly DeletionLine[]>
+}>
+
+const isLabelsFile = (path: string): boolean =>
+  path.endsWith(LABELS_FILE_SUFFIX)
+
+const listSide = (
+  input: ListingInput,
+  side: RevisionSide,
+  targets: readonly ListingTarget[]
+): Buckets => {
+  const inSource = buildScopeMatcher(input.source)
+  const inAnyRoots = buildScopeMatcher(
+    targets.flatMap(target => target.listingRoots)
+  )
+  const buckets: Buckets = new Map()
+  for (const path of side.blobIds.keys()) {
+    if (!inSource(path) || !(isLabelsFile(path) || inAnyRoots(path))) continue
+    if (!input.metadata.has(path)) continue
+    const scope = unionScopeOf(path, input.metadata)
+    const entries = buckets.get(scope) ?? new Map()
+    const entry = side.project.packageDirectoryOf(path)
+    const paths = entries.get(entry) ?? []
+    paths.push(path)
+    entries.set(entry, paths)
+    buckets.set(scope, entries)
   }
-  const inRoots = buildScopeMatcher(input.listingRoots)
-  return path =>
-    inRoots(path) && unionScopeOf(path, input.metadata) === input.scope
+  return buckets
+}
+
+const deletionLines = (
+  lines: readonly string[]
+): ReadonlyMap<string, readonly DeletionLine[]> => {
+  const found = new Map<string, DeletionLine[]>()
+  lines.forEach((line, position) => {
+    if (line.charAt(0) !== DELETION) return
+    const path = pathOf(line)
+    const same = found.get(path) ?? []
+    same.push({ line, position })
+    found.set(path, same)
+  })
+  return found
+}
+
+export const listUnionCandidates = (
+  input: ListingInput,
+  targets: readonly ListingTarget[]
+): UnionListing => ({
+  from: listSide(input, input.from, targets),
+  to: listSide(input, input.to, targets),
+  emitted: emitting(input.lines),
+  deletions: deletionLines(input.lines),
+})
+
+const inScopeOf = (input: UnionSpecInput): ((path: string) => boolean) => {
+  if (input.scope === LABELS_UNION_SCOPE) return isLabelsFile
+  return buildScopeMatcher(input.listingRoots)
 }
 
 const candidates = (
   input: UnionSpecInput,
-  side: RevisionSide
-): readonly string[] => {
-  const inSource = buildScopeMatcher(input.source)
-  const inScope = inScopeOf(input)
-  return [...side.blobIds.keys()]
-    .filter(
-      path =>
-        inSource(path) &&
-        input.metadata.has(path) &&
-        inScope(path) &&
-        side.project.packageDirectoryOf(path) === input.entry
-    )
+  buckets: ListedSide
+): readonly string[] =>
+  (buckets.get(input.scope)?.get(input.entry) ?? [])
+    .filter(inScopeOf(input))
     .sort()
-}
 
 const keeps = (
   ignore: Pick<IgnoreHelper, 'keep'>,
@@ -117,8 +176,11 @@ const emitting = (lines: readonly string[]): ReadonlySet<string> =>
       .map(pathOf)
   )
 
-export const buildUnionSpec = (input: UnionSpecInput): UnionSpec => {
-  const fromPaths = candidates(input, input.from).filter(path =>
+export const buildUnionSpec = (
+  input: UnionSpecInput,
+  listing: UnionListing = listUnionCandidates(input, [input])
+): UnionSpec => {
+  const fromPaths = candidates(input, listing.from).filter(path =>
     staysInEntry(input, path)
   )
   const additionBase = fromPaths.filter(path =>
@@ -127,17 +189,16 @@ export const buildUnionSpec = (input: UnionSpecInput): UnionSpec => {
   const deletionBase = fromPaths.filter(path =>
     vouchesForDeletions(input, path)
   )
-  const shields = candidates(input, input.to)
-  const emitted = emitting(input.lines)
-  const inDeletionBase = new Set(deletionBase)
+  const shields = candidates(input, listing.to)
   return {
     entry: input.entry,
     additionBasePaths: additionBase,
     deletionBasePaths: deletionBase,
     shieldPaths: shields,
-    memberPaths: shields.filter(path => emitted.has(path)),
-    droppedDeletions: input.lines.filter(
-      line => line.charAt(0) === DELETION && inDeletionBase.has(pathOf(line))
-    ),
+    memberPaths: shields.filter(path => listing.emitted.has(path)),
+    droppedDeletions: deletionBase
+      .flatMap(path => listing.deletions.get(path) ?? [])
+      .sort((a, b) => a.position - b.position)
+      .map(({ line }) => line),
   }
 }
