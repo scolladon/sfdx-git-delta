@@ -12,6 +12,10 @@ import type {
 } from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
 import type { RunContext } from '../types/runContext.js'
+import {
+  expandComponentCopies,
+  type FileCopyOperation,
+} from '../utils/componentCopies.js'
 import { eachLimit } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
@@ -45,15 +49,15 @@ export default class IOExecutor {
   public async execute(copies: readonly CopyOperation[]): Promise<void> {
     this.ignoreHelper = await buildIgnoreHelper(this.config)
     await eachLimit(
-      copies,
+      expandComponentCopies(copies, this.ctx.trees),
       getConcurrencyThreshold(),
-      async (op: CopyOperation) => {
+      async (op: FileCopyOperation) => {
         await this._executeOperation(op)
       }
     )
   }
 
-  protected async _executeOperation(op: CopyOperation): Promise<void> {
+  protected async _executeOperation(op: FileCopyOperation): Promise<void> {
     if (this.processedPaths.has(op.path)) {
       return
     }

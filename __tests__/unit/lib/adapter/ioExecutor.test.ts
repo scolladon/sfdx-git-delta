@@ -326,6 +326,112 @@ describe('IOExecutor', () => {
     })
   })
 
+  describe('Given repeated GitComponentCopy requests for one component', () => {
+    it('When executed, Then the type directory is listed once and each member file is read and written once', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      mockFilesUnder.mockReturnValue([
+        'staticresources/Lib/a.js',
+        'staticresources/Lib.resource-meta.xml',
+        'staticresources/Library/x.js',
+      ])
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
+      const request: CopyOperation = {
+        kind: CopyOperationKind.GitComponentCopy,
+        path: 'staticresources/Lib',
+        revision: 'abc123',
+      }
+
+      // Act
+      await sut.execute([request, request])
+
+      // Assert
+      expect(mockFilesUnder).toHaveBeenCalledTimes(1)
+      expect(mockFilesUnder).toHaveBeenCalledWith('abc123', 'staticresources')
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledTimes(2)
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledWith({
+        path: 'staticresources/Lib/a.js',
+        oid: 'abc123',
+      })
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledWith({
+        path: 'staticresources/Lib.resource-meta.xml',
+        oid: 'abc123',
+      })
+      expect(outputFile).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe('Given a component request whose member file is ignored', () => {
+    it('When executed, Then only the non-ignored members are written', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      mockBuildIgnoreHelper.mockResolvedValue({
+        globalIgnore: {
+          ignores: (p: string) => p.endsWith('a.js'),
+        } as unknown as Ignore,
+      } as unknown as IgnoreHelper)
+      mockFilesUnder.mockReturnValue([
+        'staticresources/Lib/a.js',
+        'staticresources/Lib.resource-meta.xml',
+      ])
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitComponentCopy,
+          path: 'staticresources/Lib',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledTimes(1)
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledWith({
+        path: 'staticresources/Lib.resource-meta.xml',
+        oid: 'abc123',
+      })
+    })
+  })
+
+  describe('Given an ignore rule matching only the component path', () => {
+    it('When executed, Then its member files are still written', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      mockBuildIgnoreHelper.mockResolvedValue({
+        globalIgnore: {
+          ignores: (p: string) => p === 'staticresources/Lib',
+        } as unknown as Ignore,
+      } as unknown as IgnoreHelper)
+      mockFilesUnder.mockReturnValue(['staticresources/Lib/a.js'])
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitComponentCopy,
+          path: 'staticresources/Lib',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledTimes(1)
+    })
+  })
+
   describe('Given an ignored path', () => {
     it('When executed, Then skips the operation', async () => {
       // Arrange
