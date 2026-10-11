@@ -16,6 +16,7 @@ import {
   assertScalesLinearly,
   deriveCeilingMs,
   perfBench,
+  type SampledRow,
 } from './harness/perfBench.ts'
 import { sourceDirs } from './harness/sourceDirs.ts'
 
@@ -41,10 +42,15 @@ const WORST_MEAN_MS = {
 
 type CeiledRow = keyof typeof WORST_MEAN_MS
 
-type Budget = (elapsedMs: readonly number[]) => void
+type RowCheck<Name extends string = string> = (
+  name: Name,
+  elapsedMs: readonly number[]
+) => void
 
-// The 2k-components row is the baseline its 4k sibling is bounded against.
-const NO_BUDGET: Budget = () => undefined
+// The component rows carry no seeded ceiling: the 4k row is bounded by its
+// growth over the 2k row of the same run. A slowdown hitting both rows alike
+// passes that bound and is left to CI's same-runner base-vs-PR comparison.
+const BASELINE_ONLY: RowCheck = () => undefined
 
 const metadata = await getDefinition({})
 
@@ -102,11 +108,11 @@ const manyComponents = (componentCount: number): Fixture => ({
   buildLines: () => linesOf(changedFiles(componentCount)),
 })
 
-const runRow = (
-  name: string,
+const runRow = <Name extends string>(
+  name: Name,
   { trees, buildLines }: Fixture,
-  budget: Budget
-): readonly number[] => {
+  check: RowCheck<Name>
+): SampledRow => {
   const ctx = { config, metadata, trees, unions: NO_UNIONS }
   const elapsedMs: number[] = []
   let lines: string[] = []
@@ -120,51 +126,37 @@ const runRow = (
         elapsedMs.push(performance.now() - start)
       },
       {
-        afterRun: () => budget(elapsedMs),
+        afterRun: () => check(name, elapsedMs),
         beforeEach: () => {
           lines = buildLines()
         },
       }
     )
   })
-  return elapsedMs
+  return { label: name, samplesMs: elapsedMs }
 }
 
-const withinCeiling =
-  (name: CeiledRow): Budget =>
-  elapsedMs =>
-    assertMeanWithinCeiling(
-      name,
-      elapsedMs,
-      deriveCeilingMs(WORST_MEAN_MS[name])
-    )
+const withinCeiling: RowCheck<CeiledRow> = (name, elapsedMs) =>
+  assertMeanWithinCeiling(name, elapsedMs, deriveCeilingMs(WORST_MEAN_MS[name]))
 
 const linearFrom =
-  (name: string, baselineMs: readonly number[], sizeRatio: number): Budget =>
-  elapsedMs =>
-    assertScalesLinearly(name, baselineMs, elapsedMs, sizeRatio)
+  (baseline: SampledRow, sizeRatio: number): RowCheck =>
+  (name, elapsedMs) =>
+    assertScalesLinearly(
+      baseline,
+      { label: name, samplesMs: elapsedMs },
+      sizeRatio
+    )
 
-runRow(
-  'resource-copies-2k-files',
-  oneFolder(FILES_2K),
-  withinCeiling('resource-copies-2k-files')
-)
-runRow(
-  'resource-copies-10k-files',
-  oneFolder(FILES_10K),
-  withinCeiling('resource-copies-10k-files')
-)
-const components2kMs = runRow(
+runRow('resource-copies-2k-files', oneFolder(FILES_2K), withinCeiling)
+runRow('resource-copies-10k-files', oneFolder(FILES_10K), withinCeiling)
+const components2k = runRow(
   'resource-copies-2k-components',
   manyComponents(COMPONENTS_2K),
-  NO_BUDGET
+  BASELINE_ONLY
 )
 runRow(
   'resource-copies-4k-components',
   manyComponents(COMPONENTS_4K),
-  linearFrom(
-    'resource-copies-4k-components',
-    components2kMs,
-    COMPONENTS_4K / COMPONENTS_2K
-  )
+  linearFrom(components2k, COMPONENTS_4K / COMPONENTS_2K)
 )
