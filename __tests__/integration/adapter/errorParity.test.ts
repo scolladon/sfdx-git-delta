@@ -75,6 +75,10 @@ const initRepoWithCommit = (
     ? ['-c', `init.defaultRefFormat=${options.refFormat}`, 'init', '--quiet']
     : ['init', '--quiet']
   runGit(initArgs, { cwd: repoDir })
+  commitIndex(repoDir)
+}
+
+const commitIndex = (repoDir: string): void => {
   const treeOid = runGit(['write-tree'], { cwd: repoDir })
     .toString('utf8')
     .trim()
@@ -165,15 +169,7 @@ describe('Given the released error-message contract (validated surface)', () => 
         '{"packageDirectories":"x"}'
       )
       runGit(['add', 'sfdx-project.json'], { cwd: repoDir })
-      const treeOid = runGit(['write-tree'], { cwd: repoDir })
-        .toString('utf8')
-        .trim()
-      const commitOid = runGit(['commit-tree', treeOid, '-m', 'root'], {
-        cwd: repoDir,
-      })
-        .toString('utf8')
-        .trim()
-      runGit(['update-ref', 'HEAD', commitOid], { cwd: repoDir })
+      commitIndex(repoDir)
       const config = makeConfig({ repo: repoDir, from: 'HEAD', to: 'HEAD' })
       const sut = new ConfigValidator(config)
 
