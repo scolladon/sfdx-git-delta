@@ -25,6 +25,13 @@ export class SfdxProjectError extends SgdError {
   }
 }
 
+export class SfdxProjectReadError extends SgdError {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options)
+    this.name = 'SfdxProjectReadError'
+  }
+}
+
 export const normalisePackageDirectory = (raw: string): string => {
   const normalised = posix
     .normalize(raw.replaceAll('\\', '/'))
@@ -73,10 +80,24 @@ export class SfdxProject {
   }
 }
 
+const readProjectFile = async (
+  reader: RootFileReader,
+  revision: string
+): Promise<string | undefined> => {
+  try {
+    return await reader.getRootFileContent(revision, SFDX_PROJECT_FILE)
+  } catch (error) {
+    throw new SfdxProjectReadError(
+      `Cannot read ${SFDX_PROJECT_FILE}: ${getErrorMessage(error)}`,
+      { cause: error }
+    )
+  }
+}
+
 export const loadSfdxProject = async (
   reader: RootFileReader,
   revision: string
 ): Promise<SfdxProject> => {
-  const content = await reader.getRootFileContent(revision, SFDX_PROJECT_FILE)
+  const content = await readProjectFile(reader, revision)
   return content === undefined ? SfdxProject.ABSENT : SfdxProject.parse(content)
 }
