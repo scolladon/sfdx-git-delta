@@ -166,7 +166,7 @@ describe('PureMoveResolver', () => {
   })
 
   describe('Given no cancelled deletion', () => {
-    it('When resolve runs, Then lines are unchanged, no unions, checkSkipped false and no git port is touched', async () => {
+    it('When resolve runs, Then lines are unchanged, no unions, skipCause undefined and no git port is touched', async () => {
       // Arrange
       const sut = newSut()
 
@@ -177,7 +177,7 @@ describe('PureMoveResolver', () => {
       expect(result).toEqual({
         lines,
         unions: NO_UNIONS,
-        checkSkipped: false,
+        skipCause: undefined,
       })
       expect(getBlobIds).not.toHaveBeenCalled()
       expect(getRootFileContent).not.toHaveBeenCalled()
@@ -194,7 +194,7 @@ describe('PureMoveResolver', () => {
 
       // Assert
       expect(result.lines).toEqual([lines[1], lines[3]])
-      expect(result.checkSkipped).toBe(false)
+      expect(result.skipCause).toBeUndefined()
       expect(result.unions).toEqual(NO_UNIONS)
     })
   })
@@ -357,7 +357,7 @@ describe('PureMoveResolver', () => {
 
       // Assert
       expect(result.lines).toEqual(lines)
-      expect(result.checkSkipped).toBe(false)
+      expect(result.skipCause).toBeUndefined()
       expect(mockGetTypeHandler).toHaveBeenCalledTimes(1)
     })
   })
@@ -383,8 +383,18 @@ describe('PureMoveResolver', () => {
         () => getRootFileContent.mockResolvedValue('{nope'),
         `Invalid sfdx-project.json: ${parseCause}`,
       ],
+      [
+        'sfdx-project.json cannot be read',
+        () =>
+          getRootFileContent.mockRejectedValue(
+            new Error(
+              'git operation failed: DELTA_CHAIN_TOO_DEEP: delta chain too deep: 51'
+            )
+          ),
+        'Cannot read sfdx-project.json: git operation failed: DELTA_CHAIN_TOO_DEEP: delta chain too deep: 51',
+      ],
     ])(
-      'When %s, Then lines are unchanged, checkSkipped is true and the cause is logged',
+      'When %s, Then lines are unchanged, skipCause names the cause and the cause is logged',
       async (_title, setup, cause) => {
         // Arrange
         setup()
@@ -394,7 +404,11 @@ describe('PureMoveResolver', () => {
         const result = await sut.resolve(lines, cancelled())
 
         // Assert
-        expect(result).toEqual({ lines, unions: NO_UNIONS, checkSkipped: true })
+        expect(result).toEqual({
+          lines,
+          unions: NO_UNIONS,
+          skipCause: cause,
+        })
         expect(debugMessages()).toContain(`Pure move check skipped: ${cause}`)
       }
     )
@@ -425,7 +439,7 @@ describe('PureMoveResolver', () => {
 
       // Assert
       expect(result.lines).toEqual([`A\t${barNew}`])
-      expect(result.checkSkipped).toBe(false)
+      expect(result.skipCause).toBeUndefined()
       expect(debugMessages().join('\n')).toContain(
         `Pure move probe failed for A\t${barNew}: lookup failed`
       )
@@ -514,7 +528,7 @@ describe('PureMoveResolver', () => {
 
       // Assert
       expect(result.lines).toEqual([`A\t${newCls}`])
-      expect(result.checkSkipped).toBe(false)
+      expect(result.skipCause).toBeUndefined()
     })
   })
 
@@ -961,7 +975,7 @@ describe('PureMoveResolver', () => {
       // Assert
       expect(runUnion).not.toHaveBeenCalled()
       expect(result.lines).toEqual([`A\t${LABELS_NEW}`])
-      expect(result.checkSkipped).toBe(false)
+      expect(result.skipCause).toBeUndefined()
     })
 
     it('When one move is inside an entry and another outside every entry, Then two distinct specs are built', async () => {
@@ -1008,7 +1022,7 @@ describe('PureMoveResolver', () => {
       // Assert
       expect(runUnion).not.toHaveBeenCalled()
       expect(result.lines).toEqual([`A\t${strayMoved}`])
-      expect(result.checkSkipped).toBe(false)
+      expect(result.skipCause).toBeUndefined()
     })
 
     it('When a non-cancelled deletion targets a base file, Then that line is dropped from the lines', async () => {
@@ -1043,7 +1057,7 @@ describe('PureMoveResolver', () => {
       // Assert
       expect(result.unions.size).toBe(0)
       expect(result.lines).toEqual(labelLines)
-      expect(result.checkSkipped).toBe(false)
+      expect(result.skipCause).toBeUndefined()
       expect(debugMessages().join('\n')).toContain('strict read failed')
     })
   })

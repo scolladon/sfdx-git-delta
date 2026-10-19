@@ -194,11 +194,21 @@ export default async (configInput: ConfigInput): Promise<Work> => {
 
     // The resolver reads sfdx-project.json and the file lists at both
     // revisions; when it cannot, moved components are deployed as if changed.
-    const moveCheckWarnings = warnIf(
-      moves.checkSkipped,
-      'warning.PureMoveCheckSkipped',
-      () => [sanitizeForMessage(requestedFrom), sanitizeForMessage(requestedTo)]
-    )
+    // The warning carries the cause because only the cause tells a git read
+    // failure from an invalid file.
+    const { skipCause } = moves
+    const moveCheckWarnings =
+      skipCause === undefined
+        ? []
+        : [
+            new Error(
+              messages.getMessage('warning.PureMoveCheckSkipped', [
+                sanitizeForMessage(requestedFrom),
+                sanitizeForMessage(requestedTo),
+                sanitizeForMessage(skipCause),
+              ])
+            ),
+          ]
 
     const work: Work = {
       config,

@@ -189,7 +189,7 @@ Could not read the file list at '%s', so %s component(s) moved into an ignored d
 
 # warning.PureMoveCheckSkipped
 
-Could not read the package directories or the file list at '%s' and '%s', so moved components are deployed as if they had changed. Check that sfdx-project.json is valid JSON with a packageDirectories array at both revisions.
+Could not read the package directories or the file list at '%s' and '%s', so moved components are deployed as if they had changed. Caused by: %s
 
 # warning.TreeIndexUnavailable
 
