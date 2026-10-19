@@ -48,14 +48,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@oclif/core": "5.1.7",
+    "@oclif/core": "5.1.8",
     "@salesforce/core": "9.3.6",
     "@salesforce/sf-plugins-core": "13.0.7",
     "@salesforce/source-deploy-retrieve": "13.4.5",
-    "@scolladon/tsgit": "4.0.0",
+    "@scolladon/tsgit": "5.0.0",
     "ignore": "7.0.12",
     "txml": "6.0.3",
-    "zod": "4.6.6"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
@@ -68,7 +68,7 @@
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
     "@types/node": "26.6.5",
-    "@vitest/coverage-v8": "5.0.3",
+    "@vitest/coverage-v8": "5.0.5",
     "husky": "9.1.7",
     "knip": "6.41.0",
     "lint-staged": "17.6.0",
@@ -78,7 +78,7 @@
     "shx": "0.4.0",
     "typescript": "7.0.2",
     "validate-branch-name": "1.3.2",
-    "vitest": "5.0.3",
+    "vitest": "5.0.5",
     "wireit": "0.14.13"
   },
   "overrides": {
