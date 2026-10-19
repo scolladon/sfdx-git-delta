@@ -16,8 +16,8 @@ import { sourceDirs } from '../../__utils__/sourceDirs'
 
 // ConfigValidator resolves the latest API version through SDR's live
 // appexchange lookup, the only network call these tests reach. Mocked so
-// the git refusal under test is always assembled; one case makes it reject
-// to pin the combined message.
+// the git refusal under test is always assembled; one case makes it answer
+// an unusable value to pin that refusal.
 const API_VERSION = 60
 vi.mock('../../../src/metadata/metadataManager', async importOriginal => ({
   ...(await importOriginal<
@@ -150,6 +150,41 @@ describe('Given the released error-message contract (validated surface)', () => 
       // Assert
       expect((error as Error).message).toBe(
         "--to is not a valid sha pointer: 'not-a-real-ref-zzz' (If in CI/CD context, check the fetch depth is properly set)"
+      )
+      expect(getLatestSupportedVersion).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('When ConfigValidator validates an unpinned run whose sfdx-project.json at --to is invalid', () => {
+    it('Then it throws the released refusal naming --to and the parse cause, and the API version is never looked up', async () => {
+      // Arrange
+      const repoDir = await trackedTempDir('sgd-error-parity-project-')
+      runGit(['init', '--quiet'], { cwd: repoDir })
+      await writeFile(
+        join(repoDir, 'sfdx-project.json'),
+        '{"packageDirectories":"x"}'
+      )
+      runGit(['add', 'sfdx-project.json'], { cwd: repoDir })
+      const treeOid = runGit(['write-tree'], { cwd: repoDir })
+        .toString('utf8')
+        .trim()
+      const commitOid = runGit(['commit-tree', treeOid, '-m', 'root'], {
+        cwd: repoDir,
+      })
+        .toString('utf8')
+        .trim()
+      runGit(['update-ref', 'HEAD', commitOid], { cwd: repoDir })
+      const config = makeConfig({ repo: repoDir, from: 'HEAD', to: 'HEAD' })
+      const sut = new ConfigValidator(config)
+
+      // Act
+      const error = await sut
+        .validateConfig()
+        .catch((thrown: unknown) => thrown)
+
+      // Assert
+      expect((error as Error).message).toBe(
+        "Unable to resolve the Salesforce API version at 'HEAD'. Provide one with --api-version. Caused by: Invalid sfdx-project.json: packageDirectories: Invalid input: expected array, received string"
       )
       expect(getLatestSupportedVersion).not.toHaveBeenCalled()
     })

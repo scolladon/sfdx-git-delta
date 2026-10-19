@@ -148,7 +148,7 @@ The appexchange org returned '%s', which is not a usable Salesforce API version
 
 # error.SfdxProjectUnusable
 
-Unable to resolve the Salesforce API version from sfdx-project.json at '%s': %s. Provide one with --api-version.
+Unable to resolve the Salesforce API version at '%s'. Provide one with --api-version. Caused by: %s
 
 # warning.MalformedXML
 
