@@ -524,7 +524,7 @@ The file moved and `L2` was removed: `package.xml` stays empty and `destructiveC
 
 A label moved to a file of another package directory is not a move: every label of the moved file deploys. With `--ignore-file [-i]`, a labels file matched by the pattern is out of the comparison and a label moved into it emits nothing; with `--ignore-destructive-file [-D]`, labels still deploy and only the deletions are filtered. A labels file whose package directory changed between `--from` and `--to` is left out of the comparison. Other types stored in one file (workflows, sharing rules...) follow the same rule file by file.
 
-If `sfdx-project.json` or the file listing cannot be read at either revision, the move check is skipped for the run, moved components are deployed as if they had changed, and SGD emits a warning.
+If `sfdx-project.json` or the file listing cannot be read at either revision, the move check is skipped for the run, moved components are deployed as if they had changed, and SGD emits a warning that names the cause.
 
 ### Explicitly including specific files for inclusion or destruction regardless of diff
 
