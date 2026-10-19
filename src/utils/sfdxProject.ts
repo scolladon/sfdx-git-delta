@@ -25,6 +25,13 @@ export class SfdxProjectError extends SgdError {
   }
 }
 
+export class SfdxProjectReadError extends SgdError {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options)
+    this.name = 'SfdxProjectReadError'
+  }
+}
+
 export const normalisePackageDirectory = (raw: string): string => {
   const normalised = posix
     .normalize(raw.replaceAll('\\', '/'))
@@ -37,6 +44,19 @@ const projectSchema = z.looseObject({
   packageDirectories: z.array(z.looseObject({ path: z.string() })).optional(),
   sourceApiVersion: z.unknown().optional(),
 })
+
+// An issue on the document itself has no path to name.
+const describeIssue = (issue: z.core.$ZodIssue): string =>
+  issue.path.length === 0
+    ? issue.message
+    : `${issue.path.join('.')}: ${issue.message}`
+
+// ZodError's own message is multi-line JSON; user-facing messages are capped
+// single lines, so keep only each issue's path and text.
+const describeParseFailure = (error: unknown): string =>
+  error instanceof z.ZodError
+    ? error.issues.map(describeIssue).join('; ')
+    : getErrorMessage(error)
 
 const isInside = (entry: string, path: string): boolean =>
   entry === ROOT_DIRECTORY || path === entry || path.startsWith(`${entry}/`)
@@ -62,7 +82,7 @@ export class SfdxProject {
       return new SfdxProject(entries, contents.sourceApiVersion)
     } catch (error) {
       throw new SfdxProjectError(
-        `Invalid ${SFDX_PROJECT_FILE}: ${getErrorMessage(error)}`,
+        `Invalid ${SFDX_PROJECT_FILE}: ${describeParseFailure(error)}`,
         { cause: error }
       )
     }
@@ -73,10 +93,24 @@ export class SfdxProject {
   }
 }
 
+const readProjectFile = async (
+  reader: RootFileReader,
+  revision: string
+): Promise<string | undefined> => {
+  try {
+    return await reader.getRootFileContent(revision, SFDX_PROJECT_FILE)
+  } catch (error) {
+    throw new SfdxProjectReadError(
+      `Cannot read ${SFDX_PROJECT_FILE}: ${getErrorMessage(error)}`,
+      { cause: error }
+    )
+  }
+}
+
 export const loadSfdxProject = async (
   reader: RootFileReader,
   revision: string
 ): Promise<SfdxProject> => {
-  const content = await reader.getRootFileContent(revision, SFDX_PROJECT_FILE)
+  const content = await readProjectFile(reader, revision)
   return content === undefined ? SfdxProject.ABSENT : SfdxProject.parse(content)
 }

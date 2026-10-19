@@ -7,6 +7,7 @@ import {
   SFDX_PROJECT_FILE,
   SfdxProject,
   SfdxProjectError,
+  SfdxProjectReadError,
 } from '../../../../src/utils/sfdxProject'
 
 const projectWith = (...paths: string[]) =>
@@ -142,6 +143,28 @@ describe('Given SfdxProject.parse', () => {
     )
   })
 
+  it('When the schema rejects several fields, Then the message lists each issue path on one line', () => {
+    // Arrange & Act & Assert
+    expect(() =>
+      SfdxProject.parse('{"packageDirectories":[{"path":3},{}]}')
+    ).toThrow(
+      expect.objectContaining({
+        message:
+          'Invalid sfdx-project.json: packageDirectories.0.path: Invalid input: expected string, received number; packageDirectories.1.path: Invalid input: expected string, received undefined',
+      })
+    )
+  })
+
+  it('When the schema rejects the document itself, Then the issue is reported without a path', () => {
+    // Arrange & Act & Assert
+    expect(() => SfdxProject.parse('[]')).toThrow(
+      expect.objectContaining({
+        message:
+          'Invalid sfdx-project.json: Invalid input: expected object, received array',
+      })
+    )
+  })
+
   it('When the error is raised, Then it is an SgdError', () => {
     // Arrange & Act & Assert
     expect(() => SfdxProject.parse('[')).toThrow(SgdError)
@@ -199,12 +222,40 @@ describe('Given loadSfdxProject', () => {
     )
   })
 
-  it('When the reader rejects, Then it rejects with the same error', async () => {
+  it('When the reader rejects, Then it rejects with an SfdxProjectReadError naming the file and keeping the cause', async () => {
     // Arrange
-    const error = new Error('boom')
+    const error = new Error(
+      'git operation failed: DELTA_CHAIN_TOO_DEEP: delta chain too deep: 51'
+    )
     const reader = { getRootFileContent: vi.fn().mockRejectedValue(error) }
 
-    // Act & Assert
-    await expect(loadSfdxProject(reader, 'HEAD')).rejects.toBe(error)
+    // Act
+    const result = await loadSfdxProject(reader, 'HEAD').catch(
+      (thrown: unknown) => thrown
+    )
+
+    // Assert
+    expect(result).toBeInstanceOf(SfdxProjectReadError)
+    expect(result).toBeInstanceOf(SgdError)
+    expect(result).toMatchObject({
+      name: 'SfdxProjectReadError',
+      message:
+        'Cannot read sfdx-project.json: git operation failed: DELTA_CHAIN_TOO_DEEP: delta chain too deep: 51',
+      cause: error,
+    })
+  })
+
+  it('When the content is invalid json, Then it rejects with the SfdxProjectError unwrapped', async () => {
+    // Arrange
+    const reader = { getRootFileContent: vi.fn().mockResolvedValue('{nope') }
+
+    // Act
+    const result = await loadSfdxProject(reader, 'HEAD').catch(
+      (thrown: unknown) => thrown
+    )
+
+    // Assert
+    expect(result).toBeInstanceOf(SfdxProjectError)
+    expect(result).not.toBeInstanceOf(SfdxProjectReadError)
   })
 })

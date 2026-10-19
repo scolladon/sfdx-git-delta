@@ -35,10 +35,10 @@ Validates and normalizes user inputs:
 - Rejects a revision that resolves but does not peel to a commit (`HEAD^{tree}`, `HEAD:path`, a bare tree or blob oid, a tag pointing at a tree) with `error.ParameterIsNotCommit`, naming the flag and the value as typed; an unresolvable revision keeps `error.ParameterIsNotGitSHA` and its fetch-depth hint, which is the right advice only when the object is genuinely missing
 - Validates both flags identically, before the merge-base lookup, the diff and any tree walk
 - When `--merge-base` is set, resolves `from` to the merge base of `from` and `to` (git three-dot semantics) and rewrites `config.from` in place. This step runs **after** SHA validation/resolution, deliberately: a typo in either ref still surfaces as the precise `ParameterIsNotGitSHA` message (with its fetch-depth hint) instead of the vaguer `MergeBaseNotFound`, and the merge-base lookup itself runs against already-resolved SHAs. No common ancestor (`undefined`) throws `MergeBaseNotFound`, naming the refs the user typed rather than the resolved hashes
-- Resolves `apiVersion`. A version passed in (`--api-version`, `SF_ORG_API_VERSION`, or a library caller's `apiVersion`, which is parsed the way the flag is) counts only if it is a positive version; without one, `sourceApiVersion` from the `sfdx-project.json` committed at `--to` is used, under the same rule. It is read through git at that revision (`GitAdapter.getRootFileContent`), never from the working tree and never from a parent directory; an absent or unusable file falls back to the latest-version lookup. A pinned version is emitted as pinned and never looked up, so the manifest does not depend on network reachability. Only an unpinned run looks the latest version up, through a live call to the appexchange org, and defaults to it with `warning.ApiVersionDefaulted`; when that call fails (offline/firewalled) or answers with something that is not a positive version, a `ConfigError` advises supplying one and names the cause (connection refused, timed out, DNS, or the unusable value), with any credentials in an echoed proxy URL or PAC proxy entry redacted
+- Resolves `apiVersion`. A version passed in (`--api-version`, `SF_ORG_API_VERSION`, or a library caller's `apiVersion`, which is parsed the way the flag is) counts only if it is a positive version; without one, `sourceApiVersion` from the `sfdx-project.json` committed at `--to` is used, under the same rule. It is read through git at that revision (`GitAdapter.getRootFileContent`), never from the working tree and never from a parent directory; an absent file falls back to the latest-version lookup. A file that cannot be read at `--to` (`SfdxProjectReadError`) or is invalid (`SfdxProjectError`) refuses the run with `error.SfdxProjectUnusable`, naming the revision as typed and the cause, before any network call. A pinned version is emitted as pinned and never looked up, so the manifest does not depend on network reachability. Only an unpinned run looks the latest version up, through a live call to the appexchange org, and defaults to it with `warning.ApiVersionDefaulted`; when that call fails (offline/firewalled) or answers with something that is not a positive version, a `ConfigError` advises supplying one and names the cause (connection refused, timed out, DNS, or the unusable value), with any credentials in an echoed proxy URL or PAC proxy entry redacted
 - Sanitizes file paths (output dir, source dirs, ignore files)
 
-Fatal errors (`ConfigError`) at this stage abort the pipeline entirely. An unresolvable API version is reported in the same error as any invalid `--from`/`--to`, repository or `--changes-manifest` problem, after them. This is one of only two places where exceptions propagate to the CLI layer.
+Fatal errors (`ConfigError`) at this stage abort the pipeline entirely. An unresolvable API version is reported in the same error as any invalid `--from`/`--to`, repository or `--changes-manifest` problem, after them. The `sfdx-project.json` refusal is the exception: it is reported only when there is no input error, because a bad `--to` or a missing `.git` fails the same read and the input error already names it. This is one of only two places where exceptions propagate to the CLI layer.
 
 ---
 
@@ -137,7 +137,7 @@ The repository's own end-to-end baseline is the live proof of the held-addition 
 
 **Entry**: `PureMoveResolver.resolve(lines, cancelled)` (`src/utils/pureMoveResolver.ts`), called by `src/main.ts` between the diff collection and the handler pass. The resolver only orchestrates: the component checks live in `src/utils/componentMove.ts`, union triggers in `src/utils/unionTriggers.ts`, union membership in `src/utils/containerUnion.ts`, the per-revision view (project + blob ids) in `src/utils/revisionSide.ts`, and diff-line formatting in `src/utils/gitLine.ts`.
 
-A component moved to another directory shows up in the diff as deletions plus additions of the same component. Stage 3 already pairs them by component key and cancels the deletions; the resolver decides which of those pairs are *pure* moves, in which case the additions are dropped too and the component reaches neither manifest. It returns a `MoveResolution`: the remaining `lines`, the precomputed in-file `unions` and a `checkSkipped` flag. With no cancelled deletion it returns the lines untouched.
+A component moved to another directory shows up in the diff as deletions plus additions of the same component. Stage 3 already pairs them by component key and cancels the deletions; the resolver decides which of those pairs are *pure* moves, in which case the additions are dropped too and the component reaches neither manifest. It returns a `MoveResolution`: the remaining `lines`, the precomputed in-file `unions` and a `skipCause`, the message of the error that stopped the check, or `undefined` when it ran. With no cancelled deletion it returns the lines untouched.
 
 ### Component checks
 
@@ -149,7 +149,7 @@ A group (cancelled deletions plus additions sharing a key) is a pure move when a
 - the component is in one `sfdx-project.json` package directory, each side resolved against its own revision's project (`loadSfdxProject`; no project at both revisions means one entry);
 - the source is visible to the global ignore (`--ignore-file`): a source under it, or covered only by `--ignore-destructive-file`, is not a move. A destination under the destructive-only ignore is still suppressed; a destination under the global ignore was already held in Stage 3 and emits nothing.
 
-An unusable `sfdx-project.json` or file list throws inside the resolver; `resolve` catches it, logs it at debug level and returns the lines unchanged with `checkSkipped: true`, which `main.ts` turns into `warning.PureMoveCheckSkipped`. Suppression is then off for the whole run.
+An unusable `sfdx-project.json` or file list throws inside the resolver; `resolve` catches it, logs it at debug level and returns the lines unchanged with `skipCause` set to the error message, which `main.ts` turns into `warning.PureMoveCheckSkipped`, naming that cause. Suppression is then off for the whole run.
 
 ### Union entries
 
@@ -649,7 +649,7 @@ Read-only context handed to every reader of a run: `config`, `metadata`, `trees`
 
 ### MoveResolution (`src/utils/pureMoveResolver.ts`)
 
-`{ lines, unions, checkSkipped }`: the diff lines left after dropping pure-move additions, the union outcomes for the handlers, and whether the check could not run.
+`{ lines, unions, skipCause }`: the diff lines left after dropping pure-move additions, the union outcomes for the handlers, and why the check could not run (`undefined` when it ran).
 
 ### Work (`src/types/work.ts`)
 

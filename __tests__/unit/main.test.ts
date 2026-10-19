@@ -191,7 +191,7 @@ beforeEach(() => {
   mockResolve.mockImplementation(async (lines: readonly string[]) => ({
     lines,
     unions: NO_UNIONS,
-    checkSkipped: false,
+    skipCause: undefined,
   }))
   mockComputeTreeIndexScope.mockReturnValue(new Set())
 })
@@ -915,7 +915,7 @@ describe('external library inclusion', () => {
       mockResolve.mockResolvedValueOnce({
         lines: ['A\tx'],
         unions: NO_UNIONS,
-        checkSkipped: false,
+        skipCause: undefined,
       })
       const sut = MOVE_CONFIG
 
@@ -936,7 +936,7 @@ describe('external library inclusion', () => {
       mockResolve.mockResolvedValueOnce({
         lines: [],
         unions,
-        checkSkipped: false,
+        skipCause: undefined,
       })
       const sut = MOVE_CONFIG
 
@@ -950,12 +950,12 @@ describe('external library inclusion', () => {
       expect(ioCtx?.unions).toBe(unions)
     })
 
-    it('Given the resolver reports the check was skipped, When sgd runs, Then a warning naming both revisions is pushed', async () => {
+    it('Given the resolver reports the check was skipped, When sgd runs, Then a warning naming both revisions and the cause is pushed', async () => {
       // Arrange
       mockResolve.mockResolvedValueOnce({
         lines: [],
         unions: NO_UNIONS,
-        checkSkipped: true,
+        skipCause: 'boom',
       })
       const sut = MOVE_CONFIG
 
@@ -964,7 +964,25 @@ describe('external library inclusion', () => {
 
       // Assert
       expect(result.warnings.map(w => w.message)).toEqual([
-        'warning.PureMoveCheckSkipped:HEAD~1,HEAD',
+        'warning.PureMoveCheckSkipped:HEAD~1,HEAD,boom',
+      ])
+    })
+
+    it('Given the resolver reports the check was skipped with a control character in the cause, When sgd runs, Then a warning naming both revisions and the cause is pushed', async () => {
+      // Arrange
+      mockResolve.mockResolvedValueOnce({
+        lines: [],
+        unions: NO_UNIONS,
+        skipCause: 'bo\nom',
+      })
+      const sut = MOVE_CONFIG
+
+      // Act
+      const result = await sgd(sut)
+
+      // Assert
+      expect(result.warnings.map(w => w.message)).toEqual([
+        'warning.PureMoveCheckSkipped:HEAD~1,HEAD,bo\\u{a}om',
       ])
     })
 

@@ -110,7 +110,7 @@ vi.mock('../../src/utils/pureMoveResolver', () => ({
       resolve: async (lines: readonly string[]) => ({
         lines,
         unions: NO_UNIONS,
-        checkSkipped: false,
+        skipCause: undefined,
       }),
     }
   }),

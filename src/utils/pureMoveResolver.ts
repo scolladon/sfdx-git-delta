@@ -45,7 +45,7 @@ import {
 export type MoveResolution = Readonly<{
   lines: readonly string[]
   unions: UnionOutcomes
-  checkSkipped: boolean
+  skipCause: string | undefined
 }>
 
 export type MovePorts = Pick<GitAdapter, 'getBlobIds' | 'getRootFileContent'>
@@ -101,15 +101,14 @@ export default class PureMoveResolver {
     cancelled: readonly DeferredDeletion[]
   ): Promise<MoveResolution> {
     if (cancelled.length === 0) {
-      return { lines, unions: NO_UNIONS, checkSkipped: false }
+      return { lines, unions: NO_UNIONS, skipCause: undefined }
     }
     try {
       return await this.suppress(lines, cancelled)
     } catch (error) {
-      Logger.debug(
-        lazy`Pure move check skipped: ${() => getErrorMessage(error)}`
-      )
-      return { lines, unions: NO_UNIONS, checkSkipped: true }
+      const cause = getErrorMessage(error)
+      Logger.debug(lazy`Pure move check skipped: ${cause}`)
+      return { lines, unions: NO_UNIONS, skipCause: cause }
     }
   }
 
@@ -134,7 +133,7 @@ export default class PureMoveResolver {
     return {
       lines: lines.filter(line => !dropped.has(line)),
       unions: unions.outcomes,
-      checkSkipped: false,
+      skipCause: undefined,
     }
   }
 
