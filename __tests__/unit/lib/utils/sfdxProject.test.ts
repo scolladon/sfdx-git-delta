@@ -143,6 +143,18 @@ describe('Given SfdxProject.parse', () => {
     )
   })
 
+  it('When the schema rejects several fields, Then the message lists each issue path on one line', () => {
+    // Arrange & Act & Assert
+    expect(() =>
+      SfdxProject.parse('{"packageDirectories":[{"path":3},{}]}')
+    ).toThrow(
+      expect.objectContaining({
+        message:
+          'Invalid sfdx-project.json: packageDirectories.0.path: Invalid input: expected string, received number; packageDirectories.1.path: Invalid input: expected string, received undefined',
+      })
+    )
+  })
+
   it('When the error is raised, Then it is an SgdError', () => {
     // Arrange & Act & Assert
     expect(() => SfdxProject.parse('[')).toThrow(SgdError)

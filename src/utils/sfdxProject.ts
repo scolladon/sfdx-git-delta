@@ -45,6 +45,15 @@ const projectSchema = z.looseObject({
   sourceApiVersion: z.unknown().optional(),
 })
 
+// ZodError's own message is multi-line JSON; user-facing messages are capped
+// single lines, so keep only each issue's path and text.
+const describeParseFailure = (error: unknown): string =>
+  error instanceof z.ZodError
+    ? error.issues
+        .map(issue => `${issue.path.join('.')}: ${issue.message}`)
+        .join('; ')
+    : getErrorMessage(error)
+
 const isInside = (entry: string, path: string): boolean =>
   entry === ROOT_DIRECTORY || path === entry || path.startsWith(`${entry}/`)
 
@@ -69,7 +78,7 @@ export class SfdxProject {
       return new SfdxProject(entries, contents.sourceApiVersion)
     } catch (error) {
       throw new SfdxProjectError(
-        `Invalid ${SFDX_PROJECT_FILE}: ${getErrorMessage(error)}`,
+        `Invalid ${SFDX_PROJECT_FILE}: ${describeParseFailure(error)}`,
         { cause: error }
       )
     }
