@@ -24,7 +24,12 @@ import type {
   SourceDirRejection,
   SourceDirRejectionReason,
 } from './pathspec.js'
-import { loadSfdxProject } from './sfdxProject.js'
+import {
+  loadSfdxProject,
+  type SfdxProject,
+  SfdxProjectError,
+  SfdxProjectReadError,
+} from './sfdxProject.js'
 
 type ShaKey = 'from' | 'to'
 const SHA_KEYS: readonly ShaKey[] = ['from', 'to']
@@ -40,11 +45,21 @@ const SOURCE_DIR_REJECTION_MESSAGE_KEYS: Record<
   escapes: 'error.SourceDirEscapesRepository',
 }
 
+const isProjectFailure = (
+  error: unknown
+): error is SfdxProjectReadError | SfdxProjectError =>
+  error instanceof SfdxProjectReadError || error instanceof SfdxProjectError
+
 const isPositiveVersion = (version: number): boolean => version > 0
 
 type ApiVersionOutcome =
   | { readonly warnings: readonly Error[] }
   | { readonly refusal: string }
+  | { readonly unreadableProject: string }
+
+// A ConfigError, so _settleApiVersion's "only a ConfigError is a refusal"
+// contract holds; its own type lets the input-error merge drop it.
+class UnreadableProjectRefusal extends ConfigError {}
 
 // Two values arrive unparsed: a JavaScript library caller's apiVersion, which
 // the number type does not bind (e.g. '' or '67.0'), and sfdx-project.json's
@@ -156,15 +171,28 @@ export default class ConfigValidator {
       this._settleApiVersion(),
       this._collectInputErrors(),
     ])
-    // The refusal is about the environment, the input errors about what the
-    // user typed: report both in one run, the typing first.
-    if ('refusal' in apiVersionOutcome) {
-      throw this._configError([...inputErrors, apiVersionOutcome.refusal])
+    if ('warnings' in apiVersionOutcome && inputErrors.length === 0) {
+      return apiVersionOutcome.warnings
     }
-    if (inputErrors.length > 0) {
-      throw this._configError(inputErrors)
+    throw this._configError([
+      ...inputErrors,
+      ...this._refusalsToReport(apiVersionOutcome, inputErrors),
+    ])
+  }
+
+  private _refusalsToReport(
+    outcome: ApiVersionOutcome,
+    inputErrors: readonly string[]
+  ): readonly string[] {
+    // The environment refusal is about the environment, the input errors about
+    // what the user typed: report both in one run, the typing first.
+    if ('refusal' in outcome) return [outcome.refusal]
+    // A bad --to or a missing .git fails the same read: the input error
+    // already names the cause.
+    if ('unreadableProject' in outcome && inputErrors.length === 0) {
+      return [outcome.unreadableProject]
     }
-    return apiVersionOutcome.warnings
+    return []
   }
 
   private async _collectInputErrors(): Promise<readonly string[]> {
@@ -182,6 +210,9 @@ export default class ConfigValidator {
     try {
       return { warnings: await this._handleDefault() }
     } catch (error) {
+      if (error instanceof UnreadableProjectRefusal) {
+        return { unreadableProject: error.message }
+      }
       if (!(error instanceof ConfigError)) throw error
       return { refusal: error.message }
     }
@@ -280,13 +311,26 @@ export default class ConfigValidator {
   protected async _getApiVersion() {
     if (this._isPinned()) return
 
+    // The ref as typed: _validateGitSha rewrites config.to concurrently.
+    const revision = this.config.to
+    const project = await this._loadProject(revision)
+    this.config.apiVersion = toApiVersion(project.sourceApiVersion)
+  }
+
+  private async _loadProject(revision: string): Promise<SfdxProject> {
     try {
-      const project = await loadSfdxProject(this.gitAdapter, this.config.to)
-      this.config.apiVersion = toApiVersion(project.sourceApiVersion)
+      return await loadSfdxProject(this.gitAdapter, revision)
     } catch (error) {
+      if (!isProjectFailure(error)) throw error
       Logger.debug(
         // Stryker disable next-line StringLiteral -- equivalent: lazy log content is observability only
-        lazy`_getApiVersion: no usable sfdx-project.json at '${this.config.to}': ${() => getErrorMessage(error)}`
+        lazy`_getApiVersion: no usable sfdx-project.json at '${revision}': ${() => getErrorMessage(error)}`
+      )
+      throw new UnreadableProjectRefusal(
+        this.message.getMessage('error.SfdxProjectUnusable', [
+          sanitizeForMessage(revision),
+          sanitizeForMessage(error.message),
+        ])
       )
     }
   }

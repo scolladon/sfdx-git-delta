@@ -15,6 +15,7 @@ import {
   treatPathSep,
 } from '../../../../src/utils/fsUtils'
 import { Logger } from '../../../../src/utils/LoggingService'
+import { SfdxProject } from '../../../../src/utils/sfdxProject'
 import { getConfig } from '../../../__utils__/testWork'
 
 const {
@@ -421,20 +422,6 @@ describe('Given a ConfigValidator', () => {
         )
       })
 
-      it('Given sfdx-project.json is not valid JSON at --to, When _handleDefault runs, Then the lookup default applies', async () => {
-        // Arrange
-        mockGetRootFileContent.mockResolvedValue('{nope')
-        config.apiVersion = undefined
-        const sut = new ConfigValidator(config)
-
-        // Act
-        const warnings = await sut['_handleDefault']()
-
-        // Assert
-        expect(config.apiVersion).toEqual(latestAPIVersionSupported)
-        expect(warnings[0]!.message).toContain('warning.ApiVersionDefaulted')
-      })
-
       it('Given no sfdx-project.json at --to, When _handleDefault runs, Then ApiVersionDefaulted is raised', async () => {
         // Arrange
         mockGetRootFileContent.mockResolvedValue(undefined)
@@ -446,6 +433,123 @@ describe('Given a ConfigValidator', () => {
 
         // Assert
         expect(warnings[0]!.message).toContain('warning.ApiVersionDefaulted')
+      })
+    })
+
+    describe('Given sfdx-project.json cannot be used at --to', () => {
+      const GIT_CAUSE =
+        'git operation failed: DELTA_CHAIN_TOO_DEEP: delta chain too deep: 51'
+
+      it('When validateConfig runs unpinned and the project read fails with a git error, Then the ConfigError carries the git cause and no lookup is made', async () => {
+        // Arrange
+        mockGetRootFileContent.mockRejectedValue(new Error(GIT_CAUSE))
+        config.apiVersion = undefined
+        const lookup = vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
+        const sut = new ConfigValidator(config)
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toThrow(
+          expect.objectContaining({
+            name: 'ConfigError',
+            message: `error.SfdxProjectUnusable:test,Cannot read sfdx-project.json: ${GIT_CAUSE}`,
+          })
+        )
+        expect(lookup).not.toHaveBeenCalled()
+      })
+
+      it.each([
+        ['not JSON', '{nope'],
+        [
+          'schema-invalid',
+          JSON.stringify({ packageDirectories: 'x', sourceApiVersion: '60.0' }),
+        ],
+      ])(
+        'When sfdx-project.json at --to is %s, Then the run is refused naming the parse error and no lookup is made',
+        async (_label, content) => {
+          // Arrange
+          mockGetRootFileContent.mockResolvedValue(content)
+          config.apiVersion = undefined
+          const lookup = vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
+          const sut = new ConfigValidator(config)
+
+          // Act & Assert
+          await expect(sut.validateConfig()).rejects.toThrow(
+            expect.objectContaining({
+              name: 'ConfigError',
+              message: expect.stringMatching(
+                /^error\.SfdxProjectUnusable:test,Invalid sfdx-project\.json: /
+              ),
+            })
+          )
+          expect(lookup).not.toHaveBeenCalled()
+        }
+      )
+
+      it('Then the message names the --to the user typed', async () => {
+        // Arrange
+        mockResolveCommit.mockResolvedValue('resolved-sha')
+        mockGetRootFileContent.mockImplementation(
+          () =>
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error(GIT_CAUSE)), 0)
+            )
+        )
+        config.apiVersion = undefined
+        const sut = new ConfigValidator(config)
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toThrow(
+          expect.objectContaining({
+            message: expect.stringMatching(/^error\.SfdxProjectUnusable:test,/),
+          })
+        )
+      })
+
+      it('When loading the project fails with an error of neither class, Then it propagates untouched and no lookup is made', async () => {
+        // Arrange
+        mockGetRootFileContent.mockResolvedValue('{}')
+        const defect = new TypeError('boom')
+        const parse = vi.spyOn(SfdxProject, 'parse').mockImplementation(() => {
+          throw defect
+        })
+        config.apiVersion = undefined
+        const lookup = vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
+        const sut = new ConfigValidator(config)
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toBe(defect)
+        expect(lookup).not.toHaveBeenCalled()
+        parse.mockRestore()
+      })
+
+      it('When --to and the git failure carry control characters, Then both are escaped in the message', async () => {
+        // Arrange
+        config.to = 'bad\nref'
+        mockGetRootFileContent.mockRejectedValue(new Error('git\nfailure'))
+        config.apiVersion = undefined
+        const sut = new ConfigValidator(config)
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toThrow(
+          expect.objectContaining({
+            message:
+              'error.SfdxProjectUnusable:bad\\u{a}ref,Cannot read sfdx-project.json: git\\u{a}failure',
+          })
+        )
+      })
+
+      it('When the run is pinned, Then sfdx-project.json is never read', async () => {
+        // Arrange
+        mockGetRootFileContent.mockRejectedValue(new Error(GIT_CAUSE))
+        config.apiVersion = 46
+        const sut = new ConfigValidator(config)
+
+        // Act
+        const result = await sut.validateConfig()
+
+        // Assert
+        expect(result).toEqual([])
+        expect(mockGetRootFileContent).not.toHaveBeenCalled()
       })
     })
 
@@ -822,6 +926,48 @@ describe('Given a ConfigValidator', () => {
         )
       })
 
+      it('When --to does not resolve and the project read fails too, Then only the sha-pointer error is reported and no lookup is made', async () => {
+        // Arrange
+        mockGetRootFileContent.mockRejectedValue(
+          new Error('bad-to: not a valid git revision')
+        )
+        mockResolveCommit.mockImplementation((ref: string) =>
+          ref === 'bad-to'
+            ? Promise.reject(new Error('bad sha'))
+            : Promise.resolve('ref')
+        )
+        const lookup = vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
+        const sut = new ConfigValidator({
+          ...config,
+          from: 'HEAD',
+          to: 'bad-to',
+        })
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toThrow(
+          expect.objectContaining({
+            message: 'error.ParameterIsNotGitSHA:to,bad-to',
+          })
+        )
+        expect(lookup).not.toHaveBeenCalled()
+      })
+
+      it('When the repository has no .git and the project read fails too, Then only PathIsNotGit is reported', async () => {
+        // Arrange
+        mockedPathExists.mockResolvedValue(false as never)
+        mockGetRootFileContent.mockRejectedValue(new Error('no repository'))
+        const lookup = vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
+        const sut = new ConfigValidator(config)
+
+        // Act & Assert
+        await expect(sut.validateConfig()).rejects.toThrow(
+          expect.objectContaining({
+            message: `error.PathIsNotGit:${MOCK_REPOSITORY_KEY_ESCAPED}`,
+          })
+        )
+        expect(lookup).not.toHaveBeenCalled()
+      })
+
       it('When mergeBase is set and --to does not resolve, Then both are reported and getMergeBase is never called', async () => {
         // Arrange
         mockResolveCommit.mockImplementation((ref: string) =>
@@ -929,7 +1075,7 @@ describe('Given a ConfigValidator', () => {
         const sut = new ConfigValidator(config)
 
         // Act
-        await sut['_getApiVersion']()
+        await sut['_getApiVersion']().catch(() => undefined)
 
         // Assert
         expect(Logger.debug).toHaveBeenCalledOnce()

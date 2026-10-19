@@ -2,7 +2,6 @@
 import { rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 
-import { SfError } from '@salesforce/core/sfError'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 
 import GitAdapter from '../../../src/adapter/GitAdapter'
@@ -131,8 +130,8 @@ describe('Given the released error-message contract (validated surface)', () => 
     })
   })
 
-  describe('When ConfigValidator validates a non-existent ref while the API version lookup fails', () => {
-    it('Then it throws the released sha-pointer message followed by the released refusal, in one error', async () => {
+  describe('When ConfigValidator validates a non-existent ref', () => {
+    it('Then only the sha-pointer message is reported and the API version is never looked up', async () => {
       // Arrange
       const repoDir = await trackedTempDir('sgd-error-parity-refusal-')
       initRepoWithCommit(repoDir)
@@ -141,16 +140,6 @@ describe('Given the released error-message contract (validated surface)', () => 
         to: 'not-a-real-ref-zzz',
         from: 'HEAD',
       })
-      vi.mocked(getLatestSupportedVersion).mockRejectedValueOnce(
-        new SfError(
-          'Unable to get a current API version from the appexchange org',
-          'ApiVersionRetrievalError',
-          [],
-          Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:9'), {
-            code: 'ECONNREFUSED',
-          })
-        )
-      )
       const sut = new ConfigValidator(config)
 
       // Act
@@ -160,8 +149,9 @@ describe('Given the released error-message contract (validated surface)', () => 
 
       // Assert
       expect((error as Error).message).toBe(
-        '--to is not a valid sha pointer: \'not-a-real-ref-zzz\' (If in CI/CD context, check the fetch depth is properly set), Unable to resolve the Salesforce API version. Provide one with --api-version, or set "sourceApiVersion" in sfdx-project.json at --to. Caused by: Unable to get a current API version from the appexchange org (connect ECONNREFUSED 127.0.0.1:9)'
+        "--to is not a valid sha pointer: 'not-a-real-ref-zzz' (If in CI/CD context, check the fetch depth is properly set)"
       )
+      expect(getLatestSupportedVersion).not.toHaveBeenCalled()
     })
   })
 
