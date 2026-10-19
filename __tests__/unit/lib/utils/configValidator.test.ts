@@ -1,7 +1,15 @@
 import { stat } from 'node:fs/promises'
 
 import { SfError } from '@salesforce/core/sfError'
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from 'vitest'
 import { SDRMetadataAdapter } from '../../../../src/metadata/sdrMetadataAdapter'
 import type { Config } from '../../../../src/types/config'
 import ConfigValidator from '../../../../src/utils/configValidator'
@@ -485,7 +493,7 @@ describe('Given a ConfigValidator', () => {
         }
       )
 
-      it('Then the message names the --to the user typed', async () => {
+      it('When the project read fails after --to was resolved to a sha, Then the message names the --to the user typed', async () => {
         // Arrange
         mockResolveCommit.mockResolvedValue('resolved-sha')
         mockGetRootFileContent.mockImplementation(
@@ -512,6 +520,7 @@ describe('Given a ConfigValidator', () => {
         const parse = vi.spyOn(SfdxProject, 'parse').mockImplementation(() => {
           throw defect
         })
+        onTestFinished(() => parse.mockRestore())
         config.apiVersion = undefined
         const lookup = vi.spyOn(SDRMetadataAdapter, 'getLatestApiVersion')
         const sut = new ConfigValidator(config)
@@ -519,7 +528,6 @@ describe('Given a ConfigValidator', () => {
         // Act & Assert
         await expect(sut.validateConfig()).rejects.toBe(defect)
         expect(lookup).not.toHaveBeenCalled()
-        parse.mockRestore()
       })
 
       it('When --to and the git failure carry control characters, Then both are escaped in the message', async () => {
