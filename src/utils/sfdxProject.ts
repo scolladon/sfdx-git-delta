@@ -45,13 +45,17 @@ const projectSchema = z.looseObject({
   sourceApiVersion: z.unknown().optional(),
 })
 
+// An issue on the document itself has no path to name.
+const describeIssue = (issue: z.core.$ZodIssue): string =>
+  issue.path.length === 0
+    ? issue.message
+    : `${issue.path.join('.')}: ${issue.message}`
+
 // ZodError's own message is multi-line JSON; user-facing messages are capped
 // single lines, so keep only each issue's path and text.
 const describeParseFailure = (error: unknown): string =>
   error instanceof z.ZodError
-    ? error.issues
-        .map(issue => `${issue.path.join('.')}: ${issue.message}`)
-        .join('; ')
+    ? error.issues.map(describeIssue).join('; ')
     : getErrorMessage(error)
 
 const isInside = (entry: string, path: string): boolean =>

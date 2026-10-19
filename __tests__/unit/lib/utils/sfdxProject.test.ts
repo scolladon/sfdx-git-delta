@@ -155,6 +155,16 @@ describe('Given SfdxProject.parse', () => {
     )
   })
 
+  it('When the schema rejects the document itself, Then the issue is reported without a path', () => {
+    // Arrange & Act & Assert
+    expect(() => SfdxProject.parse('[]')).toThrow(
+      expect.objectContaining({
+        message:
+          'Invalid sfdx-project.json: Invalid input: expected object, received array',
+      })
+    )
+  })
+
   it('When the error is raised, Then it is an SgdError', () => {
     // Arrange & Act & Assert
     expect(() => SfdxProject.parse('[')).toThrow(SgdError)
