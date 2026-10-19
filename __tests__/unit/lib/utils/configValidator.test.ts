@@ -1088,6 +1088,20 @@ describe('Given a ConfigValidator', () => {
         // Assert
         expect(Logger.debug).toHaveBeenCalledOnce()
       })
+
+      it('When sfdx-project.json cannot be read, Then the logged diagnostic names the cause', async () => {
+        // Arrange
+        mockGetRootFileContent.mockRejectedValue(new Error('read failed'))
+        config.apiVersion = undefined
+        const sut = new ConfigValidator(config)
+
+        // Act
+        await sut['_getApiVersion']().catch(() => undefined)
+
+        // Assert
+        const [message] = vi.mocked(Logger.debug).mock.calls[0]!
+        expect(String((message as () => string)())).toContain('read failed')
+      })
     })
 
     describe('when apiVersion is set and project file exists', () => {
