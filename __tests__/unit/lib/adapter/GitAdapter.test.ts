@@ -126,10 +126,14 @@ const asCommitAt = (oid: string) => ({
   data: { tree: `tree-of-${oid}`, parents: [] },
 })
 
+// tsgit revParse answers every line `git rev-parse` prints; a plain
+// revision prints exactly one object line.
+const revParsed = (id: string) => [{ kind: 'object', id, negated: false }]
+
 // resolveCommit peels after revParse, so an "open the repository" smoke call
 // needs both stubs: the resolved oid and a commit object carrying that id.
 const stubCommit = (repo: FakeRepo, oid: string): void => {
-  repo.revParse.mockResolvedValue(oid)
+  repo.revParse.mockResolvedValue(revParsed(oid))
   repo.primitives.readObject.mockResolvedValue(asCommitAt(oid))
 }
 
@@ -334,7 +338,7 @@ describe('GitAdapter', () => {
     it('When an LFS-backed blob is read from that repository, Then the object file is read from the unsanitized platform-form path', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: backslashRepo }))
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -528,7 +532,7 @@ describe('GitAdapter', () => {
     it('When the revision names a commit, Then it resolves the commit id after one readObject', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommitAt('commit-oid'))
 
       // Act
@@ -544,7 +548,7 @@ describe('GitAdapter', () => {
     it('When the revision is a two-deep annotated tag, Then it resolves the tagged commit id, not the tag oid', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('tag-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('tag-oid'))
       fakeRepo.primitives.readObject.mockImplementation((oid: string) => {
         if (oid === 'tag-oid') {
           return Promise.resolve({
@@ -572,7 +576,7 @@ describe('GitAdapter', () => {
     it('When the revision resolves to a tree, Then it rejects with a NotACommitError naming the typed revision, not the oid', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('tree-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('tree-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue({
         type: 'tree',
         data: {},
@@ -593,7 +597,7 @@ describe('GitAdapter', () => {
     it('When an annotated tag peels to a blob, Then it rejects with a NotACommitError of kind blob', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('tag-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('tag-oid'))
       fakeRepo.primitives.readObject
         .mockResolvedValueOnce({
           type: 'tag',
@@ -614,6 +618,39 @@ describe('GitAdapter', () => {
       expect((error as NotACommitError).objectType).toBe('blob')
       expect((error as Error).message).toContain("'v1.0.0'")
     })
+
+    it.each([
+      [
+        'a range',
+        'A..B',
+        [...revParsed('b-oid'), { kind: 'object', id: 'a-oid', negated: true }],
+      ],
+      ['an exclusion', '^A', [{ kind: 'object', id: 'a-oid', negated: true }]],
+      [
+        'a working-tree path',
+        'force-app',
+        [{ kind: 'path', path: 'force-app' }],
+      ],
+      ['nothing', '', []],
+    ])(
+      'When the revision names %s, Then it rejects as not a single revision without reading any object',
+      async (_, revision, entries) => {
+        // Arrange
+        const sut = GitAdapter.getInstance(makeConfig())
+        fakeRepo.revParse.mockResolvedValue(entries)
+
+        // Act
+        const error = await sut
+          .resolveCommit(revision)
+          .catch((thrown: unknown) => thrown)
+
+        // Assert
+        expect((error as Error).message).toBe(
+          `git operation failed: '${revision}' does not name a single revision`
+        )
+        expect(fakeRepo.primitives.readObject).not.toHaveBeenCalled()
+      }
+    )
 
     it('When repo.revParse rejects with a raw tsgit error, Then it rejects with the mapped error', async () => {
       // Arrange
@@ -638,7 +675,7 @@ describe('GitAdapter', () => {
     it('When an annotated tag points at an object the store does not hold, Then it rejects as not-a-valid-revision, not as a non-commit', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('tag-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('tag-oid'))
       fakeRepo.primitives.readObject
         .mockResolvedValueOnce({
           type: 'tag',
@@ -684,7 +721,7 @@ describe('GitAdapter', () => {
     it('When a ref resolves to an oid the store does not hold, Then it rejects naming the typed ref as not a valid revision', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('a'.repeat(40))
+      fakeRepo.revParse.mockResolvedValue(revParsed('a'.repeat(40)))
       fakeRepo.primitives.readObject.mockRejectedValue(
         Object.assign(new Error('object not found: ghost-oid'), {
           data: { code: 'OBJECT_NOT_FOUND' },
@@ -708,7 +745,7 @@ describe('GitAdapter', () => {
       // peeling (indexRevision's cast-free idiom) — identity pass-through
       // keeps every existing test's oid-shaped literals meaningful.
       fakeRepo.revParse.mockImplementation((ref: string) =>
-        Promise.resolve(ref)
+        Promise.resolve(revParsed(ref))
       )
     })
 
@@ -918,7 +955,7 @@ describe('GitAdapter', () => {
       // this assertion would fail.
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockImplementation((ref: string) =>
-        Promise.resolve(`${ref}-oid`)
+        Promise.resolve(revParsed(`${ref}-oid`))
       )
       fakeRepo.primitives.readObject.mockImplementation((oid: string) =>
         Promise.resolve(asCommitAt(oid))
@@ -1101,7 +1138,7 @@ describe('GitAdapter', () => {
       // indexRevision/blobIdIndex — see 'Given getBufferContent' — but the
       // TreeIndex built from it is not memoized; that is the caller's job).
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -1119,7 +1156,7 @@ describe('GitAdapter', () => {
     it('When scopePaths are provided, Then only in-scope paths are indexed (ROOT_PATHS stripped)', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([
@@ -1140,7 +1177,7 @@ describe('GitAdapter', () => {
       // Arrange — './', '.' and '' must all canonicalise to "no scope
       // filter" rather than matching nothing.
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([
@@ -1190,7 +1227,7 @@ describe('GitAdapter', () => {
       // scopes. There is no shared bucket to leak between them any more —
       // each call gets a plain, caller-owned TreeIndex object.
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([
@@ -1215,7 +1252,7 @@ describe('GitAdapter', () => {
     it('When the blob is not LFS, Then it returns the raw blob content', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -1240,7 +1277,7 @@ describe('GitAdapter', () => {
     it('When the blob is an LFS pointer, Then it resolves the content from the LFS object file', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -1272,7 +1309,7 @@ describe('GitAdapter', () => {
     it('When the same revision is requested twice, Then the tree is flattened only once (index cached)', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([
@@ -1297,7 +1334,7 @@ describe('GitAdapter', () => {
     it('When the revision resolves to a non-commit object, Then it rejects with a descriptive error', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('tree-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('tree-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue({
         type: 'tree',
         data: {},
@@ -1312,7 +1349,7 @@ describe('GitAdapter', () => {
     it('When the revision is an annotated tag, Then the tag chain is peeled down to the tagged commit', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('tag-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('tag-oid'))
       fakeRepo.primitives.readObject
         .mockResolvedValueOnce({
           type: 'tag',
@@ -1338,7 +1375,7 @@ describe('GitAdapter', () => {
     it('When an annotated tag peels to a non-commit object, Then it rejects with a descriptive error', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('tag-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('tag-oid'))
       fakeRepo.primitives.readObject
         .mockResolvedValueOnce({
           type: 'tag',
@@ -1358,7 +1395,7 @@ describe('GitAdapter', () => {
     it('When the path is not present in the indexed tree, Then it rejects with a not-found error', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(flatten([]))
 
@@ -1371,7 +1408,7 @@ describe('GitAdapter', () => {
     it('When the flattened tree mixes blob and non-blob modes, Then only blob-bearing entries resolve (gitlinks and trees excluded)', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([
@@ -1396,7 +1433,7 @@ describe('GitAdapter', () => {
     it('When a flattened tree path uses backslash separators, Then it is normalized to forward slashes', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app\\foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -1434,7 +1471,7 @@ describe('GitAdapter', () => {
     it('When the accumulated blob stays under SIZE_THRESHOLD, Then it resolves with the concatenated content', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -1458,7 +1495,7 @@ describe('GitAdapter', () => {
     it('When the accumulated content is an LFS pointer under the threshold, Then it resolves the content from the LFS object file', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -1487,7 +1524,7 @@ describe('GitAdapter', () => {
     it('When the resolved LFS object is exactly SIZE_THRESHOLD, Then it resolves without escalating', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -1513,7 +1550,7 @@ describe('GitAdapter', () => {
     it('When the resolved LFS object exceeds SIZE_THRESHOLD, Then it rejects with an EscalateToStreamingSignal sized from the object file', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -1540,7 +1577,7 @@ describe('GitAdapter', () => {
     it('When the accumulated blob exceeds SIZE_THRESHOLD, Then it rejects with an EscalateToStreamingSignal carrying the size and ref', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/big.bin', { mode: '100644', id: 'blob-big' }]])
@@ -1566,7 +1603,7 @@ describe('GitAdapter', () => {
     it('When the accumulated blob length is exactly SIZE_THRESHOLD, Then it resolves without escalating', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/exact.bin', { mode: '100644', id: 'blob-exact' }]])
@@ -1598,7 +1635,7 @@ describe('GitAdapter', () => {
     // Every step before flattenTree answers instantly; streamBlob echoes the
     // blob id so a caller's result names the tree that served it.
     const armWalk = (): void => {
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.streamBlob.mockImplementation(async (id: string) => [
         Buffer.from(id),
@@ -1653,7 +1690,9 @@ describe('GitAdapter', () => {
     it('When callers for two different revisions start before either walk settles, Then each revision is flattened exactly once and every caller is served its own tree', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockImplementation(async (rev: string) => `${rev}-oid`)
+      fakeRepo.revParse.mockImplementation(async (rev: string) =>
+        revParsed(`${rev}-oid`)
+      )
       fakeRepo.primitives.readObject.mockImplementation(async (oid: string) =>
         asCommit(`${oid}-tree`)
       )
@@ -1780,7 +1819,7 @@ describe('GitAdapter', () => {
     it('When called, Then it returns the buffer content decoded as UTF-8', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -1841,7 +1880,7 @@ describe('GitAdapter', () => {
     it('When the blob is shorter than the LFS magic length, Then the stream ends with the full buffer', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -1862,7 +1901,7 @@ describe('GitAdapter', () => {
     it('When the blob is empty, Then the stream ends without writing any chunk', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/empty.cls', { mode: '100644', id: 'blob-empty' }]])
@@ -1881,7 +1920,7 @@ describe('GitAdapter', () => {
     it('When the blob is not an LFS pointer, Then the stream forwards every chunk unchanged, respecting backpressure', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -1905,7 +1944,7 @@ describe('GitAdapter', () => {
     it('When a chunk write reports backpressure, Then the next chunk is withheld from the stream until it drains', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -1941,7 +1980,7 @@ describe('GitAdapter', () => {
     it('When the blob starts with the LFS pointer magic, Then it pipes content from the resolved LFS object file', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/asset.bin', { mode: '100644', id: 'blob-lfs' }]])
@@ -1976,7 +2015,7 @@ describe('GitAdapter', () => {
     it('When the LFS pointer exceeds LFS_POINTER_CAP, Then the stream is destroyed with a pointer-too-large error', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/asset.bin', { mode: '100644', id: 'blob-lfs' }]])
@@ -1996,7 +2035,7 @@ describe('GitAdapter', () => {
       // must fire before accumulatePointer's for-await loop ever runs (the
       // sibling test above only exercises the cap check inside that loop).
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/asset.bin', { mode: '100644', id: 'blob-lfs' }]])
@@ -2029,7 +2068,7 @@ describe('GitAdapter', () => {
     it('When the LFS pointer body is exactly LFS_POINTER_CAP bytes, Then it resolves without throwing', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/asset.bin', { mode: '100644', id: 'blob-lfs' }]])
@@ -2061,7 +2100,7 @@ describe('GitAdapter', () => {
       // 'pipes content' test above, where the whole pointer already sits in
       // the peeked head and that loop never runs).
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/asset.bin', { mode: '100644', id: 'blob-lfs' }]])
@@ -2092,7 +2131,7 @@ describe('GitAdapter', () => {
     it('When the resolved LFS object file errors while reading, Then the stream is destroyed with that error', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig({ repo: '/repo' }))
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/asset.bin', { mode: '100644', id: 'blob-lfs' }]])
@@ -2142,7 +2181,7 @@ describe('GitAdapter', () => {
     it('When entries are within scope, Then it streams each blob via streamBlob', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([
@@ -2166,7 +2205,7 @@ describe('GitAdapter', () => {
     it('When streaming an archive entry, Then Readable.from is invoked in binary (non-object) mode', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -2189,7 +2228,7 @@ describe('GitAdapter', () => {
 
   describe('Given grepUnderPaths', () => {
     const setUpTree = () => {
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([
@@ -2295,7 +2334,7 @@ describe('GitAdapter', () => {
     ]
 
     beforeEach(() => {
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten(
@@ -2354,7 +2393,7 @@ describe('GitAdapter', () => {
     it('When a pathspec has multiple leading "./" segments, Then all of them are normalized away', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -2379,7 +2418,7 @@ describe('GitAdapter', () => {
     it('When a pathspec has multiple leading slashes, Then all of them are normalized away', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
@@ -2404,7 +2443,7 @@ describe('GitAdapter', () => {
     it('When a pathspec contains "./" that is not a leading segment, Then only the leading occurrence is eligible for stripping', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([
@@ -2433,7 +2472,7 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
       const bracketedPath =
         'force-app/main/default/objects/Custom[1]__c/fields/X.field-meta.xml'
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten([[bracketedPath, { mode: '100644', id: 'blob-bracket' }]])
@@ -2465,7 +2504,7 @@ describe('GitAdapter', () => {
     ]
 
     beforeEach(() => {
-      fakeRepo.revParse.mockResolvedValue('commit-oid')
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
       fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
       fakeRepo.primitives.flattenTree.mockResolvedValue(
         flatten(
