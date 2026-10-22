@@ -4,6 +4,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.6.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.5.0...v7.6.0) (2026-10-22)
+
+
+### Features
+
+* **metadata:** support 2 new metadata types ([2632d43](https://github.com/scolladon/sfdx-git-delta/commit/2632d433f4a8605bee3db6724e511641cb801530))
+
+
+### Bug Fixes
+
+* read deep delta chains and alternate object stores with tsgit 6 ([22755c5](https://github.com/scolladon/sfdx-git-delta/commit/22755c54dd7baba8bca1ed5253b64aacb5aaf25b))
+* report why sfdx-project.json at --to is unusable instead of looking the api version up ([#1508](https://github.com/scolladon/sfdx-git-delta/issues/1508)) ([e2a0917](https://github.com/scolladon/sfdx-git-delta/commit/e2a0917d5f51601aebe1d78e3f7436f6c1fab250))
+
 ## [7.5.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.4.6...v7.5.0) (2026-10-11)
 
 
