@@ -312,9 +312,21 @@ export default class GitAdapter implements GitBlobReader {
   // caller's revision string, never the oid revParse just returned, or the
   // error names a hash instead of what the user typed.
   private async peelRevision(revision: string): Promise<Commit> {
-    const repo = await this.getRepo()
-    const oid = await repo.revParse(revision)
+    const oid = await this.resolveSingleRevision(revision)
     return await this.peelToCommit(oid, revision)
+  }
+
+  // tsgit's revParse answers every line `git rev-parse` would print, so a
+  // range, an exclusion or a working-tree path still resolves. sgd needs
+  // `rev-parse --verify` semantics: exactly one included object.
+  private async resolveSingleRevision(revision: string): Promise<ObjectId> {
+    const repo = await this.getRepo()
+    const entries = await repo.revParse(revision)
+    const [entry] = entries
+    if (entries.length !== 1 || entry?.kind !== 'object' || entry.negated) {
+      throw new Error(`'${revision}' does not name a single revision`)
+    }
+    return entry.id
   }
 
   // Reads one blob of the root tree without flattening the whole revision:

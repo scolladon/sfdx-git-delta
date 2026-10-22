@@ -48,17 +48,17 @@
     "access": "public"
   },
   "dependencies": {
-    "@oclif/core": "5.1.8",
+    "@oclif/core": "5.1.9",
     "@salesforce/core": "9.4.0",
     "@salesforce/sf-plugins-core": "13.0.7",
-    "@salesforce/source-deploy-retrieve": "13.6.0",
-    "@scolladon/tsgit": "4.0.0",
+    "@salesforce/source-deploy-retrieve": "13.7.0",
+    "@scolladon/tsgit": "6.0.0",
     "ignore": "7.0.13",
     "txml": "6.0.3",
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@biomejs/biome": "2.6.2",
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
     "@ls-lint/ls-lint": "2.3.2",
@@ -70,7 +70,7 @@
     "@types/node": "26.6.5",
     "@vitest/coverage-v8": "5.0.5",
     "husky": "9.1.7",
-    "knip": "6.42.0",
+    "knip": "6.42.1",
     "lint-staged": "17.6.0",
     "ls-engines": "0.10.1",
     "oclif": "6.0.10",
