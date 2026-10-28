@@ -22,6 +22,7 @@ import { getErrorMessage } from '../utils/errorUtils.js'
 import { isSubDir, outputFile } from '../utils/fsUtils.js'
 import { buildIgnoreHelper, type IgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
+import { expandTypeDirCompanionCopies } from '../utils/typeDirCompanionCopies.js'
 import GitAdapter from './GitAdapter.js'
 import {
   EscalateToStreamingSignal,
@@ -48,13 +49,14 @@ export default class IOExecutor {
 
   public async execute(copies: readonly CopyOperation[]): Promise<void> {
     this.ignoreHelper = await buildIgnoreHelper(this.config)
-    await eachLimit(
-      expandComponentCopies(copies, this.ctx.trees),
-      getConcurrencyThreshold(),
-      async (op: FileCopyOperation) => {
-        await this._executeOperation(op)
-      }
+    const { trees } = this.ctx
+    const fileCopies = expandComponentCopies(
+      expandTypeDirCompanionCopies(copies, trees),
+      trees
     )
+    await eachLimit(fileCopies, getConcurrencyThreshold(), async op => {
+      await this._executeOperation(op)
+    })
   }
 
   protected async _executeOperation(op: FileCopyOperation): Promise<void> {
