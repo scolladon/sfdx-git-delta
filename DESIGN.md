@@ -351,7 +351,7 @@ applied during assembly (see Stage 5).
 **Extends**: InResourceHandler
 **Used by**: AuraDefinitionBundle, GenAiFunction, LightningComponentBundle
 
-Like InResourceHandler but skips files directly in the type directory (e.g. top-level `__tests__`); only processes files inside a named component sub-folder.
+Like InResourceHandler but skips files directly in the type directory (e.g. top-level `__tests__`); only processes files inside a named component sub-folder. That skip is unchanged. Under `--generate-delta` it also emits one `GitTypeDirCompanionCopy` for its type directory, beside the inherited `GitComponentCopy`.
 
 #### ObjectTranslationHandler
 
@@ -505,12 +505,13 @@ Package.xml remains byte-identical to the pre-feature output because `InFileHand
 
 **Entry**: `IOExecutor.execute(copies)` (`src/adapter/ioExecutor.ts`)
 
-Executes the accumulated copy operations with concurrency bounded by `getConcurrencyThreshold()`. Four operation kinds:
+Executes the accumulated copy operations with concurrency bounded by `getConcurrencyThreshold()`. Five operation kinds:
 
 | Kind              | Description                                                                                                        |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `GitCopy`         | Reads a single file from a specific git revision by resolving its path to a blob `ObjectId` (via the per-revision blob index) and reading it straight out of the object store with `repo.primitives.readBlob`, then writes it to the output directory. Blobs above `SIZE_THRESHOLD` (1 MB) escalate to the streaming path via `EscalateToStreamingSignal` and pipe through an atomic `.tmp` + `rename` to bound peak memory. Does not require the tree index. |
 | `GitComponentCopy` | Emitted by `InResourceHandler` and its subclasses under `--generate-delta`, one per changed line — except `ObjectTranslationHandler`, whose addition path bypasses the component request. `execute` expands each distinct (revision, path) once, at the first request's position, into per-file `GitCopy` operations — every file whose path starts with the request path followed by `/` or `.`, taken from one listing of the request's parent directory per (revision, parent directory), however many components that directory holds; later identical requests vanish. Each expanded file then takes the ordinary `GitCopy` path (processedPaths, ignore, out-of-output guard, LFS, streaming escalation). |
+| `GitTypeDirCompanionCopy` | Emitted by `LwcHandler` (LightningComponentBundle, AuraDefinitionBundle, GenAiFunction) under `--generate-delta`, one per changed line. `execute` first expands each distinct (revision, type directory) once, at the first request's position, into per-file `GitCopy` operations — every file directly in the directory and every file under each subdirectory that is not a bundle (a bundle holds a direct `<name>.<x>-meta.xml` entry, SDR's root-metadata rule); sibling bundles are skipped. This expansion runs before the `GitComponentCopy` expansion, and paths both produce are read and written once through `processedPaths`. `FileCopyOperation` excludes both request kinds, so only file operations reach `_executeOperation`. |
 | `GitDirCopy`      | Enumerates all files under a directory path via `getFilesPath` (requires tree index). Below `GIT_ARCHIVE_DIR_THRESHOLD` (25 files) each file is fetched with one `readBlob` call per file; above the threshold the executor switches to `streamArchive`, which streams every blob under the path — reusing the same per-revision blob index, no second tree walk — via `repo.primitives.streamBlob`, piping each entry directly into a sibling `.tmp` + `rename` (replaces N per-file reads for ExperienceBundle / static-resource folders). Defence-in-depth path-prefix check rejects any entry whose resolved destination escapes `config.output`. |
 | `StreamedContent` | Writes content emitted by a handler/collector-supplied producer function (typically pruned XML from `InFileHandler`, `ObjectTranslationHandler`, `FlowTranslationProcessor`, and `PackageGenerator`). The executor pipes the producer into a sibling `.tmp` file and renames atomically on success — handles back-pressure via the writer's own `drain` await and survives EXDEV cross-filesystem rename hazards (Docker overlayfs + tmpfs `/tmp`). |
 
@@ -668,7 +669,7 @@ Universal handler/collector output — a flat, readonly description of what the 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
 | `elements` | `readonly ManifestElement[]` | The `{target, type, member, changeKind}` entries this handler/collector produced |
-| `copies` | `readonly CopyOperation[]` | `GitCopy`, `GitComponentCopy`, `GitDirCopy`, or `StreamedContent` operations |
+| `copies` | `readonly CopyOperation[]` | `GitCopy`, `GitComponentCopy`, `GitTypeDirCompanionCopy`, `GitDirCopy`, or `StreamedContent` operations |
 | `warnings` | `readonly Error[]` | Non-fatal warnings |
 
 `emptyResult()` and `mergeResults(...results)` (both in `src/types/handlerResult.ts`) are the two module-level helpers: `emptyResult()` is a factory returning a fresh empty value, and `mergeResults` concatenates each axis across multiple results — a plain array `flatMap`, with no index structure to rebuild.
