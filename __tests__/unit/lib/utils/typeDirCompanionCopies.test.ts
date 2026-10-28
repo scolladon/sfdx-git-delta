@@ -173,6 +173,42 @@ describe('expandTypeDirCompanionCopies', () => {
     })
   })
 
+  describe('Given folder entries at the edges of SDR root-metadata matching', () => {
+    it.each([
+      ['a one-character extension', 'a.j-meta.xml'],
+      ['a matching first line followed by another line', 'a.j-meta.xml\nz'],
+    ])(
+      'When the entry has %s, Then it is a bundle and nothing is copied',
+      (_title, name) => {
+        // Arrange
+        const path = `${LWC}/a/${name}`
+
+        // Act
+        const result = expand([path])
+
+        // Assert
+        expect(result).toEqual([])
+      }
+    )
+
+    it.each([
+      ['no character between the dot and the meta suffix', 'a.-meta.xml'],
+      ['a later line that starts with the dot', 'a.z\n.x-meta.xml'],
+    ])(
+      'When the entry has %s, Then it is not a bundle and the folder is copied',
+      (_title, name) => {
+        // Arrange
+        const path = `${LWC}/a/${name}`
+
+        // Act
+        const result = expand([path])
+
+        // Assert
+        expect(result).toEqual([gitCopy(path)])
+      }
+    )
+  })
+
   describe('Given a folder entry whose name is a long run of dots after the stem', () => {
     it('When expanded, Then the bundle check stays linear and the folder is copied', () => {
       // Arrange
