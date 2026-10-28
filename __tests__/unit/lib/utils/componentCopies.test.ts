@@ -9,9 +9,12 @@ import { DOT, PATH_SEP } from '../../../../src/constant/fsConstants'
 import type {
   CopyOperation,
   GitComponentCopyOperation,
+  GitCopyOperation,
+  StreamedContentOperation,
 } from '../../../../src/types/handlerResult'
 import { CopyOperationKind } from '../../../../src/types/handlerResult'
 import { expandComponentCopies } from '../../../../src/utils/componentCopies'
+import type { WithoutCompanionRequests } from '../../../../src/utils/typeDirCompanionCopies'
 
 const TO = 'to-revision'
 const OTHER = 'other-revision'
@@ -33,7 +36,7 @@ const request = (path: string, revision = TO): GitComponentCopyOperation => ({
   revision,
 })
 
-const gitCopy = (path: string, revision = TO): CopyOperation => ({
+const gitCopy = (path: string, revision = TO): GitCopyOperation => ({
   kind: CopyOperationKind.GitCopy,
   path,
   revision,
@@ -65,9 +68,9 @@ const firstSeen = (
 // Reference expansion: each distinct request lists its own parent and keeps
 // its members, at its first occurrence; every other operation passes through.
 const oracleOf = (
-  copies: readonly CopyOperation[],
+  copies: readonly WithoutCompanionRequests[],
   trees: TreeReader
-): CopyOperation[] => {
+): WithoutCompanionRequests[] => {
   const seen = new Map<string, Set<string>>()
   return copies.flatMap(op => {
     if (op.kind !== CopyOperationKind.GitComponentCopy) return [op]
@@ -133,7 +136,7 @@ describe('expandComponentCopies', () => {
       const trees = readerOf([`${ROOT}/Lib/a.js`])
       const x = gitCopy('x')
       const y = gitCopy('y')
-      const z: CopyOperation = {
+      const z: StreamedContentOperation = {
         kind: CopyOperationKind.StreamedContent,
         path: 'z',
         writer: vi.fn().mockResolvedValue(undefined),

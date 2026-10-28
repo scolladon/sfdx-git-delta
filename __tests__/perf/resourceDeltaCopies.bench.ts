@@ -11,6 +11,7 @@ import DiffLineInterpreter from '../../lib/service/diffLineInterpreter.js'
 import type { Config } from '../../lib/types/config.js'
 import { NO_UNIONS } from '../../lib/types/runContext.js'
 import { expandComponentCopies } from '../../lib/utils/componentCopies.js'
+import { expandTypeDirCompanionCopies } from '../../lib/utils/typeDirCompanionCopies.js'
 import {
   assertMeanWithinCeiling,
   assertScalesLinearly,
@@ -122,7 +123,10 @@ const runRow = <Name extends string>(
       async () => {
         const start = performance.now()
         const result = await new DiffLineInterpreter(ctx).process(lines)
-        expandComponentCopies(result.copies, trees)
+        expandComponentCopies(
+          expandTypeDirCompanionCopies(result.copies, trees),
+          trees
+        )
         elapsedMs.push(performance.now() - start)
       },
       {
