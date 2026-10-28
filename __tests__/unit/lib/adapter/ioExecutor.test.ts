@@ -5,6 +5,7 @@ import type { Ignore } from 'ignore'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EscalateToStreamingSignal } from '../../../../src/adapter/gitBlobReader'
 import IOExecutor from '../../../../src/adapter/ioExecutor'
+import { TreeIndex } from '../../../../src/adapter/treeIndex'
 import {
   createTreeReader,
   type TreeReader,
@@ -122,6 +123,12 @@ const createFakeWriteStream = (): FakeWriteStream => {
     return originalDestroy(err)
   }
   return stream
+}
+
+const readerOf = (paths: string[], revision = 'abc123'): TreeReader => {
+  const index = new TreeIndex()
+  for (const path of paths) index.add(path)
+  return createTreeReader(new Map([[revision, index]]))
 }
 
 describe('IOExecutor', () => {
@@ -397,6 +404,125 @@ describe('IOExecutor', () => {
       expect(mockGetBufferContentOrEscalate).toHaveBeenCalledTimes(1)
       expect(mockGetBufferContentOrEscalate).toHaveBeenCalledWith({
         path: 'staticresources/Lib.resource-meta.xml',
+        oid: 'abc123',
+      })
+    })
+  })
+
+  describe('Given a type-directory companion request', () => {
+    it('When executed, Then each file directly in the type directory and each file of a non-bundle subdirectory is read and written, and the sibling bundle is not', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      const sut = new IOExecutor(
+        getContext({
+          config: work.config,
+          trees: readerOf([
+            'lwc/.eslintrc.json',
+            'lwc/__mocks__/m.js',
+            'lwc/a/a.js',
+            'lwc/a/a.js-meta.xml',
+          ]),
+        })
+      )
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitTypeDirCompanionCopy,
+          path: 'lwc',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledTimes(2)
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledWith({
+        path: 'lwc/.eslintrc.json',
+        oid: 'abc123',
+      })
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledWith({
+        path: 'lwc/__mocks__/m.js',
+        oid: 'abc123',
+      })
+      expect(outputFile).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe('Given a companion request beside a component request whose dotted sibling is a type-directory file', () => {
+    it('When executed, Then that file is read and written once', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      const sut = new IOExecutor(
+        getContext({
+          config: work.config,
+          trees: readerOf([
+            'lwc/a/a.js',
+            'lwc/a/a.js-meta.xml',
+            'lwc/a.readme.md',
+          ]),
+        })
+      )
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitComponentCopy,
+          path: 'lwc/a',
+          revision: 'abc123',
+        },
+        {
+          kind: CopyOperationKind.GitTypeDirCompanionCopy,
+          path: 'lwc',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledTimes(3)
+      expect(
+        mockGetBufferContentOrEscalate.mock.calls.filter(
+          ([ref]) => ref.path === 'lwc/a.readme.md'
+        )
+      ).toHaveLength(1)
+      expect(outputFile).toHaveBeenCalledTimes(3)
+    })
+  })
+
+  describe('Given a companion file matched by the ignore file', () => {
+    it('When executed, Then it is not written', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      const sut = new IOExecutor(
+        getContext({
+          config: work.config,
+          trees: readerOf(['lwc/.eslintrc.json', 'lwc/jsconfig.json']),
+        })
+      )
+      mockBuildIgnoreHelper.mockResolvedValue({
+        globalIgnore: {
+          ignores: (p: string) => p.endsWith('.eslintrc.json'),
+        } as unknown as Ignore,
+      } as unknown as IgnoreHelper)
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('content'))
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitTypeDirCompanionCopy,
+          path: 'lwc',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledTimes(1)
+      expect(mockGetBufferContentOrEscalate).toHaveBeenCalledWith({
+        path: 'lwc/jsconfig.json',
         oid: 'abc123',
       })
     })

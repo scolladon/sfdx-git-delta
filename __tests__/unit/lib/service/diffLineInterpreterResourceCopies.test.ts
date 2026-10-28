@@ -10,6 +10,7 @@ import { getDefinition } from '../../../../src/metadata/metadataManager'
 import DiffLineInterpreter from '../../../../src/service/diffLineInterpreter'
 import { CopyOperationKind } from '../../../../src/types/handlerResult'
 import { expandComponentCopies } from '../../../../src/utils/componentCopies'
+import { expandTypeDirCompanionCopies } from '../../../../src/utils/typeDirCompanionCopies'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const TO = 'to-sha'
@@ -64,7 +65,10 @@ describe('DiffLineInterpreter with resource components', () => {
       const { result, trees } = await processChangedLines()
 
       // Act
-      const expanded = expandComponentCopies(result.copies, trees)
+      const expanded = expandComponentCopies(
+        expandTypeDirCompanionCopies(result.copies, trees),
+        trees
+      )
 
       // Assert
       expect(expanded).toHaveLength(2 * CHANGED_LINES + COMPONENT_FILE_COUNT)
@@ -75,7 +79,10 @@ describe('DiffLineInterpreter with resource components', () => {
       const { result, trees } = await processChangedLines()
 
       // Act
-      const expanded = expandComponentCopies(result.copies, trees)
+      const expanded = expandComponentCopies(
+        expandTypeDirCompanionCopies(result.copies, trees),
+        trees
+      )
 
       // Assert
       expect(new Set(expanded.map(op => op.path))).toEqual(
