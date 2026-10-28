@@ -2,6 +2,7 @@
 
 import type { TreeReader } from '../adapter/treeReader.js'
 import { DOT, PATH_SEP } from '../constant/fsConstants.js'
+import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type {
   CopyOperation,
   GitCopyOperation,
@@ -14,17 +15,29 @@ export type WithoutCompanionRequests = Exclude<
   GitTypeDirCompanionCopyOperation
 >
 
-// SDR's METADATA_XML_REGEX, verbatim and unanchored like SDR's: for
-// suffix-less bundle types SDR takes a folder's root metadata to be a direct
-// entry whose first-dot stem is the folder name and that matches this.
-const ROOT_METADATA_XML = /(.+)\.(.+)-meta\.xml/
+// For suffix-less bundle types SDR takes a folder's root metadata to be a
+// direct entry whose first-dot stem is the folder name and that matches its
+// unanchored METADATA_XML_REGEX /(.+)\.(.+)-meta\.xml/. That regex backtracks
+// super-linearly on crafted entry names, so the same verdict is computed by
+// index lookups, line by line because the regex's `.` stops at a line break.
+const LINE_BREAK = '\n'
+const MIN_GROUP_LENGTH = 1
 // NUL cannot occur in a git path or a ref
 const KEY_SEPARATOR = '\0'
+
+// A line without a dot holds no METAFILE_SUFFIX either, so a missing dot
+// (-1) still yields a minimum the -1 of a missing suffix cannot reach.
+const matchesRootMetadataXml = (line: string): boolean => {
+  const dot = line.indexOf(DOT, MIN_GROUP_LENGTH)
+  const minSuffixStart = dot + DOT.length + MIN_GROUP_LENGTH
+  return line.lastIndexOf(METAFILE_SUFFIX) >= minSuffixStart
+}
 
 const isRootMetadataOf =
   (name: string) =>
   (entry: string): boolean =>
-    entry.split(DOT)[0] === name && ROOT_METADATA_XML.test(entry)
+    entry.split(DOT)[0] === name &&
+    entry.split(LINE_BREAK).some(matchesRootMetadataXml)
 
 const isBundle = (entries: readonly string[], name: string): boolean =>
   entries.some(isRootMetadataOf(name))
