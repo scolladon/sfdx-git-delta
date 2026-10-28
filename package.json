@@ -48,7 +48,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@oclif/core": "5.1.9",
+    "@oclif/core": "5.1.10",
     "@salesforce/core": "9.4.1",
     "@salesforce/sf-plugins-core": "13.0.8",
     "@salesforce/source-deploy-retrieve": "13.8.3",
