@@ -58,6 +58,39 @@ const AURA = [
   file(`${AURA_DIR}/auraCmpController.js`, '({})\n'),
 ] as const
 
+const LWC_COMPANIONS = [
+  at('lwc/.eslintrc.json', '{"lwc":1}\n'),
+  at('lwc/jsconfig.json', '{"js":1}\n'),
+  at('lwc/.prettierrc', '{"p":1}\n'),
+  at('lwc/__mocks__/lightning/navigation.js', 'nav\n'),
+] as const
+const LWC_ESLINT = LWC_COMPANIONS[0]
+const CMP_JS = CMP.find(({ path }) => path.endsWith('.js'))!
+const CMP_HTML = CMP.find(({ path }) => path.endsWith('.html'))!
+const OTHER = lwcFiles(DEFAULT_ROOT, 'other')
+const AURA_ESLINT = at('aura/.eslintrc.json', '{"aura":1}\n')
+const AURA_SIBLING = [
+  at('aura/sib/sib.evt', '<aura:event/>\n'),
+  at('aura/sib/sib.evt-meta.xml', '<AuraDefinitionBundle/>\n'),
+] as const
+const GEN_AI = 'genAiFunctions'
+const GEN_AI_FN = [
+  at(`${GEN_AI}/fn/fn.genAiFunction-meta.xml`, '<GenAiFunction/>\n'),
+  at(`${GEN_AI}/fn/input.json`, '{"in":1}\n'),
+] as const
+const GEN_AI_COMPANIONS = [
+  at(`${GEN_AI}/README.md`, 'readme\n'),
+  at(`${GEN_AI}/__x/z.json`, '{"z":1}\n'),
+] as const
+const SECOND_ROOT = 'feature-a'
+const SECOND_PROJECT = file(
+  PROJECT_FILE,
+  projectJson(['force-app', SECOND_ROOT])
+)
+const SECOND_FEAT = lwcFiles(SECOND_ROOT, 'feat')
+const SECOND_ESLINT = file(`${SECOND_ROOT}/lwc/.eslintrc.json`, '{"f":1}\n')
+const LWC_CMP_META = { pkg: ['LightningComponentBundle:cmp'] }
+
 const SITE_DIR = `${DEFAULT_ROOT}/digitalExperiences/site/Site_A`
 const PAGE_A = `${SITE_DIR}/sfdc_cms__view/page_a`
 const PAGE_B = `${SITE_DIR}/sfdc_cms__view/page_b`
@@ -202,6 +235,100 @@ const cases: readonly Case[] = [
       pkg: ['AuraDefinitionBundle:auraCmp'],
       changes: ['modify:AuraDefinitionBundle:auraCmp'],
     },
+  },
+  {
+    title:
+      'an LWC bundle edited beside type-directory companions and a sibling bundle',
+    base: [PROJECT, ...CMP, ...LWC_COMPANIONS, ...OTHER],
+    change: [edit(CMP_JS)],
+    copiedAtTo: [...editedAtTo(CMP, [CMP_JS]), ...LWC_COMPANIONS],
+    expected: {
+      ...LWC_CMP_META,
+      changes: ['modify:LightningComponentBundle:cmp'],
+    },
+  },
+  {
+    title:
+      'an Aura bundle edited beside a type-directory companion and a sibling bundle',
+    base: [PROJECT, ...AURA, AURA_ESLINT, ...AURA_SIBLING],
+    change: [edit(AURA[0])],
+    copiedAtTo: [...editedAtTo(AURA, [AURA[0]]), AURA_ESLINT],
+    expected: {
+      pkg: ['AuraDefinitionBundle:auraCmp'],
+      changes: ['modify:AuraDefinitionBundle:auraCmp'],
+    },
+  },
+  {
+    title:
+      'a GenAiFunction edited beside a type-directory file and a non-bundle folder',
+    base: [PROJECT, ...GEN_AI_FN, ...GEN_AI_COMPANIONS],
+    change: [edit(GEN_AI_FN[1])],
+    copiedAtTo: [
+      ...editedAtTo(GEN_AI_FN, [GEN_AI_FN[1]]),
+      ...GEN_AI_COMPANIONS,
+    ],
+    expected: {
+      pkg: ['GenAiFunction:fn'],
+      changes: ['modify:GenAiFunction:fn'],
+    },
+  },
+  {
+    title: 'an LWC bundle edited in one of two package directories',
+    base: [SECOND_PROJECT, ...CMP, LWC_ESLINT, ...SECOND_FEAT, SECOND_ESLINT],
+    change: [edit(CMP_JS)],
+    copiedAtTo: [...editedAtTo(CMP, [CMP_JS]), LWC_ESLINT],
+    expected: {
+      ...LWC_CMP_META,
+      changes: ['modify:LightningComponentBundle:cmp'],
+    },
+  },
+  {
+    title: 'an LWC bundle with one of its files removed beside a companion',
+    base: [PROJECT, ...CMP, LWC_ESLINT],
+    change: [remove(CMP_HTML.path)],
+    copiedAtTo: [...CMP.filter(f => f !== CMP_HTML), LWC_ESLINT],
+    expected: {
+      ...LWC_CMP_META,
+      changes: ['delete:LightningComponentBundle:cmp'],
+    },
+  },
+  {
+    title: 'an LWC bundle removed entirely beside a companion',
+    base: [PROJECT, ...CMP, LWC_ESLINT],
+    change: CMP.map(({ path }) => remove(path)),
+    copiedAtTo: [],
+    expected: {
+      destructive: ['LightningComponentBundle:cmp'],
+      changes: ['delete:LightningComponentBundle:cmp'],
+    },
+  },
+  {
+    title: 'only a type-directory companion edited',
+    base: [PROJECT, ...CMP, LWC_ESLINT],
+    change: [edit(LWC_ESLINT)],
+    copiedAtTo: [],
+    expected: {},
+  },
+  {
+    title: 'an LWC bundle edited while its companion is removed',
+    base: [PROJECT, ...CMP, LWC_ESLINT],
+    change: [edit(CMP_JS), remove(LWC_ESLINT.path)],
+    copiedAtTo: editedAtTo(CMP, [CMP_JS]),
+    expected: {
+      ...LWC_CMP_META,
+      changes: ['modify:LightningComponentBundle:cmp'],
+    },
+  },
+  {
+    title: 'the LWC bundle edit beside companions with generate-delta off',
+    base: [PROJECT, ...CMP, ...LWC_COMPANIONS],
+    change: [edit(CMP_JS)],
+    copiedAtTo: [],
+    expected: {
+      ...LWC_CMP_META,
+      changes: ['modify:LightningComponentBundle:cmp'],
+    },
+    generateDelta: false,
   },
   {
     title: 'a DigitalExperience page content edited',
