@@ -70,7 +70,6 @@ describe('SDRMetadataAdapter', () => {
         // Assert
         const apexClass = metadata.find(m => m.xmlName === 'ApexClass')
         expect(apexClass).toEqual({
-          adapter: 'default',
           directoryName: 'classes',
           inFolder: false,
           metaFile: false,
@@ -105,6 +104,29 @@ describe('SDRMetadataAdapter', () => {
         const sut = metadata.find(m => m.xmlName === 'CustomObject')
         expect(sut?.adapter).toBe('decomposed')
         expect(sut?.decomposition).toBe('folderPerType')
+      })
+
+      it('Given SDR type with the default adapter, When converting, Then adapter is absent', () => {
+        // Arrange
+        const mockRegistry: MockRegistry = {
+          types: {
+            profile: {
+              id: 'profile',
+              name: 'Profile',
+              directoryName: 'profiles',
+              suffix: 'profile',
+              strategies: { adapter: 'default', transformer: 'profile' },
+            },
+          },
+        }
+        const adapter = new SDRMetadataAdapter(mockRegistry as never)
+
+        // Act
+        const metadata = adapter.toInternalMetadata()
+
+        // Assert
+        const sut = metadata.find(m => m.xmlName === 'Profile')
+        expect(sut).not.toHaveProperty('adapter')
       })
 
       it('Given SDR type without strategies, When converting, Then adapter and decomposition are absent', () => {
