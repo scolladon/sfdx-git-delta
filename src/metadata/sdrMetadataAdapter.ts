@@ -40,6 +40,8 @@ const EXCLUDED_PARENT_TYPES = new Set([
 ])
 // Stryker restore ArrayDeclaration,StringLiteral
 
+const DEFAULT_ADAPTER = 'default'
+
 interface RegistryCache {
   folderTypeIds: Set<string>
   metadata: Metadata[]
@@ -186,9 +188,7 @@ export class SDRMetadataAdapter {
           (child: unknown) => (child as SDRMetadataType).name
         ),
       }),
-      ...(sdrType.strategies?.adapter && {
-        adapter: sdrType.strategies.adapter,
-      }),
+      ...this.routingAdapterOf(sdrType),
       ...(sdrType.strategies?.decomposition && {
         decomposition: sdrType.strategies.decomposition,
       }),
@@ -224,6 +224,17 @@ export class SDRMetadataAdapter {
       ...(childType.uniqueIdElement && { key: childType.uniqueIdElement }),
       ...(isExcluded && { excluded: true }),
     }
+  }
+
+  // SDR names its plain single-file strategy 'default' and sets it on some
+  // types only to attach a transformer; it carries no layout, so it must not
+  // count as an adapter that takes the type out of in-file routing.
+  private routingAdapterOf(
+    sdrType: SDRMetadataType
+  ): Pick<Metadata, 'adapter'> {
+    const adapter = sdrType.strategies?.adapter
+    if (!adapter || adapter === DEFAULT_ADAPTER) return {}
+    return { adapter }
   }
 
   private hasMetaFile(sdrType: SDRMetadataType): boolean {
