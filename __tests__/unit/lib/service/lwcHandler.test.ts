@@ -129,29 +129,50 @@ describe('lwcHandler', () => {
           op.kind === CopyOperationKind.GitTypeDirCompanionCopy
       )
 
-    it.each(
+    type Bundle = [
+      type: string,
+      line: string,
+      bundleDir: string,
+      typeDir: string,
+    ]
+    type Row = [...Bundle, changeType: string]
+    const bundles: Bundle[] = [
       [
-        ['LightningComponentBundle', `${DEFAULT_ROOT}/lwc/cmp/cmp.js`],
-        ['AuraDefinitionBundle', `${DEFAULT_ROOT}/aura/cmp/cmp.cmp`],
-        ['GenAiFunction', `${DEFAULT_ROOT}/genAiFunctions/fn/input.json`],
-      ].flatMap(([type, path]) =>
-        [ADDITION, MODIFICATION].map(changeType => [type, path, changeType])
+        'LightningComponentBundle',
+        `${DEFAULT_ROOT}/lwc/cmp/cmp.js`,
+        `${DEFAULT_ROOT}/lwc/cmp`,
+        `${DEFAULT_ROOT}/lwc`,
+      ],
+      [
+        'AuraDefinitionBundle',
+        `${DEFAULT_ROOT}/aura/cmp/cmp.cmp`,
+        `${DEFAULT_ROOT}/aura/cmp`,
+        `${DEFAULT_ROOT}/aura`,
+      ],
+      [
+        'GenAiFunction',
+        `${DEFAULT_ROOT}/genAiFunctions/fn/input.json`,
+        `${DEFAULT_ROOT}/genAiFunctions/fn`,
+        `${DEFAULT_ROOT}/genAiFunctions`,
+      ],
+    ]
+    const rows: Row[] = bundles.flatMap(([type, line, bundleDir, typeDir]) =>
+      [ADDITION, MODIFICATION].map(
+        (changeType): Row => [type, line, bundleDir, typeDir, changeType]
       )
-    )(
-      'When a "%s" line is collected, Then it requests the bundle and its type-directory companions (%s, %s)',
-      async (type, path, changeType) => {
+    )
+
+    it.each(rows)(
+      'When a "%s" line %s is collected, Then it requests bundle %s and companions of %s (%s)',
+      async (type, line, bundleDir, typeDir, changeType) => {
         // Arrange
         config.to = TO
         const { changeType: ct, element: el } = createElement(
-          `${changeType}       ${path}`,
-          globalMetadata.getByXmlName(type!)!,
+          `${changeType}       ${line}`,
+          globalMetadata.getByXmlName(type)!,
           globalMetadata
         )
         const sut = new LwcHandler(ct, el, getContext({ config }))
-        const typeDir = path!.slice(
-          0,
-          path!.lastIndexOf('/', path!.lastIndexOf('/') - 1)
-        )
 
         // Act
         const result = await sut.collect()
@@ -160,7 +181,7 @@ describe('lwcHandler', () => {
         expect(companionRequests(result.copies)).toEqual([
           {
             kind: CopyOperationKind.GitComponentCopy,
-            path: path!.slice(0, path!.lastIndexOf('/')),
+            path: bundleDir,
             revision: TO,
           },
           {
