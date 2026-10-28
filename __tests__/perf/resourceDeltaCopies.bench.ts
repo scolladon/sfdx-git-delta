@@ -22,15 +22,19 @@ import {
 import { sourceDirs } from './harness/sourceDirs.ts'
 
 // Cost rows of the resource delta copies: one component with many changed
-// files (expanded once), and many components in one type directory (listed
-// once).
+// files (expanded once), many components in one type directory (listed
+// once), and one changed bundle among many sibling bundles (the per-sibling
+// bundle test of the type-directory companions).
 
 const FILES_2K = 2_000
 const FILES_10K = 10_000
 const COMPONENTS_2K = 2_000
 const COMPONENTS_4K = 4_000
+const SIBLINGS_2K = 2_000
+const SIBLINGS_4K = 4_000
 const TO = 'to-sha'
 const RESOURCES = 'force-app/main/default/staticresources'
+const LWC = 'force-app/main/default/lwc'
 
 // Seeded from the first ubuntu-latest CI run of these rows (perf-memory.json
 // means): a developer-machine mean under-measures CI, so the ceilings come
@@ -109,6 +113,20 @@ const manyComponents = (componentCount: number): Fixture => ({
   buildLines: () => linesOf(changedFiles(componentCount)),
 })
 
+const siblingFiles = (i: number): string[] => [
+  `${LWC}/x${i}/x${i}.js`,
+  `${LWC}/x${i}/x${i}.js-meta.xml`,
+]
+
+const lwcSiblings = (siblingCount: number): Fixture => ({
+  trees: readerOf([
+    `${LWC}/.eslintrc.json`,
+    `${LWC}/__mocks__/m.js`,
+    ...Array.from({ length: siblingCount }, (_, i) => siblingFiles(i)).flat(),
+  ]),
+  buildLines: () => linesOf([`${LWC}/x0/x0.js`]),
+})
+
 const runRow = <Name extends string>(
   name: Name,
   { trees, buildLines }: Fixture,
@@ -163,4 +181,14 @@ runRow(
   'resource-copies-4k-components',
   manyComponents(COMPONENTS_4K),
   linearFrom(components2k, COMPONENTS_4K / COMPONENTS_2K)
+)
+const siblings2k = runRow(
+  'lwc-companions-2k-siblings',
+  lwcSiblings(SIBLINGS_2K),
+  BASELINE_ONLY
+)
+runRow(
+  'lwc-companions-4k-siblings',
+  lwcSiblings(SIBLINGS_4K),
+  linearFrom(siblings2k, SIBLINGS_4K / SIBLINGS_2K)
 )
