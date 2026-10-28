@@ -1,6 +1,7 @@
 'use strict'
 import { beforeAll, describe, expect, it } from 'vitest'
 
+import type { ConfigInput } from '../../src/types/config'
 import type { FixtureOp } from '../__utils__/gitFixtureRepo'
 import { FIXTURE_HOOK_BUDGET_MS } from '../__utils__/gitFixtureRepo'
 import {
@@ -23,7 +24,7 @@ import {
 } from '../__utils__/pureMoveHarness'
 
 const PROJECT = file(PROJECT_FILE, projectJson(['force-app']))
-const { build, outcomeOf, copiedContentOf } =
+const { build, outcomeOf, copiedContentOf, ignoreOverrides } =
   usePureMoveHarness('resource-copies')
 
 const at = (path: string, content: string): FixtureFile =>
@@ -65,6 +66,8 @@ const LWC_COMPANIONS = [
   at('lwc/__mocks__/lightning/navigation.js', 'nav\n'),
 ] as const
 const LWC_ESLINT = LWC_COMPANIONS[0]
+const LWC_JSCONFIG = LWC_COMPANIONS[1]
+const FORCEIGNORE_LINT_PATTERNS = ['**/.eslintrc.json', '**/jsconfig.json']
 const CMP_JS = CMP.find(({ path }) => path.endsWith('.js'))!
 const CMP_HTML = CMP.find(({ path }) => path.endsWith('.html'))!
 const OTHER = lwcFiles(DEFAULT_ROOT, 'other')
@@ -146,6 +149,7 @@ type Case = {
   expected: Partial<Outcome>
   verifyBytes?: boolean
   generateDelta?: boolean
+  ignore?: readonly string[]
 }
 
 const [LIB_A, LIB_B, LIB_C, LIB_META] = LIB
@@ -242,6 +246,23 @@ const cases: readonly Case[] = [
     base: [PROJECT, ...CMP, ...LWC_COMPANIONS, ...OTHER],
     change: [edit(CMP_JS)],
     copiedAtTo: [...editedAtTo(CMP, [CMP_JS]), ...LWC_COMPANIONS],
+    expected: {
+      ...LWC_CMP_META,
+      changes: ['modify:LightningComponentBundle:cmp'],
+    },
+  },
+  {
+    title:
+      'an LWC bundle edited beside companions matched by --ignore-file patterns',
+    base: [PROJECT, ...CMP, ...LWC_COMPANIONS],
+    change: [edit(CMP_JS)],
+    ignore: FORCEIGNORE_LINT_PATTERNS,
+    copiedAtTo: [
+      ...editedAtTo(CMP, [CMP_JS]),
+      ...LWC_COMPANIONS.filter(
+        companion => companion !== LWC_ESLINT && companion !== LWC_JSCONFIG
+      ),
+    ],
     expected: {
       ...LWC_CMP_META,
       changes: ['modify:LightningComponentBundle:cmp'],
@@ -372,11 +393,15 @@ const cases: readonly Case[] = [
 ]
 
 describe.each(cases)('Given $title', testCase => {
-  const { base, change, copiedAtTo, expected, generateDelta } = testCase
+  const { base, change, copiedAtTo, expected, generateDelta, ignore } = testCase
   let refs: ScenarioRefs
-  const overrides = generateDelta === false ? { generateDelta } : {}
-  beforeAll(() => {
+  let overrides: Partial<ConfigInput> = {}
+  beforeAll(async () => {
     refs = build(testCase.title.slice(0, 40), base, change)
+    overrides = {
+      ...(generateDelta === false ? { generateDelta } : {}),
+      ...(await ignoreOverrides(ignore ? { ignore } : {})),
+    }
   }, FIXTURE_HOOK_BUDGET_MS)
 
   it('When sgd runs, Then the manifests and the copied list match', async () => {
