@@ -88,6 +88,9 @@
     "filelist": {
       "minimatch": "^10.1.2"
     },
+    "get-uri": {
+      "basic-ftp": "^6.2.3"
+    },
     "typed-rest-client": {
       "qs": "^6.15.3"
     }
