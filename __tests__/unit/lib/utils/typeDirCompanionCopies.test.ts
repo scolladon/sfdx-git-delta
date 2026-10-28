@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { TreeIndex } from '../../../../src/adapter/treeIndex'
 import { createTreeReader } from '../../../../src/adapter/treeReader'
+import { DOT } from '../../../../src/constant/fsConstants'
 import type {
   CopyOperation,
   GitTypeDirCompanionCopyOperation,
@@ -159,6 +160,46 @@ describe('expandTypeDirCompanionCopies', () => {
     })
   })
 
+  describe('Given a folder whose stem-matching meta name carries a trailing suffix', () => {
+    it('When expanded, Then it is a bundle as for SDR and nothing is copied', () => {
+      // Arrange
+      const path = `${LWC}/a/a.js-meta.xml.bak`
+
+      // Act
+      const result = expand([path])
+
+      // Assert
+      expect(result).toEqual([])
+    })
+  })
+
+  describe('Given a folder entry whose name is a long run of dots after the stem', () => {
+    it('When expanded, Then the bundle check stays linear and the folder is copied', () => {
+      // Arrange
+      const ADVERSARIAL_DOTS = 4000
+      const path = `${LWC}/a/a${DOT.repeat(ADVERSARIAL_DOTS)}`
+
+      // Act
+      const result = expand([path])
+
+      // Assert
+      expect(result).toEqual([gitCopy(path)])
+    })
+  })
+
+  describe('Given a folder entry whose meta suffix sits after a line break', () => {
+    it('When expanded, Then it is not a bundle as for SDR and the folder is copied', () => {
+      // Arrange
+      const path = `${LWC}/a/a.x\n-meta.xml`
+
+      // Act
+      const result = expand([path])
+
+      // Assert
+      expect(result).toEqual([gitCopy(path)])
+    })
+  })
+
   describe('Given an unindexed revision or a missing type directory', () => {
     it.each([
       ['an unindexed revision', [companionRequest(LWC, OTHER)]],
@@ -204,12 +245,20 @@ describe('expandTypeDirCompanionCopies', () => {
   })
 
   describe('Given requests differing by revision or by directory', () => {
-    it.each([
-      ['two revisions for one directory', [LWC, LWC], [TO, OTHER]],
-      ['two directories at one revision', [LWC, AURA], [TO, TO]],
+    it.each<[string, CopyOperation[], CopyOperation[]]>([
+      [
+        'two revisions for one directory',
+        [companionRequest(LWC, TO), companionRequest(LWC, OTHER)],
+        [gitCopy(`${LWC}/f`, TO), gitCopy(`${LWC}/f`, OTHER)],
+      ],
+      [
+        'two directories at one revision',
+        [companionRequest(LWC), companionRequest(AURA)],
+        [gitCopy(`${LWC}/f`), gitCopy(`${AURA}/g`)],
+      ],
     ])(
       'When expanded with %s, Then each request is expanded on its own',
-      (_title, dirs, revisions) => {
+      (_title, copies, expected) => {
         // Arrange
         const trees = createTreeReader(
           new Map([
@@ -217,15 +266,12 @@ describe('expandTypeDirCompanionCopies', () => {
             [OTHER, indexOf([`${LWC}/f`, `${AURA}/g`])],
           ])
         )
-        const copies = dirs.map((dir, i) =>
-          companionRequest(dir as string, revisions[i])
-        )
 
         // Act
         const result = expandTypeDirCompanionCopies(copies, trees)
 
         // Assert
-        expect(result).toHaveLength(2)
+        expect(result).toEqual(expected)
       }
     )
   })
