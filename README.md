@@ -441,7 +441,7 @@ Then it is possible to deploy the `change-sources` folder using `force:source:de
 sf project deploy start -p change-sources
 ```
 
-With `--generate-delta`, when a bundle of `lwc/`, `aura/` or `genAiFunctions/` is copied, every file and every non-bundle folder (e.g. `__mocks__/`) directly in that same folder is copied too, from `--to`, so tooling (ESLint, Jest, Code Analyzer) run on the output folder sees the same config. Unchanged sibling bundles are not copied, and nothing is added to `package.xml` or `destructiveChanges.xml`. `--ignore-file` patterns apply to these files like any copied file. To deploy the output, exclude non-deployable folders with a [`.forceignore`](https://developer.salesforce.com/docs/platform/sfdx/guide/ignore-files.html).
+With `--generate-delta`, when a bundle of `lwc/`, `aura/`, `genAiFunctions/` or `uiBundles/` is copied, every file and every non-bundle folder (e.g. `__mocks__/`) directly in that same folder is copied too, from `--to`, so tooling (ESLint, Jest, Code Analyzer) run on the output folder sees the same config. Unchanged sibling bundles are not copied, and nothing is added to `package.xml` or `destructiveChanges.xml`. `--ignore-file` patterns apply to these files like any copied file. To deploy the output, exclude non-deployable folders with a [`.forceignore`](https://developer.salesforce.com/docs/platform/sfdx/guide/ignore-files.html).
 
 ### Exclude some metadata only from destructiveChanges.xml
 

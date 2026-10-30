@@ -14,6 +14,7 @@ import InBundleHandler from '../../../../src/service/inBundleHandler'
 import InFileHandler from '../../../../src/service/inFileHandler'
 import InFolder from '../../../../src/service/inFolderHandler'
 import InResource from '../../../../src/service/inResourceHandler'
+import Lwc from '../../../../src/service/lwcHandler'
 import ReportingFolderHandler from '../../../../src/service/reportingFolderHandler'
 import SharedFolder from '../../../../src/service/sharedFolderHandler'
 import Standard from '../../../../src/service/standardHandler'
@@ -62,6 +63,19 @@ describe('the type handler factory', () => {
           `Z       force-app/main/default/${type}/folder/file`
         )
       ).toBeInstanceOf(handler)
+    })
+  })
+
+  describe('Given a file inside a UIBundle', () => {
+    it('When resolving its handler, Then it is handled as a component bundle', async () => {
+      // Arrange
+      const line = `Z       force-app/main/default/uiBundles/myApp/src/app.ts`
+
+      // Act
+      const sut = await typeHandlerFactory.getTypeHandler(line)
+
+      // Assert
+      expect(sut).toBeInstanceOf(Lwc)
     })
   })
 

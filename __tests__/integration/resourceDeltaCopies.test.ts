@@ -85,6 +85,20 @@ const GEN_AI_COMPANIONS = [
   at(`${GEN_AI}/README.md`, 'readme\n'),
   at(`${GEN_AI}/__x/z.json`, '{"z":1}\n'),
 ] as const
+const UI_BUNDLES = 'uiBundles'
+const UI_BUNDLE = [
+  at(`${UI_BUNDLES}/myApp/myApp.uibundle-meta.xml`, '<UIBundle/>\n'),
+  at(`${UI_BUNDLES}/myApp/ui-bundle.json`, '{"outputDir":"dist"}\n'),
+  at(`${UI_BUNDLES}/myApp/src/app.ts`, 'export const a = 1\n'),
+  at(`${UI_BUNDLES}/myApp/src/extra.ts`, 'export const b = 1\n'),
+] as const
+const [, , UI_BUNDLE_APP, UI_BUNDLE_EXTRA] = UI_BUNDLE
+const UI_BUNDLE_SIBLING = [
+  at(`${UI_BUNDLES}/sib/sib.uibundle-meta.xml`, '<UIBundle/>\n'),
+  at(`${UI_BUNDLES}/sib/src/app.ts`, 'export const s = 1\n'),
+] as const
+const UI_BUNDLE_COMPANION = at(`${UI_BUNDLES}/tsconfig.json`, '{"ts":1}\n')
+const UI_BUNDLE_META = { pkg: ['UIBundle:myApp'] }
 const SECOND_ROOT = 'feature-a'
 const SECOND_PROJECT = file(
   PROJECT_FILE,
@@ -291,6 +305,40 @@ const cases: readonly Case[] = [
     expected: {
       pkg: ['GenAiFunction:fn'],
       changes: ['modify:GenAiFunction:fn'],
+    },
+  },
+  {
+    title:
+      'a UIBundle source file edited beside a type-directory companion and a sibling bundle',
+    base: [PROJECT, ...UI_BUNDLE, UI_BUNDLE_COMPANION, ...UI_BUNDLE_SIBLING],
+    change: [edit(UI_BUNDLE_APP)],
+    copiedAtTo: [
+      ...editedAtTo(UI_BUNDLE, [UI_BUNDLE_APP]),
+      UI_BUNDLE_COMPANION,
+    ],
+    expected: {
+      ...UI_BUNDLE_META,
+      changes: ['modify:UIBundle:myApp'],
+    },
+  },
+  {
+    title: 'a UIBundle with one of its source files removed',
+    base: [PROJECT, ...UI_BUNDLE],
+    change: [remove(UI_BUNDLE_EXTRA.path)],
+    copiedAtTo: UI_BUNDLE.filter(f => f !== UI_BUNDLE_EXTRA),
+    expected: {
+      ...UI_BUNDLE_META,
+      changes: ['delete:UIBundle:myApp'],
+    },
+  },
+  {
+    title: 'a UIBundle removed entirely',
+    base: [PROJECT, ...UI_BUNDLE],
+    change: UI_BUNDLE.map(({ path }) => remove(path)),
+    copiedAtTo: [],
+    expected: {
+      destructive: ['UIBundle:myApp'],
+      changes: ['delete:UIBundle:myApp'],
     },
   },
   {
