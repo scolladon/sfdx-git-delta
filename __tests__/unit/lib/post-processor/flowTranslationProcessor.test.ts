@@ -193,6 +193,26 @@ describe('FlowTranslationProcessor', () => {
       expect(output).toContain(flowFullName)
     })
 
+    it('When the pruned in-file writer has already written, Then the Flow writer preserves its XML and adds packaged-flow translations', async () => {
+      const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
+      const result = await sut.transformAndCollect(changes)
+      const copy = result.copies[0]
+      if (copy.kind !== CopyOperationKind.StreamedContent) {
+        throw new Error('Expected StreamedContent')
+      }
+      mockedPathExists.mockResolvedValue(true as never)
+      mockedReadFile.mockResolvedValue(
+        `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customFieldTranslations><name>ChangedField__c</name></customFieldTranslations></Translations>`
+      )
+
+      // Act — this is called after the in-file handler wrote the same path.
+      const output = await drainWriter(copy.writer)
+
+      // Assert
+      expect(output).toContain('<name>ChangedField__c</name>')
+      expect(output).toContain(flowFullName)
+    })
+
     it('When _collectFlowTranslations succeeds, Then result carries no warnings (kills L208 ArrayDeclaration)', async () => {
       // Act
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))

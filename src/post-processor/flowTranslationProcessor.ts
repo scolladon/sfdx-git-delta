@@ -182,12 +182,14 @@ export default class FlowTranslationProcessor extends BaseProcessor {
         changeKind: ChangeKind.Modify,
       })
       if (this.config.generateDelta) {
-        const merge = await this._mergeTranslationWithOutput(translationPath)
-        this._mergeActualFlows(merge, this.translations.get(translationPath)!)
+        const actualFlowDefinitions = this.translations.get(translationPath)!
         copies.push({
           kind: CopyOperationKind.StreamedContent,
           path: translationPath,
           writer: async (out: Writable) => {
+            const merge =
+              await this._mergeTranslationWithOutput(translationPath)
+            this._mergeActualFlows(merge, actualFlowDefinitions)
             await writeXmlDocument(
               out,
               merge.rootCapture,

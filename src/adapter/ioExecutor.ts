@@ -34,6 +34,10 @@ const TMP_SUFFIX = '.tmp'
 
 export default class IOExecutor {
   protected readonly processedPaths: Set<string> = new Set()
+  protected readonly processedStreamWriters = new Map<
+    string,
+    Set<StreamedContentOperation['writer']>
+  >()
   protected ignoreHelper!: IgnoreHelper
 
   constructor(
@@ -54,16 +58,34 @@ export default class IOExecutor {
       expandTypeDirCompanionCopies(copies, trees),
       trees
     )
-    await eachLimit(fileCopies, getConcurrencyThreshold(), async op => {
-      await this._executeOperation(op)
-    })
+    const operationsByPath = new Map<string, FileCopyOperation[]>()
+    for (const op of fileCopies) {
+      const operations = operationsByPath.get(op.path) ?? []
+      operations.push(op)
+      operationsByPath.set(op.path, operations)
+    }
+    await eachLimit(
+      [...operationsByPath.values()],
+      getConcurrencyThreshold(),
+      async (operations: FileCopyOperation[]) => {
+        for (const op of operations) {
+          await this._executeOperation(op)
+        }
+      }
+    )
   }
 
   protected async _executeOperation(op: FileCopyOperation): Promise<void> {
-    if (this.processedPaths.has(op.path)) {
+    if (op.kind === CopyOperationKind.StreamedContent) {
+      const writers = this.processedStreamWriters.get(op.path) ?? new Set()
+      if (writers.has(op.writer)) return
+      writers.add(op.writer)
+      this.processedStreamWriters.set(op.path, writers)
+    } else if (this.processedPaths.has(op.path)) {
       return
+    } else {
+      this.processedPaths.add(op.path)
     }
-    this.processedPaths.add(op.path)
 
     if (this.ignoreHelper.globalIgnore.ignores(op.path)) {
       return
