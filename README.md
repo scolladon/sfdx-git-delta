@@ -445,6 +445,13 @@ With `--generate-delta`, when a bundle of `lwc/`, `aura/`, `genAiFunctions/` or 
 
 `--generate-delta` copies only files tracked in git at `--to`. Build output is usually not committed (e.g. a `UIBundle`'s `outputDir`, `dist/`), so build it in the output folder before deploying that folder, or build in the project and deploy with `--manifest <output>/package/package.xml`.
 
+> 💡 Start each run with an empty output folder. SGD writes the delta into `--output-dir` but never deletes what is already there, so files left by a previous run stay in the folder, and deploying the folder with `-p` deploys them too:
+>
+> ```sh
+> rm -rf changed-sources && mkdir changed-sources
+> sf sgd source delta --from "HEAD~1" --output-dir changed-sources/ --generate-delta
+> ```
+
 ### Exclude some metadata only from destructiveChanges.xml
 
 The `--ignore-file [-i]` parameter allows you to specify an [ignore file](https://git-scm.com/docs/gitignore) to filter the

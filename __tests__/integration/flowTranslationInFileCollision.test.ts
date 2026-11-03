@@ -60,6 +60,7 @@ const addFile = (path: string, content: string) =>
 let fixtureDir: string
 let from: string
 let to: string
+let flowOnly: string
 const tempDirs: string[] = []
 
 const trackedTempDir = async (prefix: string): Promise<string> => {
@@ -79,6 +80,9 @@ beforeAll(async () => {
     addFile(FLOW_PATH, flowXml('V2')),
     addFile(TRANSLATION_PATH, translationXml('After')),
   ])
+  flowOnly = makeCommit(fixtureDir, to, 'change the flow only', [
+    addFile(FLOW_PATH, flowXml('V3')),
+  ])
 }, FIXTURE_HOOK_BUDGET_MS)
 
 afterEach(async () => {
@@ -91,28 +95,47 @@ afterAll(async () => {
   )
 })
 
+const runSgd = (range: { from: string; to: string }, output: string) =>
+  sgd({
+    ...range,
+    mergeBase: false,
+    output,
+    source: ['force-app'],
+    repo: fixtureDir,
+    ignoreWhitespace: false,
+    generateDelta: true,
+    apiVersion: API_VERSION,
+  })
+
 describe('Given a commit changing a Flow and a label of a locale translation that also translates that Flow', () => {
   it('When generating the delta, Then the locale file keeps the changed label and gains the packaged Flow translation', async () => {
     // Arrange
     const output = await trackedTempDir('sgd-flow-translation-collision-out-')
 
     // Act
-    await sgd({
-      from,
-      to,
-      mergeBase: false,
-      output,
-      source: ['force-app'],
-      repo: fixtureDir,
-      ignoreWhitespace: false,
-      generateDelta: true,
-      apiVersion: API_VERSION,
-    })
+    await runSgd({ from, to }, output)
 
     // Assert
     const sut = await readFile(join(output, TRANSLATION_PATH), 'utf8')
     expect(sut).toContain(`<name>${CHANGED_LABEL}</name>`)
     expect(sut).toContain(`<fullName>${FLOW_NAME}</fullName>`)
     expect(sut).not.toContain(`<name>${UNCHANGED_LABEL}</name>`)
+  })
+})
+
+describe('Given an output directory that still holds the previous run', () => {
+  it('When the next range changes only the Flow, Then the locale file carries no entry left over from the previous run', async () => {
+    // Arrange
+    const output = await trackedTempDir('sgd-flow-translation-leftover-out-')
+    await runSgd({ from, to }, output)
+    await GitAdapter.closeAll()
+
+    // Act
+    await runSgd({ from: to, to: flowOnly }, output)
+
+    // Assert
+    const sut = await readFile(join(output, TRANSLATION_PATH), 'utf8')
+    expect(sut).toContain(`<fullName>${FLOW_NAME}</fullName>`)
+    expect(sut).not.toContain(`<name>${CHANGED_LABEL}</name>`)
   })
 })

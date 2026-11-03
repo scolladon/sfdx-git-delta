@@ -70,12 +70,13 @@ export type StreamedContentOperation = {
   writer: (out: Writable) => Promise<void>
 }
 
-// Rewrites a path after every other operation of the run has settled, so its
-// writer can build on what an earlier writer already put at that path.
+// Rewrites a path after every other operation of the run has settled. Its
+// writer receives what an earlier operation of the same run wrote at that
+// path, or undefined when none did.
 export type AugmentedContentOperation = {
   kind: CopyOperationKind.AugmentedContent
   path: string
-  writer: (out: Writable) => Promise<void>
+  writer: (out: Writable, written: string | undefined) => Promise<void>
 }
 
 export type CopyOperation =

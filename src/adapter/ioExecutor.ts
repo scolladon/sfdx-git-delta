@@ -20,7 +20,7 @@ import {
 import { eachLimit } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
-import { isSubDir, outputFile } from '../utils/fsUtils.js'
+import { isSubDir, outputFile, pathExists, readFile } from '../utils/fsUtils.js'
 import { buildIgnoreHelper, type IgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { expandTypeDirCompanionCopies } from '../utils/typeDirCompanionCopies.js'
@@ -94,7 +94,25 @@ export default class IOExecutor {
     if (this.ignoreHelper.globalIgnore.ignores(op.path)) {
       return
     }
-    await this._executeStreamedContent(op)
+    const writtenThisRun = this.processedPaths.has(op.path)
+    await this._executeStreamedContent({
+      path: op.path,
+      writer: async out =>
+        op.writer(
+          out,
+          writtenThisRun ? await this._readWritten(op.path) : undefined
+        ),
+    })
+  }
+
+  // Only this run's own output is handed over: a file another run left in
+  // the output directory must never leak into this delta.
+  protected async _readWritten(path: string): Promise<string | undefined> {
+    const dst = join(this.config.output, path)
+    if (!(await pathExists(dst))) {
+      return undefined
+    }
+    return await readFile(dst)
   }
 
   protected async _executeOperation(op: BaseCopyOperation): Promise<void> {
@@ -242,7 +260,7 @@ export default class IOExecutor {
   }
 
   protected async _executeStreamedContent(
-    op: StreamedContentOperation | AugmentedContentOperation
+    op: Pick<StreamedContentOperation, 'path' | 'writer'>
   ): Promise<void> {
     const dst = join(this.config.output, op.path)
     if (!this._isWithinOutput(dst)) {

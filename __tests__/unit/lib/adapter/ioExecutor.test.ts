@@ -12,7 +12,7 @@ import {
 } from '../../../../src/adapter/treeReader'
 import type { CopyOperation } from '../../../../src/types/handlerResult'
 import { CopyOperationKind } from '../../../../src/types/handlerResult'
-import { outputFile } from '../../../../src/utils/fsUtils'
+import { outputFile, pathExists, readFile } from '../../../../src/utils/fsUtils'
 import {
   buildIgnoreHelper,
   IgnoreHelper,
@@ -46,6 +46,8 @@ vi.mock('node:fs', async () => {
 vi.mock('../../../../src/utils/fsUtils', async orig => ({
   ...(await orig<typeof import('../../../../src/utils/fsUtils')>()),
   outputFile: vi.fn(),
+  pathExists: vi.fn(),
+  readFile: vi.fn(),
 }))
 
 vi.mock('../../../../src/utils/ignoreHelper')
@@ -1137,11 +1139,104 @@ describe('IOExecutor', () => {
       ])
 
       // Assert
-      expect(writer).toHaveBeenCalledWith(stream)
+      expect(writer).toHaveBeenCalledWith(stream, undefined)
       expect(mockRename).toHaveBeenCalledWith(
         `output/${augmentedPath}.tmp`,
         `output/${augmentedPath}`
       )
+    })
+
+    it('When a base writer of this run wrote its path, Then its writer receives what that base writer wrote', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      mockCreateWriteStream
+        .mockReturnValueOnce(createFakeWriteStream())
+        .mockReturnValueOnce(createFakeWriteStream())
+      vi.mocked(pathExists).mockResolvedValueOnce(true)
+      vi.mocked(readFile).mockResolvedValueOnce('<Translations><base/>')
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn(async () => undefined)
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: augmentedPath,
+          writer,
+        },
+        {
+          kind: CopyOperationKind.StreamedContent,
+          path: augmentedPath,
+          writer: async () => undefined,
+        },
+      ])
+
+      // Assert
+      expect(readFile).toHaveBeenCalledWith(`output/${augmentedPath}`)
+      expect(writer).toHaveBeenCalledWith(
+        expect.anything(),
+        '<Translations><base/>'
+      )
+    })
+
+    it('When a base op of this run claimed its path but left no file there, Then its writer receives no written content', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      mockCreateWriteStream
+        .mockReturnValueOnce(createFakeWriteStream())
+        .mockReturnValueOnce(createFakeWriteStream())
+      vi.mocked(pathExists).mockResolvedValueOnce(false)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn(async () => undefined)
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.StreamedContent,
+          path: augmentedPath,
+          writer: async () => undefined,
+        },
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: augmentedPath,
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(readFile).not.toHaveBeenCalled()
+      expect(writer).toHaveBeenCalledWith(expect.anything(), undefined)
+    })
+
+    it('When no op of this run wrote its path, Then a file left in the output directory is never read', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      mockCreateWriteStream.mockReturnValueOnce(createFakeWriteStream())
+      vi.mocked(pathExists).mockResolvedValue(true)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn(async () => undefined)
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: augmentedPath,
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(readFile).not.toHaveBeenCalled()
+      expect(writer).toHaveBeenCalledWith(expect.anything(), undefined)
     })
 
     it('When its path is ignored, Then the writer is never invoked', async () => {
