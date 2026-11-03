@@ -7,6 +7,7 @@ import { pipeline } from 'node:stream/promises'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 import type {
+  AugmentedContentOperation,
   CopyOperation,
   StreamedContentOperation,
 } from '../types/handlerResult.js'
@@ -32,12 +33,29 @@ import {
 
 const TMP_SUFFIX = '.tmp'
 
+type BaseCopyOperation = Exclude<FileCopyOperation, AugmentedContentOperation>
+
+type PartitionedCopies = {
+  bases: BaseCopyOperation[]
+  augments: AugmentedContentOperation[]
+}
+
+const partitionAugments = (
+  ops: readonly FileCopyOperation[]
+): PartitionedCopies => {
+  const partitioned: PartitionedCopies = { bases: [], augments: [] }
+  for (const op of ops) {
+    if (op.kind === CopyOperationKind.AugmentedContent) {
+      partitioned.augments.push(op)
+    } else {
+      partitioned.bases.push(op)
+    }
+  }
+  return partitioned
+}
+
 export default class IOExecutor {
   protected readonly processedPaths: Set<string> = new Set()
-  protected readonly processedStreamWriters = new Map<
-    string,
-    Set<StreamedContentOperation['writer']>
-  >()
   protected ignoreHelper!: IgnoreHelper
 
   constructor(
@@ -58,34 +76,32 @@ export default class IOExecutor {
       expandTypeDirCompanionCopies(copies, trees),
       trees
     )
-    const operationsByPath = new Map<string, FileCopyOperation[]>()
-    for (const op of fileCopies) {
-      const operations = operationsByPath.get(op.path) ?? []
-      operations.push(op)
-      operationsByPath.set(op.path, operations)
-    }
-    await eachLimit(
-      [...operationsByPath.values()],
-      getConcurrencyThreshold(),
-      async (operations: FileCopyOperation[]) => {
-        for (const op of operations) {
-          await this._executeOperation(op)
-        }
-      }
-    )
+    const { bases, augments } = partitionAugments(fileCopies)
+    await this._executeConcurrently(bases, op => this._executeOperation(op))
+    await this._executeConcurrently(augments, op => this._executeAugment(op))
   }
 
-  protected async _executeOperation(op: FileCopyOperation): Promise<void> {
-    if (op.kind === CopyOperationKind.StreamedContent) {
-      const writers = this.processedStreamWriters.get(op.path) ?? new Set()
-      if (writers.has(op.writer)) return
-      writers.add(op.writer)
-      this.processedStreamWriters.set(op.path, writers)
-    } else if (this.processedPaths.has(op.path)) {
+  protected async _executeConcurrently<T>(
+    ops: readonly T[],
+    execute: (op: T) => Promise<void>
+  ): Promise<void> {
+    await eachLimit(ops, getConcurrencyThreshold(), execute)
+  }
+
+  protected async _executeAugment(
+    op: AugmentedContentOperation
+  ): Promise<void> {
+    if (this.ignoreHelper.globalIgnore.ignores(op.path)) {
       return
-    } else {
-      this.processedPaths.add(op.path)
     }
+    await this._executeStreamedContent(op)
+  }
+
+  protected async _executeOperation(op: BaseCopyOperation): Promise<void> {
+    if (this.processedPaths.has(op.path)) {
+      return
+    }
+    this.processedPaths.add(op.path)
 
     if (this.ignoreHelper.globalIgnore.ignores(op.path)) {
       return
@@ -226,7 +242,7 @@ export default class IOExecutor {
   }
 
   protected async _executeStreamedContent(
-    op: StreamedContentOperation
+    op: StreamedContentOperation | AugmentedContentOperation
   ): Promise<void> {
     const dst = join(this.config.output, op.path)
     if (!this._isWithinOutput(dst)) {

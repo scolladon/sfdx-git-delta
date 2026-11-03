@@ -152,8 +152,8 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
-      if (copy.kind !== CopyOperationKind.StreamedContent) {
-        throw new Error('Expected StreamedContent')
+      if (copy.kind !== CopyOperationKind.AugmentedContent) {
+        throw new Error('Expected AugmentedContent')
       }
       const output = await drainWriter(copy.writer)
 
@@ -167,8 +167,8 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
-      if (copy.kind !== CopyOperationKind.StreamedContent) {
-        throw new Error('Expected StreamedContent')
+      if (copy.kind !== CopyOperationKind.AugmentedContent) {
+        throw new Error('Expected AugmentedContent')
       }
       const output = await drainWriter(copy.writer)
 
@@ -183,8 +183,8 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
-      if (copy.kind !== CopyOperationKind.StreamedContent) {
-        throw new Error('Expected StreamedContent')
+      if (copy.kind !== CopyOperationKind.AugmentedContent) {
+        throw new Error('Expected AugmentedContent')
       }
       const output = await drainWriter(copy.writer)
 
@@ -197,8 +197,8 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
-      if (copy.kind !== CopyOperationKind.StreamedContent) {
-        throw new Error('Expected StreamedContent')
+      if (copy.kind !== CopyOperationKind.AugmentedContent) {
+        throw new Error('Expected AugmentedContent')
       }
       mockedPathExists.mockResolvedValue(true as never)
       mockedReadFile.mockResolvedValue(
@@ -273,8 +273,8 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
-      if (copy.kind !== CopyOperationKind.StreamedContent) {
-        throw new Error('Expected StreamedContent')
+      if (copy.kind !== CopyOperationKind.AugmentedContent) {
+        throw new Error('Expected AugmentedContent')
       }
       const output = await drainWriter(copy.writer)
 
@@ -402,7 +402,7 @@ describe('FlowTranslationProcessor', () => {
       // Assert — kills ConditionalExpression false that skips emptyTranslationMerge() fallback
       expect(result.copies).toHaveLength(1)
       const copy = result.copies[0]
-      if (copy.kind === CopyOperationKind.StreamedContent) {
+      if (copy.kind === CopyOperationKind.AugmentedContent) {
         const output = await drainWriter(copy.writer)
         expect(output).toContain(flowFullName)
       }
@@ -438,8 +438,8 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
-      if (copy.kind !== CopyOperationKind.StreamedContent) {
-        throw new Error('Expected StreamedContent')
+      if (copy.kind !== CopyOperationKind.AugmentedContent) {
+        throw new Error('Expected AugmentedContent')
       }
       const output = await drainWriter(copy.writer)
 
@@ -632,7 +632,7 @@ describe('FlowTranslationProcessor', () => {
       // Assert
       expect(result.copies).toHaveLength(1)
       const copy = result.copies[0]
-      if (copy.kind === CopyOperationKind.StreamedContent) {
+      if (copy.kind === CopyOperationKind.AugmentedContent) {
         const output = await drainWriter(copy.writer)
         expect(output).toContain('second-flow')
         expect(output).not.toContain('first-flow')
@@ -777,7 +777,7 @@ describe('FlowTranslationProcessor', () => {
             expect(hasTranslationManifest(result)).toBe(true)
             expect(result.copies).toHaveLength(1)
             expect(result.copies[0].kind).toBe(
-              CopyOperationKind.StreamedContent
+              CopyOperationKind.AugmentedContent
             )
           })
         })
@@ -812,7 +812,7 @@ describe('FlowTranslationProcessor', () => {
             // Assert
             expect(result.copies).toHaveLength(1)
             const copy = result.copies[0]
-            if (copy.kind === CopyOperationKind.StreamedContent) {
+            if (copy.kind === CopyOperationKind.AugmentedContent) {
               const output = await drainWriter(copy.writer)
               expect(output).toContain('<name>CF__c</name>')
               expect(output).toContain('<label>Custom</label>')
@@ -849,7 +849,7 @@ describe('FlowTranslationProcessor', () => {
             const copy = result.copies[0]
 
             // Assert
-            if (copy.kind === CopyOperationKind.StreamedContent) {
+            if (copy.kind === CopyOperationKind.AugmentedContent) {
               const output = await drainWriter(copy.writer)
               // exactly one occurrence of the fullName
               const matches = output.match(
@@ -895,9 +895,9 @@ describe('FlowTranslationProcessor', () => {
             expect(mockedReadPathFromGit).toHaveBeenCalled()
             expect(result.copies).toHaveLength(1)
             const copy = result.copies[0]
-            expect(copy.kind).toBe(CopyOperationKind.StreamedContent)
+            expect(copy.kind).toBe(CopyOperationKind.AugmentedContent)
             expect(copy.path).toBe(translationPath)
-            if (copy.kind === CopyOperationKind.StreamedContent) {
+            if (copy.kind === CopyOperationKind.AugmentedContent) {
               const output = await drainWriter(copy.writer)
               expect(output).toContain('test-flow')
               expect(output).toContain('TestA')
@@ -935,9 +935,9 @@ describe('FlowTranslationProcessor', () => {
             expect(mockedReadPathFromGit).toHaveBeenCalled()
             expect(result.copies).toHaveLength(1)
             const copy = result.copies[0]
-            expect(copy.kind).toBe(CopyOperationKind.StreamedContent)
+            expect(copy.kind).toBe(CopyOperationKind.AugmentedContent)
             expect(copy.path).toBe(translationPath)
-            if (copy.kind === CopyOperationKind.StreamedContent) {
+            if (copy.kind === CopyOperationKind.AugmentedContent) {
               expect(await drainWriter(copy.writer)).toContain('test-flow')
             }
           })

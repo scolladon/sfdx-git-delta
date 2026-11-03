@@ -183,8 +183,10 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       })
       if (this.config.generateDelta) {
         const actualFlowDefinitions = this.translations.get(translationPath)!
+        // AugmentedContent runs after the in-file handler's writer for the
+        // same locale file, so the merge below reads that pruned output.
         copies.push({
-          kind: CopyOperationKind.StreamedContent,
+          kind: CopyOperationKind.AugmentedContent,
           path: translationPath,
           writer: async (out: Writable) => {
             const merge =

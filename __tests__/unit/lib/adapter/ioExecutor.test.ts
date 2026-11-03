@@ -1041,7 +1041,7 @@ describe('IOExecutor', () => {
       expect(mockCreateWriteStream).not.toHaveBeenCalled()
     })
 
-    it('When two distinct StreamedContent ops target the same path, Then both writers fire in order', async () => {
+    it('When two StreamedContent ops target the same path, Then only the first writer fires (per-path dedup via processedPaths)', async () => {
       // Arrange
       const work = getWork()
       work.config.output = 'output'
@@ -1050,21 +1050,17 @@ describe('IOExecutor', () => {
       const sut = new IOExecutor(
         getContext({ config: work.config, trees: treeReader })
       )
-      let firstWriterFinished = false
-      const orderedFirstWriter = vi.fn(async (out: Writable) => {
-        firstWriterFinished = true
+      const firstWriter = vi.fn(async (out: Writable) => {
         out.write('<first/>')
       })
-      const secondWriter = vi.fn(async () => {
-        expect(firstWriterFinished).toBe(true)
-      })
+      const secondWriter = vi.fn()
 
       // Act
       await sut.execute([
         {
           kind: CopyOperationKind.StreamedContent,
           path: 'labels/CustomLabels.labels',
-          writer: orderedFirstWriter,
+          writer: firstWriter,
         },
         {
           kind: CopyOperationKind.StreamedContent,
@@ -1074,8 +1070,129 @@ describe('IOExecutor', () => {
       ])
 
       // Assert
-      expect(orderedFirstWriter).toHaveBeenCalledOnce()
-      expect(secondWriter).toHaveBeenCalledOnce()
+      expect(firstWriter).toHaveBeenCalledTimes(1)
+      expect(secondWriter).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Given an AugmentedContent operation', () => {
+    const augmentedPath = 'translations/fr.translation-meta.xml'
+
+    it('When it is listed before the base writer of its path, Then it runs after that base writer', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      mockCreateWriteStream
+        .mockReturnValueOnce(createFakeWriteStream())
+        .mockReturnValueOnce(createFakeWriteStream())
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const calls: string[] = []
+      const augmentWriter = vi.fn(async () => {
+        calls.push('augment')
+      })
+      const baseWriter = vi.fn(async () => {
+        calls.push('base')
+      })
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: augmentedPath,
+          writer: augmentWriter,
+        },
+        {
+          kind: CopyOperationKind.StreamedContent,
+          path: augmentedPath,
+          writer: baseWriter,
+        },
+      ])
+
+      // Assert
+      expect(calls).toEqual(['base', 'augment'])
+    })
+
+    it('When no base writer targets its path, Then it writes via sibling tmp and renames', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      const stream = createFakeWriteStream()
+      mockCreateWriteStream.mockReturnValueOnce(stream)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn(async (out: Writable) => {
+        out.write('<Translations/>')
+      })
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: augmentedPath,
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(writer).toHaveBeenCalledWith(stream)
+      expect(mockRename).toHaveBeenCalledWith(
+        `output/${augmentedPath}.tmp`,
+        `output/${augmentedPath}`
+      )
+    })
+
+    it('When its path is ignored, Then the writer is never invoked', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      mockBuildIgnoreHelper.mockResolvedValue({
+        globalIgnore: {
+          ignores: () => true,
+        } as unknown as Ignore,
+      } as unknown as IgnoreHelper)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn()
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: augmentedPath,
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(writer).not.toHaveBeenCalled()
+      expect(mockCreateWriteStream).not.toHaveBeenCalled()
+    })
+
+    it('When its path escapes the output directory, Then the writer is never invoked', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn()
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: '../escape.translation-meta.xml',
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(writer).not.toHaveBeenCalled()
+      expect(mockCreateWriteStream).not.toHaveBeenCalled()
     })
   })
 

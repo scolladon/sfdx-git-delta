@@ -24,6 +24,7 @@ export enum CopyOperationKind {
   GitComponentCopy = 'gitComponentCopy',
   GitTypeDirCompanionCopy = 'gitTypeDirCompanionCopy',
   StreamedContent = 'streamedContent',
+  AugmentedContent = 'augmentedContent',
 }
 
 export type ManifestElement = {
@@ -69,12 +70,21 @@ export type StreamedContentOperation = {
   writer: (out: Writable) => Promise<void>
 }
 
+// Rewrites a path after every other operation of the run has settled, so its
+// writer can build on what an earlier writer already put at that path.
+export type AugmentedContentOperation = {
+  kind: CopyOperationKind.AugmentedContent
+  path: string
+  writer: (out: Writable) => Promise<void>
+}
+
 export type CopyOperation =
   | GitCopyOperation
   | GitDirCopyOperation
   | GitComponentCopyOperation
   | GitTypeDirCompanionCopyOperation
   | StreamedContentOperation
+  | AugmentedContentOperation
 
 // Handlers and collectors emit a HandlerResult describing only what they
 // themselves contributed: a flat, readonly sequence of manifest elements,
