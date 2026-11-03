@@ -17,6 +17,7 @@ const TREE_INDEX_XML_NAMES = new Set([
   REPORT_TYPE,
   'AuraDefinitionBundle',
   'LightningComponentBundle',
+  'UIBundle',
   'GenAiFunction',
   PERMISSIONSET_TYPE,
   'Territory2Model',

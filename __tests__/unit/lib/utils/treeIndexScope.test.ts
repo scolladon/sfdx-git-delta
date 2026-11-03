@@ -590,6 +590,13 @@ describe('computeTreeIndexScope', () => {
         expected: 'force-app/main/default/genAiFunctions',
       },
       {
+        xmlName: 'UIBundle',
+        directoryName: 'uiBundles',
+        adapter: 'uiBundles',
+        path: 'force-app/main/default/uiBundles/myApp/src/app.ts',
+        expected: 'force-app/main/default/uiBundles',
+      },
+      {
         xmlName: 'PermissionSet',
         directoryName: 'permissionsets',
         path: 'force-app/main/default/permissionsets/MyPS/MyPS.permissionset-meta.xml',

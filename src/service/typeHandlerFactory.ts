@@ -49,6 +49,7 @@ const handlerMap: Record<string, typeof Standard> = {
   Territory2: Decomposed,
   Territory2Model: CustomObject,
   Territory2Rule: Decomposed,
+  UIBundle: Lwc,
   VirtualBot: Bot,
   VirtualDiscovery: SharedFolder,
   VirtualModeration: SharedFolder,
