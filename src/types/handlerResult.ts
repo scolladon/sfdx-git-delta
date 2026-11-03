@@ -22,6 +22,7 @@ export enum CopyOperationKind {
   GitCopy = 'gitCopy',
   GitDirCopy = 'gitDirCopy',
   GitComponentCopy = 'gitComponentCopy',
+  GitTypeDirCompanionCopy = 'gitTypeDirCompanionCopy',
   StreamedContent = 'streamedContent',
 }
 
@@ -52,6 +53,16 @@ export type GitComponentCopyOperation = {
   revision: string
 }
 
+// Every file at revision directly in a bundle type directory, plus every file
+// under its subdirectories that are not bundles, resolved once per
+// (revision, directory) however many bundles asked.
+export type GitTypeDirCompanionCopyOperation = {
+  kind: CopyOperationKind.GitTypeDirCompanionCopy
+  // The type directory, e.g. force-app/main/default/lwc
+  path: string
+  revision: string
+}
+
 export type StreamedContentOperation = {
   kind: CopyOperationKind.StreamedContent
   path: string
@@ -62,6 +73,7 @@ export type CopyOperation =
   | GitCopyOperation
   | GitDirCopyOperation
   | GitComponentCopyOperation
+  | GitTypeDirCompanionCopyOperation
   | StreamedContentOperation
 
 // Handlers and collectors emit a HandlerResult describing only what they

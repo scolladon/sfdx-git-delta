@@ -5,12 +5,14 @@ import { DOT, PATH_SEP } from '../constant/fsConstants.js'
 import type {
   CopyOperation,
   GitComponentCopyOperation,
+  GitTypeDirCompanionCopyOperation,
 } from '../types/handlerResult.js'
 import { CopyOperationKind } from '../types/handlerResult.js'
+import type { WithoutCompanionRequests } from './typeDirCompanionCopies.js'
 
 export type FileCopyOperation = Exclude<
   CopyOperation,
-  GitComponentCopyOperation
+  GitComponentCopyOperation | GitTypeDirCompanionCopyOperation
 >
 
 type FilesByComponent = Map<string, string[]>
@@ -39,7 +41,9 @@ const addRequest = (
   filesByFirstOccurrence.set(index, files)
 }
 
-const collectRequests = (copies: readonly CopyOperation[]): Requests => {
+const collectRequests = (
+  copies: readonly WithoutCompanionRequests[]
+): Requests => {
   const requests: Requests = {
     byRevision: new Map(),
     filesByFirstOccurrence: new Map(),
@@ -105,7 +109,7 @@ const gitCopyOf = (path: string, revision: string): FileCopyOperation => ({
 })
 
 export const expandComponentCopies = (
-  copies: readonly CopyOperation[],
+  copies: readonly WithoutCompanionRequests[],
   trees: TreeReader
 ): FileCopyOperation[] => {
   const requests = collectRequests(copies)
