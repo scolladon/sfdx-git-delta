@@ -492,7 +492,10 @@ npm run sync:registry
 The sync runs on every pull request in the `quality` CI job, which fails if the
 script cannot run or if it leaves `internalRegistry.ts` modified. It also runs
 unattended when dependabot upgrades the SDR dependency, where it gates the
-`feat(metadata)` retitle and auto-merge.
+`feat(metadata)` retitle. `dependabot-auto-merge.yml` then builds the bumped
+commit with the pull-request build (quality and every platform leg, e2e
+included) and squash-merges only when that build is green; re-running a failed
+leg re-runs the merge too.
 
 ## The e2e fixture's API version is frozen
 

@@ -7,10 +7,19 @@ permissions:
   contents: write
   pull-requests: write
 
+# A dependabot rebase restarts the pipeline; the stale one must not merge.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
+  # 1. Bump: diff SDR's registry, sync the internal one, retitle, approve.
   dependabot:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
+    outputs:
+      registry_changed: ${{ steps.registry-check.outputs.registry_changed }}
+      head_sha: ${{ steps.push.outputs.head_sha }}
     steps:
       - name: Dependabot metadata
         id: metadata
@@ -149,6 +158,7 @@ jobs:
           npm run lint:fix
 
       - name: Commit and push if changed
+        id: push
         if: steps.registry-check.outputs.registry_changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
@@ -156,8 +166,9 @@ jobs:
           git add src/metadata/internalRegistry.ts
           git diff --staged --quiet || git commit -m "feat(metadata): sync internal registry with SDR update"
           git push
+          echo "head_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: Enable auto-merge for Dependabot PRs
+      - name: Retitle and approve
         if: steps.registry-check.outputs.registry_changed == 'true'
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
@@ -166,7 +177,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
           TITLE=$(cat /tmp/pr-title.txt)
-          gh pr edit "$PR_URL" --title "$TITLE"
+          # The merge job squashes with this title and body.
+          gh pr edit "$PR_URL" --title "$TITLE" --body-file /tmp/pr-body.md
           # Approve via REST endpoint — `gh pr review` resolves the reviewer
           # identity through GraphQL fields (login/name/slug) that require
           # `read:org` scope, which GITHUB_TOKEN cannot be granted.
@@ -175,4 +187,34 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             "/repos/${REPO}/pulls/${PR_NUMBER}/reviews" \
             -f event=APPROVE
-          gh pr merge --auto --squash --subject "$TITLE" --body-file /tmp/pr-body.md "$PR_URL"
+
+  # 2. Build the pushed commit with the pull-request build: quality plus every
+  # platform leg, e2e byte-equality included. Auto-merge alone would wait for
+  # the ruleset's only required check, build / quality, and merge with the
+  # platform legs red (#1530).
+  build:
+    needs: dependabot
+    if: needs.dependabot.outputs.registry_changed == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      ref: ${{ needs.dependabot.outputs.head_sha }}
+    secrets: inherit
+
+  # 3. Merge only that green commit. Re-running a failed build leg re-runs
+  # this job too.
+  merge:
+    needs: [dependabot, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Squash-merge
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          HEAD_SHA: ${{ needs.dependabot.outputs.head_sha }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          TITLE=$(gh pr view "$PR_URL" --json title --jq .title)
+          gh pr view "$PR_URL" --json body --jq .body > /tmp/pr-body.md
+          gh pr merge "$PR_URL" --auto --squash --match-head-commit "$HEAD_SHA" \
+            --subject "$TITLE" --body-file /tmp/pr-body.md
