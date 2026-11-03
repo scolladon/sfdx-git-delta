@@ -51,7 +51,7 @@
     "@oclif/core": "5.1.11",
     "@salesforce/core": "9.4.4",
     "@salesforce/sf-plugins-core": "13.0.8",
-    "@salesforce/source-deploy-retrieve": "13.10.0",
+    "@salesforce/source-deploy-retrieve": "13.10.1",
     "@scolladon/tsgit": "6.0.0",
     "ignore": "7.0.14",
     "txml": "6.0.3",
@@ -68,7 +68,7 @@
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
     "@types/node": "26.6.6",
-    "@vitest/coverage-v8": "5.0.5",
+    "@vitest/coverage-v8": "5.1.0",
     "husky": "9.1.7",
     "knip": "6.44.1",
     "lint-staged": "17.6.0",
@@ -78,7 +78,7 @@
     "shx": "0.4.0",
     "typescript": "7.0.2",
     "validate-branch-name": "1.3.2",
-    "vitest": "5.0.5",
+    "vitest": "5.1.0",
     "wireit": "0.15.0"
   },
   "overrides": {
