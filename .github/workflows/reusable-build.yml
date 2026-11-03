@@ -3,15 +3,16 @@ name: Build Checks
 on:
   workflow_call:
     inputs:
-      # Commit to build. Defaults to the caller event's commit, which for a
-      # pull request is its merge with the base branch.
-      # dependabot-auto-merge.yml passes the head commit it pushed instead;
+      # Commit to build. Leave unset: actions/checkout then behaves as it
+      # always has (the caller event's ref, e.g. a pull request's merge with
+      # the base branch, or the pushed branch on main).
+      # Only dependabot-auto-merge.yml sets it, to the head commit it pushed;
       # the ruleset only merges an up-to-date head, so that head holds what
       # the merge would.
       ref:
         type: string
         required: false
-        default: ${{ github.sha }}
+        default: ''
 
 jobs:
   # Platform-independent logic gates: run exactly once, on the reference
