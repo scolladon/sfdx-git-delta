@@ -3,8 +3,11 @@ name: Build Checks
 on:
   workflow_call:
     inputs:
-      # Commit to build. Empty keeps actions/checkout's default (the event's
-      # commit); dependabot-auto-merge.yml passes the commit it just pushed.
+      # Commit to build. Empty keeps actions/checkout's default: the event's
+      # ref, which for a pull request is its merge with the base branch.
+      # dependabot-auto-merge.yml passes the head commit it pushed instead;
+      # the ruleset only merges an up-to-date head, so that head holds what
+      # the merge would.
       ref:
         type: string
         required: false
