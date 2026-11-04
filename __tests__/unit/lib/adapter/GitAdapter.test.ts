@@ -312,60 +312,69 @@ describe('GitAdapter', () => {
     })
   })
 
-  describe('Given a repository path sanitizePath would alter', () => {
-    // sanitizePath treats a literal backslash as a path separator (see
-    // fsUtils#treatPathSep) — the same rule that collapses a win32 UNC
-    // root, observable here without leaving posix via a directory segment
-    // that happens to contain a backslash. Reads (openRepository's cwd,
-    // and the LFS object read below) must stay on the unsanitized,
-    // platform-form path — never the posix-only pool key.
-    const backslashRepo = String.raw`/repo\name`
+  // A backslash is a literal filename character only on posix; on win32 it is
+  // a separator, so repoPath and repoKey collapse to the same path and the
+  // pair below cannot be told apart. The UNC describe further down covers the
+  // win32 side; CI runs this bucket on linux only.
+  describe.skipIf(process.platform === 'win32')(
+    'Given a repository path sanitizePath would alter',
+    () => {
+      // sanitizePath treats a literal backslash as a path separator (see
+      // fsUtils#treatPathSep) — the same rule that collapses a win32 UNC
+      // root, observable here without leaving posix via a directory segment
+      // that happens to contain a backslash. Reads (openRepository's cwd,
+      // and the LFS object read below) must stay on the unsanitized,
+      // platform-form path — never the posix-only pool key.
+      const backslashRepo = String.raw`/repo\name`
 
-    it('When the repository path contains a character sanitizePath would treat as a separator, Then openRepository still receives the unsanitized platform-form path', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig({ repo: backslashRepo }))
-      stubCommit(fakeRepo, 'abc')
+      it('When the repository path contains a character sanitizePath would treat as a separator, Then openRepository still receives the unsanitized platform-form path', async () => {
+        // Arrange
+        const sut = GitAdapter.getInstance(makeConfig({ repo: backslashRepo }))
+        stubCommit(fakeRepo, 'abc')
 
-      // Act
-      await sut.resolveCommit('HEAD')
+        // Act
+        await sut.resolveCommit('HEAD')
 
-      // Assert
-      const [{ cwd }] = mockOpenRepository.mock.calls[0] as [{ cwd: string }]
-      expect(cwd).toBe(repoPath(backslashRepo))
-      expect(cwd).not.toBe(repoKey(backslashRepo))
-    })
-
-    it('When an LFS-backed blob is read from that repository, Then the object file is read from the unsanitized platform-form path', async () => {
-      // Arrange
-      const sut = GitAdapter.getInstance(makeConfig({ repo: backslashRepo }))
-      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
-      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
-      fakeRepo.primitives.flattenTree.mockResolvedValue(
-        flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
-      )
-      fakeRepo.primitives.readBlob.mockResolvedValue({
-        type: 'blob',
-        id: 'blob-1',
-        content: new Uint8Array(Buffer.from('pointer')),
+        // Assert
+        const [{ cwd }] = mockOpenRepository.mock.calls[0] as [{ cwd: string }]
+        expect(cwd).toBe(repoPath(backslashRepo))
+        expect(cwd).not.toBe(repoKey(backslashRepo))
       })
-      isLFSMocked.mockReturnValue(true)
-      getLFSObjectContentPathMocked.mockReturnValue(
-        '.git/lfs/objects/aa/bb/aabb'
-      )
-      readFileMocked.mockResolvedValue(Buffer.from('resolved-content') as never)
 
-      // Act
-      await sut.getBufferContent({ path: 'force-app/foo.cls', oid: 'HEAD' })
+      it('When an LFS-backed blob is read from that repository, Then the object file is read from the unsanitized platform-form path', async () => {
+        // Arrange
+        const sut = GitAdapter.getInstance(makeConfig({ repo: backslashRepo }))
+        fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
+        fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+        fakeRepo.primitives.flattenTree.mockResolvedValue(
+          flatten([['force-app/foo.cls', { mode: '100644', id: 'blob-1' }]])
+        )
+        fakeRepo.primitives.readBlob.mockResolvedValue({
+          type: 'blob',
+          id: 'blob-1',
+          content: new Uint8Array(Buffer.from('pointer')),
+        })
+        isLFSMocked.mockReturnValue(true)
+        getLFSObjectContentPathMocked.mockReturnValue(
+          '.git/lfs/objects/aa/bb/aabb'
+        )
+        readFileMocked.mockResolvedValue(
+          Buffer.from('resolved-content') as never
+        )
 
-      // Assert
-      expect(readFileMocked).toHaveBeenCalledWith(
-        join(repoPath(backslashRepo), '.git/lfs/objects/aa/bb/aabb')
-      )
-      expect(readFileMocked).not.toHaveBeenCalledWith(
-        join(repoKey(backslashRepo), '.git/lfs/objects/aa/bb/aabb')
-      )
-    })
-  })
+        // Act
+        await sut.getBufferContent({ path: 'force-app/foo.cls', oid: 'HEAD' })
+
+        // Assert
+        expect(readFileMocked).toHaveBeenCalledWith(
+          join(repoPath(backslashRepo), '.git/lfs/objects/aa/bb/aabb')
+        )
+        expect(readFileMocked).not.toHaveBeenCalledWith(
+          join(repoKey(backslashRepo), '.git/lfs/objects/aa/bb/aabb')
+        )
+      })
+    }
+  )
 
   // Why the key/repoPath split exists, in executable form. The behavioral
   // guard is the backslash-repo pair above: those drive GitAdapter itself
