@@ -60,6 +60,7 @@ const fieldTranslationPath = `${folderPath}/Foo__c.fieldTranslation-meta.xml`
 let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
+  mockedPathExists.mockReset()
   mockRun.mockResolvedValue({
     manifests: { added: [], modified: [], deleted: [] },
     hasPackageContent: true,
@@ -399,6 +400,7 @@ describe('ObjectTranslation', () => {
 
     it('Given flat-layout objectTranslation deletion, When collect, Then destructive member is the component name', async () => {
       // Arrange
+      mockedPathExists.mockResolvedValue(false)
       const { changeType, element } = createElement(
         flatLine.replace('A ', 'D '),
         objectType,

@@ -65,11 +65,11 @@ const deleteAll = (...paths: string[]) => paths.map(deleteFile)
 
 let fixtureDir: string
 let base: string
-let caseA: string
-let caseF: string
-let caseB: string
-let caseC: string
-let caseD: string
+let fieldAndTranslationDeleted: string
+let allFieldTranslationsDeleted: string
+let componentFolderDeleted: string
+let flatFileDeleted: string
+let parentFileDeleted: string
 const tempDirs: string[] = []
 
 const trackedTempDir = async (prefix: string): Promise<string> => {
@@ -94,23 +94,26 @@ beforeAll(async () => {
     addFile(FLAT_CONTACT_PATH, parentXml()),
     addFile(FLAT_LEAD_PATH, parentXml()),
   ])
-  caseA = commitOnBase(
+  fieldAndTranslationDeleted = commitOnBase(
     'delete a field translation and its field',
     deleteAll(FOO_TRANSLATION_PATH, FOO_FIELD_PATH)
   )
-  caseF = commitOnBase(
+  allFieldTranslationsDeleted = commitOnBase(
     'delete every field translation',
     deleteAll(FOO_TRANSLATION_PATH, BAR_TRANSLATION_PATH)
   )
-  caseB = commitOnBase(
+  componentFolderDeleted = commitOnBase(
     'delete the whole sub-folder',
     deleteAll(PARENT_PATH, FOO_TRANSLATION_PATH, BAR_TRANSLATION_PATH)
   )
-  caseC = commitOnBase(
+  flatFileDeleted = commitOnBase(
     'delete a flat translation',
     deleteAll(FLAT_CONTACT_PATH)
   )
-  caseD = commitOnBase('delete the parent file only', deleteAll(PARENT_PATH))
+  parentFileDeleted = commitOnBase(
+    'delete the parent file only',
+    deleteAll(PARENT_PATH)
+  )
 }, FIXTURE_HOOK_BUDGET_MS)
 
 afterEach(async () => {
@@ -150,7 +153,7 @@ describe('Given a sub-folder object translation whose field translation and fiel
     const output = await trackedTempDir('sgd-object-translation-a-')
 
     // Act
-    const sut = await runSgd(caseA, output)
+    const sut = await runSgd(fieldAndTranslationDeleted, output)
 
     // Assert
     expect(members(sut.changes.forPackageManifest(), COT)).toEqual([SUB_FOLDER])
@@ -163,15 +166,15 @@ describe('Given a sub-folder object translation whose field translation and fiel
     expect(sut.warnings).toEqual([])
   })
 
-  it('When generating case A without generateDelta, Then package.xml and destructiveChanges.xml equal the generateDelta run', async () => {
+  it('When generating the delta without generateDelta, Then package.xml and destructiveChanges.xml equal the generateDelta run', async () => {
     // Arrange
     const withDelta = await trackedTempDir('sgd-object-translation-a-delta-')
     const withoutDelta = await trackedTempDir('sgd-object-translation-a-plain-')
-    await runSgd(caseA, withDelta)
+    await runSgd(fieldAndTranslationDeleted, withDelta)
     await GitAdapter.closeAll()
 
     // Act
-    await runSgd(caseA, withoutDelta, false)
+    await runSgd(fieldAndTranslationDeleted, withoutDelta, false)
 
     // Assert
     expect(await readManifestXml(withoutDelta)).toEqual(
@@ -186,7 +189,7 @@ describe('Given a sub-folder object translation whose field translations are all
     const output = await trackedTempDir('sgd-object-translation-f-')
 
     // Act
-    const sut = await runSgd(caseF, output)
+    const sut = await runSgd(allFieldTranslationsDeleted, output)
 
     // Assert
     expect(members(sut.changes.forPackageManifest(), COT)).toEqual([SUB_FOLDER])
@@ -202,7 +205,7 @@ describe('Given a sub-folder object translation whose files are all deleted', ()
     const output = await trackedTempDir('sgd-object-translation-b-')
 
     // Act
-    const sut = await runSgd(caseB, output)
+    const sut = await runSgd(componentFolderDeleted, output)
 
     // Assert
     expect(members(sut.changes.forPackageManifest(), COT)).toEqual([])
@@ -219,7 +222,7 @@ describe('Given a flat object translation that is deleted', () => {
     const output = await trackedTempDir('sgd-object-translation-c-')
 
     // Act
-    const sut = await runSgd(caseC, output)
+    const sut = await runSgd(flatFileDeleted, output)
 
     // Assert
     expect(members(sut.changes.forPackageManifest(), COT)).toEqual([])
@@ -236,7 +239,7 @@ describe('Given a sub-folder object translation whose parent file only is delete
     const output = await trackedTempDir('sgd-object-translation-d-')
 
     // Act
-    const sut = await runSgd(caseD, output)
+    const sut = await runSgd(parentFileDeleted, output)
 
     // Assert
     expect(members(sut.changes.forPackageManifest(), COT)).toEqual([SUB_FOLDER])
