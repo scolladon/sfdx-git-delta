@@ -3,6 +3,7 @@ import { PATH_SEP } from '../constant/fsConstants.js'
 import {
   CONTENT_CONTAINER_ADAPTERS,
   DASHBOARD_TYPE,
+  OBJECT_TRANSLATION_TYPE,
   OBJECT_TYPE,
   PERMISSIONSET_TYPE,
   REPORT_TYPE,
@@ -22,6 +23,7 @@ const TREE_INDEX_XML_NAMES = new Set([
   PERMISSIONSET_TYPE,
   'Territory2Model',
   'ExternalServiceRegistration',
+  OBJECT_TRANSLATION_TYPE,
 ])
 
 const needsTreeIndex = (type: Metadata): boolean => {

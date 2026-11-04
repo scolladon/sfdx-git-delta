@@ -9,6 +9,8 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
+import { pathExists } from '../../../../src/utils/fsHelper'
+import { MetadataBoundaryResolver } from '../../../../src/utils/metadataBoundaryResolver'
 import type { DiffOutcome } from '../../../../src/utils/metadataDiff'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
@@ -28,6 +30,7 @@ vi.mock('../../../../src/utils/metadataDiff', () => {
 })
 
 vi.mock('../../../../src/utils/fsHelper')
+const mockedPathExists = vi.mocked(pathExists)
 
 const objectType = {
   directoryName: 'objectTranslations',
@@ -50,9 +53,14 @@ const flatLine =
 const flatObjectTranslationPath =
   'force-app/main/default/objectTranslations/Account-es.objectTranslation-meta.xml'
 
+const typeDirectory = 'force-app/main/default/objectTranslations'
+const folderPath = `${typeDirectory}/Account-es`
+const fieldTranslationPath = `${folderPath}/Foo__c.fieldTranslation-meta.xml`
+
 let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
+  mockedPathExists.mockReset()
   mockRun.mockResolvedValue({
     manifests: { added: [], modified: [], deleted: [] },
     hasPackageContent: true,
@@ -66,6 +74,14 @@ describe('ObjectTranslation', () => {
   beforeAll(async () => {
     globalMetadata = await getDefinition({})
   })
+
+  const resolveElement = (path: string) => {
+    const definition = globalMetadata.get(path)
+    if (!definition) throw new Error(`No metadata definition for ${path}`)
+    return new MetadataBoundaryResolver(
+      getContext({ config, metadata: globalMetadata })
+    ).createElement(path, definition, config.from)
+  }
 
   describe('collect', () => {
     it('Given objectTranslation addition, When collect, Then includes ComputedContent for pruned translation XML', async () => {
@@ -384,6 +400,7 @@ describe('ObjectTranslation', () => {
 
     it('Given flat-layout objectTranslation deletion, When collect, Then destructive member is the component name', async () => {
       // Arrange
+      mockedPathExists.mockResolvedValue(false)
       const { changeType, element } = createElement(
         flatLine.replace('A ', 'D '),
         objectType,
@@ -406,6 +423,88 @@ describe('ObjectTranslation', () => {
           member: 'Account-es',
         }),
       ])
+      expect(mockedPathExists).toHaveBeenCalledWith(
+        folderPath,
+        expect.anything()
+      )
+      expect(mockedPathExists).not.toHaveBeenCalledWith(
+        typeDirectory,
+        expect.anything()
+      )
+    })
+
+    it('Given sub-folder fieldTranslation deletion and the component folder exists at to, When collect, Then the component is packaged with its parent translation file', async () => {
+      // Arrange
+      const element = await resolveElement(fieldTranslationPath)
+      mockedPathExists.mockImplementation(async path => path === folderPath)
+      const sut = new ObjectTranslation('D', element, getContext({ config }))
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(elementsOf(result)).toEqual([
+        expect.objectContaining({
+          target: ManifestTarget.Package,
+          type: 'CustomObjectTranslation',
+          member: 'Account-es',
+        }),
+      ])
+      expect(mockedPathExists).toHaveBeenCalledWith(
+        folderPath,
+        expect.anything()
+      )
+      expect(
+        result.copies.some(
+          c =>
+            c.kind === CopyOperationKind.StreamedContent &&
+            c.path === parentObjectTranslationPath
+        )
+      ).toBe(true)
+      expect(result.warnings).toHaveLength(0)
+    })
+
+    it('Given sub-folder fieldTranslation deletion and the folder is gone at to, When collect, Then the component is destructive', async () => {
+      // Arrange
+      const element = await resolveElement(fieldTranslationPath)
+      mockedPathExists.mockResolvedValue(false)
+      const sut = new ObjectTranslation('D', element, getContext({ config }))
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(elementsOf(result)).toEqual([
+        expect.objectContaining({
+          target: ManifestTarget.DestructiveChanges,
+          type: 'CustomObjectTranslation',
+          member: 'Account-es',
+        }),
+      ])
+    })
+
+    it('Given sub-folder parent file deletion and the folder survives at to, When collect, Then the component is packaged and nothing warns', async () => {
+      // Arrange
+      const element = await resolveElement(parentObjectTranslationPath)
+      mockedPathExists.mockImplementation(async path => path === folderPath)
+      const sut = new ObjectTranslation('D', element, getContext({ config }))
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(mockedPathExists).toHaveBeenCalledWith(
+        folderPath,
+        expect.anything()
+      )
+      expect(elementsOf(result)).toEqual([
+        expect.objectContaining({
+          target: ManifestTarget.Package,
+          type: 'CustomObjectTranslation',
+          member: 'Account-es',
+        }),
+      ])
+      expect(result.warnings).toHaveLength(0)
     })
 
     it('Given fieldTranslation addition, When collect, Then includes both file copies and ComputedContent', async () => {
