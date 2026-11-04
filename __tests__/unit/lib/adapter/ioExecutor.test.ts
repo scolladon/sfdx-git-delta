@@ -1214,6 +1214,43 @@ describe('IOExecutor', () => {
       expect(writer).toHaveBeenCalledWith(expect.anything(), undefined)
     })
 
+    it('When a claimed base write fails but a stale destination exists, Then its writer receives no stale content', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      mockCreateWriteStream
+        .mockReturnValueOnce(createFakeWriteStream())
+        .mockReturnValueOnce(createFakeWriteStream())
+      vi.mocked(pathExists).mockResolvedValueOnce(true)
+      vi.mocked(readFile).mockResolvedValueOnce(
+        '<Translations><stale/></Translations>'
+      )
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn(async () => undefined)
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.StreamedContent,
+          path: augmentedPath,
+          writer: async () => {
+            throw new Error('base write failed')
+          },
+        },
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: augmentedPath,
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(readFile).not.toHaveBeenCalled()
+      expect(writer).toHaveBeenCalledWith(expect.anything(), undefined)
+    })
+
     it('When no op of this run wrote its path, Then a file left in the output directory is never read', async () => {
       // Arrange
       const work = getWork()

@@ -1,8 +1,17 @@
 'use strict'
-import { readFile, rm } from 'node:fs/promises'
-import { join } from 'node:path'
+import { promises as fsPromises } from 'node:fs'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 
 import GitAdapter from '../../src/adapter/GitAdapter'
 import sgd from '../../src/main'
@@ -137,5 +146,42 @@ describe('Given an output directory that still holds the previous run', () => {
     const sut = await readFile(join(output, TRANSLATION_PATH), 'utf8')
     expect(sut).toContain(`<fullName>${FLOW_NAME}</fullName>`)
     expect(sut).not.toContain(`<name>${CHANGED_LABEL}</name>`)
+  })
+
+  it('When the base translation rename fails, Then the augment does not merge the stale output file', async () => {
+    // Arrange — this is a real Git fixture and real output file; only the
+    // atomic rename is failed to deterministically reproduce the disk error.
+    const output = await trackedTempDir('sgd-flow-translation-failed-base-out-')
+    const destination = join(output, TRANSLATION_PATH)
+    const staleTranslation = translationXml('StaleFromPreviousRun')
+    await mkdir(dirname(destination), { recursive: true })
+    await writeFile(destination, staleTranslation)
+
+    const originalRename = fsPromises.rename
+    let failedBaseWrite = false
+    const renameSpy = vi
+      .spyOn(fsPromises, 'rename')
+      .mockImplementation(async (source, target) => {
+        const normalizedTarget = String(target).replaceAll('\\', '/')
+        const normalizedDestination = destination.replaceAll('\\', '/')
+        if (normalizedTarget === normalizedDestination && !failedBaseWrite) {
+          failedBaseWrite = true
+          throw new Error('injected base translation rename failure')
+        }
+        await originalRename(source, target)
+      })
+
+    try {
+      // Act
+      await runSgd({ from, to }, output)
+    } finally {
+      renameSpy.mockRestore()
+    }
+
+    // Assert
+    expect(failedBaseWrite).toBe(true)
+    const result = await readFile(destination, 'utf8')
+    expect(result).toContain(`<fullName>${FLOW_NAME}</fullName>`)
+    expect(result).not.toContain('StaleFromPreviousRun')
   })
 })
