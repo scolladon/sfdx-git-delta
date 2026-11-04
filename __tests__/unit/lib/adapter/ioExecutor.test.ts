@@ -12,7 +12,7 @@ import {
 } from '../../../../src/adapter/treeReader'
 import type { CopyOperation } from '../../../../src/types/handlerResult'
 import { CopyOperationKind } from '../../../../src/types/handlerResult'
-import { outputFile, pathExists, readFile } from '../../../../src/utils/fsUtils'
+import { outputFile, readFile } from '../../../../src/utils/fsUtils'
 import {
   buildIgnoreHelper,
   IgnoreHelper,
@@ -46,7 +46,6 @@ vi.mock('node:fs', async () => {
 vi.mock('../../../../src/utils/fsUtils', async orig => ({
   ...(await orig<typeof import('../../../../src/utils/fsUtils')>()),
   outputFile: vi.fn(),
-  pathExists: vi.fn(),
   readFile: vi.fn(),
 }))
 
@@ -1153,7 +1152,6 @@ describe('IOExecutor', () => {
       mockCreateWriteStream
         .mockReturnValueOnce(createFakeWriteStream())
         .mockReturnValueOnce(createFakeWriteStream())
-      vi.mocked(pathExists).mockResolvedValueOnce(true)
       vi.mocked(readFile).mockResolvedValueOnce('<Translations><base/>')
       const sut = new IOExecutor(
         getContext({ config: work.config, trees: treeReader })
@@ -1182,14 +1180,14 @@ describe('IOExecutor', () => {
       )
     })
 
-    it('When a base op of this run claimed its path but left no file there, Then its writer receives no written content', async () => {
+    it('When a git copy of this run wrote its path, Then its writer receives the copied content', async () => {
       // Arrange
       const work = getWork()
       work.config.output = 'output'
-      mockCreateWriteStream
-        .mockReturnValueOnce(createFakeWriteStream())
-        .mockReturnValueOnce(createFakeWriteStream())
-      vi.mocked(pathExists).mockResolvedValueOnce(false)
+      mockGetBufferContentOrEscalate.mockResolvedValue(
+        Buffer.from('<Translations><copied/>')
+      )
+      vi.mocked(readFile).mockResolvedValueOnce('<Translations><copied/>')
       const sut = new IOExecutor(
         getContext({ config: work.config, trees: treeReader })
       )
@@ -1198,20 +1196,23 @@ describe('IOExecutor', () => {
       // Act
       await sut.execute([
         {
-          kind: CopyOperationKind.StreamedContent,
-          path: augmentedPath,
-          writer: async () => undefined,
-        },
-        {
           kind: CopyOperationKind.AugmentedContent,
           path: augmentedPath,
           writer,
         },
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: augmentedPath,
+          revision: work.config.to,
+        },
       ])
 
       // Assert
-      expect(readFile).not.toHaveBeenCalled()
-      expect(writer).toHaveBeenCalledWith(expect.anything(), undefined)
+      expect(readFile).toHaveBeenCalledWith(`output/${augmentedPath}`)
+      expect(writer).toHaveBeenCalledWith(
+        expect.anything(),
+        '<Translations><copied/>'
+      )
     })
 
     it('When a claimed base write fails but a stale destination exists, Then its writer receives no stale content', async () => {
@@ -1221,7 +1222,6 @@ describe('IOExecutor', () => {
       mockCreateWriteStream
         .mockReturnValueOnce(createFakeWriteStream())
         .mockReturnValueOnce(createFakeWriteStream())
-      vi.mocked(pathExists).mockResolvedValueOnce(true)
       vi.mocked(readFile).mockResolvedValueOnce(
         '<Translations><stale/></Translations>'
       )
@@ -1256,7 +1256,6 @@ describe('IOExecutor', () => {
       const work = getWork()
       work.config.output = 'output'
       mockCreateWriteStream.mockReturnValueOnce(createFakeWriteStream())
-      vi.mocked(pathExists).mockResolvedValue(true)
       const sut = new IOExecutor(
         getContext({ config: work.config, trees: treeReader })
       )

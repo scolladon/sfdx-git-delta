@@ -20,7 +20,7 @@ import {
 import { eachLimit } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
 import { getErrorMessage } from '../utils/errorUtils.js'
-import { isSubDir, outputFile, pathExists, readFile } from '../utils/fsUtils.js'
+import { isSubDir, outputFile, readFile } from '../utils/fsUtils.js'
 import { buildIgnoreHelper, type IgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import { expandTypeDirCompanionCopies } from '../utils/typeDirCompanionCopies.js'
@@ -56,6 +56,9 @@ const partitionAugments = (
 
 export default class IOExecutor {
   protected readonly processedPaths: Set<string> = new Set()
+  // processedPaths records what an operation claimed; a claimed write can
+  // still fail. Only destinations whose write completed land here.
+  protected readonly writtenDestinations: Set<string> = new Set()
   protected ignoreHelper!: IgnoreHelper
 
   constructor(
@@ -94,25 +97,27 @@ export default class IOExecutor {
     if (this.ignoreHelper.globalIgnore.ignores(op.path)) {
       return
     }
-    const writtenThisRun = this.processedPaths.has(op.path)
+    const dst = join(this.config.output, op.path)
     await this._executeStreamedContent({
       path: op.path,
-      writer: async out =>
-        op.writer(
-          out,
-          writtenThisRun ? await this._readWritten(op.path) : undefined
-        ),
+      writer: async out => op.writer(out, await this._readWrittenThisRun(dst)),
     })
   }
 
-  // Only this run's own output is handed over: a file another run left in
-  // the output directory must never leak into this delta.
-  protected async _readWritten(path: string): Promise<string | undefined> {
-    const dst = join(this.config.output, path)
-    if (!(await pathExists(dst))) {
+  // Only this run's own completed output is handed over: a file another run
+  // left in the output directory must never leak into this delta.
+  protected async _readWrittenThisRun(
+    dst: string
+  ): Promise<string | undefined> {
+    if (!this.writtenDestinations.has(dst)) {
       return undefined
     }
     return await readFile(dst)
+  }
+
+  protected async _outputFile(dst: string, content: Buffer): Promise<void> {
+    await outputFile(dst, content)
+    this.writtenDestinations.add(dst)
   }
 
   protected async _executeOperation(op: BaseCopyOperation): Promise<void> {
@@ -160,7 +165,7 @@ export default class IOExecutor {
     }
     try {
       const content = await this.blobReader.getBufferContentOrEscalate(ref)
-      await outputFile(dst, content)
+      await this._outputFile(dst, content)
     } catch (error) {
       if (error instanceof EscalateToStreamingSignal) {
         await this._streamCopyWithAtomicRename(this.blobReader, ref, dst)
@@ -208,7 +213,7 @@ export default class IOExecutor {
           path: filePath,
           oid: op.revision,
         })
-        await outputFile(dst, content)
+        await this._outputFile(dst, content)
         this.processedPaths.add(filePath)
       }
     } catch (error) {
@@ -289,6 +294,7 @@ export default class IOExecutor {
         ws.end((err?: Error | null) => (err ? reject(err) : resolve()))
       })
       await fsPromises.rename(tmp, dst)
+      this.writtenDestinations.add(dst)
     } catch (error) {
       ws.destroy()
       /* v8 ignore next -- defensive cleanup: best-effort tmp removal swallows ENOENT and permission errors */
