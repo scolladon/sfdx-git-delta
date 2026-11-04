@@ -182,12 +182,18 @@ export default class FlowTranslationProcessor extends BaseProcessor {
         changeKind: ChangeKind.Modify,
       })
       if (this.config.generateDelta) {
-        const merge = await this._mergeTranslationWithOutput(translationPath)
-        this._mergeActualFlows(merge, this.translations.get(translationPath)!)
+        const actualFlowDefinitions = this.translations.get(translationPath)!
+        // AugmentedContent runs after the in-file handler's writer for the
+        // same locale file, so the merge below reads that pruned output.
         copies.push({
-          kind: CopyOperationKind.StreamedContent,
+          kind: CopyOperationKind.AugmentedContent,
           path: translationPath,
-          writer: async (out: Writable) => {
+          writer: async (out: Writable, written: string | undefined) => {
+            const merge = await this._mergeTranslationWithOutput(
+              translationPath,
+              written
+            )
+            this._mergeActualFlows(merge, actualFlowDefinitions)
             await writeXmlDocument(
               out,
               merge.rootCapture,
@@ -202,7 +208,8 @@ export default class FlowTranslationProcessor extends BaseProcessor {
   }
 
   /**
-   * Stream-parses the existing output translation file (if any), bucketing
+   * Stream-parses the translation this run already wrote at the path (or,
+   * when the output is the repository, the repository's own file), bucketing
    * each direct-child element into an ordered-children list keyed by
    * subType. The streaming builder drops each element from the in-progress
    * tree on close so peak memory is bounded by the current element rather
@@ -211,12 +218,10 @@ export default class FlowTranslationProcessor extends BaseProcessor {
    * per-path actual flows we collected from the to-revision translation.
    */
   protected async _mergeTranslationWithOutput(
-    translationPath: string
+    translationPath: string,
+    written: string | undefined
   ): Promise<TranslationMerge> {
-    const outputPath = join(this.config.output, translationPath)
-    // Stryker disable next-line ConditionalExpression -- equivalent: existence guard; flipping to false runs readFile on a missing file and the rejection bubbles into the catch above (caller treats empty-merge identically)
-    if (!(await pathExists(outputPath))) return emptyTranslationMerge()
-    const xml = await readFile(outputPath)
+    const xml = written ?? (await this._readTranslationInPlace(translationPath))
     // Stryker disable next-line ArrayDeclaration -- equivalent: orderedChildren is appended to inside the parse callback; an injected initial element is overwritten by the indexByKey/orderedChildren bookkeeping on the first parse callback
     const orderedChildren: Array<[string, unknown[]]> = []
     const indexByKey = new Map<string, number>()
@@ -242,6 +247,17 @@ export default class FlowTranslationProcessor extends BaseProcessor {
       orderedChildren.push([FLOW_DEFINITIONS_KEY, []])
     }
     return { rootCapture: capture, orderedChildren, flowsIndex, seenFullNames }
+  }
+
+  // When the delta is written into the repository itself, the locale file at
+  // the output path is the user's own file, never a leftover of another run.
+  protected async _readTranslationInPlace(
+    translationPath: string
+  ): Promise<string | undefined> {
+    if (!this.isOutputEqualsToRepo) return undefined
+    const outputPath = join(this.config.output, translationPath)
+    if (!(await pathExists(outputPath))) return undefined
+    return await readFile(outputPath)
   }
 
   /**

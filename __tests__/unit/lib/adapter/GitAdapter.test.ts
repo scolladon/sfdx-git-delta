@@ -313,13 +313,17 @@ describe('GitAdapter', () => {
   })
 
   describe('Given a repository path sanitizePath would alter', () => {
-    // sanitizePath treats a literal backslash as a path separator (see
-    // fsUtils#treatPathSep) — the same rule that collapses a win32 UNC
-    // root, observable here without leaving posix via a directory segment
-    // that happens to contain a backslash. Reads (openRepository's cwd,
-    // and the LFS object read below) must stay on the unsanitized,
-    // platform-form path — never the posix-only pool key.
-    const backslashRepo = String.raw`/repo\name`
+    // sanitizePath treats a backslash as a path separator (see
+    // fsUtils#treatPathSep). On posix a directory segment that happens to
+    // contain a literal backslash shows it; on win32 a backslash is already a
+    // separator, so the input it alters there is a UNC root, whose leading
+    // `\\` it collapses. Reads (openRepository's cwd, and the LFS object read
+    // below) must stay on the unsanitized, platform-form path — never the
+    // posix-only pool key.
+    const backslashRepo =
+      process.platform === 'win32'
+        ? String.raw`\\server\share\repo`
+        : String.raw`/repo\name`
 
     it('When the repository path contains a character sanitizePath would treat as a separator, Then openRepository still receives the unsanitized platform-form path', async () => {
       // Arrange

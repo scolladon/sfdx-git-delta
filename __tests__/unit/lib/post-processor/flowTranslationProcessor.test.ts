@@ -1,13 +1,21 @@
 'use strict'
 import { PassThrough } from 'node:stream'
 
+// What the executor hands the writer: the content an earlier operation of
+// the same run wrote at the path, or undefined when none did.
+let writtenOutput: string | undefined
+
 const drainWriter = async (
-  writer: (out: import('node:stream').Writable) => Promise<void>
+  writer: (
+    out: import('node:stream').Writable,
+    written: string | undefined
+  ) => Promise<void>,
+  written: string | undefined = writtenOutput
 ): Promise<string> => {
   const stream = new PassThrough()
   const chunks: Buffer[] = []
   stream.on('data', chunk => chunks.push(Buffer.from(chunk)))
-  await writer(stream)
+  await writer(stream, written)
   stream.end()
   return Buffer.concat(chunks).toString('utf8')
 }
@@ -35,6 +43,7 @@ import {
   readPathFromGit,
 } from '../../../../src/utils/fsHelper'
 import {
+  isSamePath,
   isSubDir,
   pathExists,
   readFile,
@@ -68,6 +77,7 @@ vi.mock('../../../../src/utils/fsUtils', async orig => {
 const mockedGrepContent = vi.mocked(grepContentMatching)
 const mockedReadPathFromGit = vi.mocked(readPathFromGit)
 const mockedIsSubDir = vi.mocked(isSubDir)
+const mockedIsSamePath = vi.mocked(isSamePath)
 const mockedPathExists = vi.mocked(pathExists)
 const mockedReadFile = vi.mocked(readFile)
 const mockTreatPathSep = vi.mocked(treatPathSep)
@@ -111,6 +121,11 @@ describe('FlowTranslationProcessor', () => {
     metadata = await getDefinition({})
   })
 
+  beforeEach(() => {
+    writtenOutput = undefined
+    mockedIsSamePath.mockReturnValue(false)
+  })
+
   describe('process', () => {
     it('Given flowTranslationProcessor, When process, Then completes without error', async () => {
       // Arrange
@@ -152,8 +167,8 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
-      if (copy.kind !== CopyOperationKind.StreamedContent) {
-        throw new Error('Expected StreamedContent')
+      if (copy.kind !== CopyOperationKind.AugmentedContent) {
+        throw new Error('Expected AugmentedContent')
       }
       const output = await drainWriter(copy.writer)
 
@@ -167,8 +182,8 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
-      if (copy.kind !== CopyOperationKind.StreamedContent) {
-        throw new Error('Expected StreamedContent')
+      if (copy.kind !== CopyOperationKind.AugmentedContent) {
+        throw new Error('Expected AugmentedContent')
       }
       const output = await drainWriter(copy.writer)
 
@@ -183,13 +198,30 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
-      if (copy.kind !== CopyOperationKind.StreamedContent) {
-        throw new Error('Expected StreamedContent')
+      if (copy.kind !== CopyOperationKind.AugmentedContent) {
+        throw new Error('Expected AugmentedContent')
       }
       const output = await drainWriter(copy.writer)
 
       // Assert — kills getTranslationName ArrowFunction → undefined
       expect(elementsOf(result)[0].member).toBe(FR)
+      expect(output).toContain(flowFullName)
+    })
+
+    it('When the pruned in-file writer has already written, Then the Flow writer preserves its XML and adds packaged-flow translations', async () => {
+      const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
+      const result = await sut.transformAndCollect(changes)
+      const copy = result.copies[0]
+      if (copy.kind !== CopyOperationKind.AugmentedContent) {
+        throw new Error('Expected AugmentedContent')
+      }
+      writtenOutput = `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customFieldTranslations><name>ChangedField__c</name></customFieldTranslations></Translations>`
+
+      // Act — this is called after the in-file handler wrote the same path.
+      const output = await drainWriter(copy.writer)
+
+      // Assert
+      expect(output).toContain('<name>ChangedField__c</name>')
       expect(output).toContain(flowFullName)
     })
 
@@ -200,6 +232,83 @@ describe('FlowTranslationProcessor', () => {
 
       // Assert
       expect(result.warnings).toEqual([])
+    })
+  })
+
+  describe('Given no operation of this run wrote the locale file', () => {
+    const leftoverXml = `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customLabels><label>Leftover</label><name>LeftoverLabel</name></customLabels></Translations>`
+
+    beforeEach(() => {
+      config = getConfig()
+      config.output = 'output'
+      config.repo = './'
+      mockIgnores.mockReturnValue(false)
+      mockedIsSubDir.mockReturnValue(false)
+      changes = addChange(
+        new ChangeSet(),
+        ChangeKind.Modify,
+        FLOW_XML_NAME,
+        flowFullName
+      )
+      mockedGrepContent.mockResolvedValue([
+        `${FR}.translation${METAFILE_SUFFIX}`,
+      ])
+      mockedReadPathFromGit.mockResolvedValue(
+        translationXml([{ fullName: flowFullName }])
+      )
+      mockedPathExists.mockResolvedValue(true as never)
+      mockedReadFile.mockResolvedValue(leftoverXml as never)
+    })
+
+    const drainedFlowWriter = async () => {
+      const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
+      const result = await sut.transformAndCollect(changes)
+      const copy = result.copies[0]
+      if (copy.kind !== CopyOperationKind.AugmentedContent) {
+        throw new Error('Expected AugmentedContent')
+      }
+      return await drainWriter(copy.writer, undefined)
+    }
+
+    it('When the output directory is not the repository, Then a file another run left there does not leak into the delta', async () => {
+      // Arrange
+      mockedIsSamePath.mockReturnValue(false)
+
+      // Act
+      const output = await drainedFlowWriter()
+
+      // Assert
+      expect(mockedReadFile).not.toHaveBeenCalled()
+      expect(output).not.toContain('LeftoverLabel')
+      expect(output).toContain(flowFullName)
+    })
+
+    it('When the output directory is the repository, Then the flow translations merge into the repository file', async () => {
+      // Arrange
+      mockedIsSamePath.mockReturnValue(true)
+
+      // Act
+      const output = await drainedFlowWriter()
+
+      // Assert
+      expect(mockedReadFile).toHaveBeenCalledWith(
+        `output/${FR}.translation${METAFILE_SUFFIX}`
+      )
+      expect(output).toContain('LeftoverLabel')
+      expect(output).toContain(flowFullName)
+    })
+
+    it('When the output directory is the repository but holds no such file, Then only the flow translations are written', async () => {
+      // Arrange
+      mockedIsSamePath.mockReturnValue(true)
+      mockedPathExists.mockResolvedValue(false as never)
+
+      // Act
+      const output = await drainedFlowWriter()
+
+      // Assert
+      expect(mockedReadFile).not.toHaveBeenCalled()
+      expect(output).toContain(flowFullName)
     })
   })
 
@@ -241,11 +350,8 @@ describe('FlowTranslationProcessor', () => {
       mockedReadPathFromGit.mockResolvedValue(
         translationXml([{ fullName: flowFullName }])
       )
-      mockedPathExists.mockResolvedValue(true as never)
       // Output XML has no flowDefinitions — only a sibling element
-      mockedReadFile.mockResolvedValue(
-        `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customFieldTranslations><name>CF__c</name></customFieldTranslations></Translations>`
-      )
+      writtenOutput = `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customFieldTranslations><name>CF__c</name></customFieldTranslations></Translations>`
     })
 
     it('Then new flow is appended and sibling is preserved', async () => {
@@ -253,8 +359,8 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
-      if (copy.kind !== CopyOperationKind.StreamedContent) {
-        throw new Error('Expected StreamedContent')
+      if (copy.kind !== CopyOperationKind.AugmentedContent) {
+        throw new Error('Expected AugmentedContent')
       }
       const output = await drainWriter(copy.writer)
 
@@ -369,9 +475,8 @@ describe('FlowTranslationProcessor', () => {
       mockedReadPathFromGit.mockResolvedValue(
         translationXml([{ fullName: flowFullName }])
       )
-      mockedPathExists.mockResolvedValue(true as never)
       // Invalid XML causes parseFromSideSwallowing to return null
-      mockedReadFile.mockResolvedValue('not valid xml at all ###')
+      writtenOutput = 'not valid xml at all ###'
     })
 
     it('When output XML is unparseable, Then falls back to empty merge and still produces copy', async () => {
@@ -382,7 +487,7 @@ describe('FlowTranslationProcessor', () => {
       // Assert — kills ConditionalExpression false that skips emptyTranslationMerge() fallback
       expect(result.copies).toHaveLength(1)
       const copy = result.copies[0]
-      if (copy.kind === CopyOperationKind.StreamedContent) {
+      if (copy.kind === CopyOperationKind.AugmentedContent) {
         const output = await drainWriter(copy.writer)
         expect(output).toContain(flowFullName)
       }
@@ -418,8 +523,8 @@ describe('FlowTranslationProcessor', () => {
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const result = await sut.transformAndCollect(changes)
       const copy = result.copies[0]
-      if (copy.kind !== CopyOperationKind.StreamedContent) {
-        throw new Error('Expected StreamedContent')
+      if (copy.kind !== CopyOperationKind.AugmentedContent) {
+        throw new Error('Expected AugmentedContent')
       }
       const output = await drainWriter(copy.writer)
 
@@ -454,14 +559,12 @@ describe('FlowTranslationProcessor', () => {
       config = getConfig()
       config.output = 'output'
       config.repo = './'
-      mockedPathExists.mockResolvedValue(true as never)
       // Output XML has no flowDefinitions
-      mockedReadFile.mockResolvedValue(
-        `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"></Translations>`
-      )
+      writtenOutput = `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"></Translations>`
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const merge = await sut['_mergeTranslationWithOutput'](
-        `${FR}.translation${METAFILE_SUFFIX}`
+        `${FR}.translation${METAFILE_SUFFIX}`,
+        writtenOutput
       )
 
       // The flowDefinitions bucket must be empty before _mergeActualFlows
@@ -479,7 +582,8 @@ describe('FlowTranslationProcessor', () => {
         getContext({ config, metadata })
       )
       return sut2['_mergeTranslationWithOutput'](
-        `${FR}.translation${METAFILE_SUFFIX}`
+        `${FR}.translation${METAFILE_SUFFIX}`,
+        writtenOutput
       ).then(m => {
         const bucket = m.orderedChildren[m.flowsIndex][1]
         expect(bucket).toHaveLength(0)
@@ -495,13 +599,11 @@ describe('FlowTranslationProcessor', () => {
       config = getConfig()
       config.output = 'output'
       config.repo = './'
-      mockedPathExists.mockResolvedValue(true as never)
-      mockedReadFile.mockResolvedValue(
-        `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>A</fullName></flowDefinitions><flowDefinitions><fullName>B</fullName></flowDefinitions></Translations>`
-      )
+      writtenOutput = `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>A</fullName></flowDefinitions><flowDefinitions><fullName>B</fullName></flowDefinitions></Translations>`
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const merge = await sut['_mergeTranslationWithOutput'](
-        `${FR}.translation${METAFILE_SUFFIX}`
+        `${FR}.translation${METAFILE_SUFFIX}`,
+        writtenOutput
       )
 
       // With real code: both flowDefinitions elements share the same bucket → 2 elements in 1 bucket
@@ -525,13 +627,11 @@ describe('FlowTranslationProcessor', () => {
       config = getConfig()
       config.output = 'output'
       config.repo = './'
-      mockedPathExists.mockResolvedValue(true as never)
-      mockedReadFile.mockResolvedValue(
-        `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customFieldTranslations><fullName>SomeField</fullName></customFieldTranslations><flowDefinitions><fullName>MyFlow</fullName></flowDefinitions></Translations>`
-      )
+      writtenOutput = `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customFieldTranslations><fullName>SomeField</fullName></customFieldTranslations><flowDefinitions><fullName>MyFlow</fullName></flowDefinitions></Translations>`
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const merge = await sut['_mergeTranslationWithOutput'](
-        `${FR}.translation${METAFILE_SUFFIX}`
+        `${FR}.translation${METAFILE_SUFFIX}`,
+        writtenOutput
       )
 
       // Real: seenFullNames only has 'MyFlow' (from flowDefinitions)
@@ -549,13 +649,11 @@ describe('FlowTranslationProcessor', () => {
       config = getConfig()
       config.output = 'output'
       config.repo = './'
-      mockedPathExists.mockResolvedValue(true as never)
-      mockedReadFile.mockResolvedValue(
-        `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>Existing</fullName></flowDefinitions></Translations>`
-      )
+      writtenOutput = `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>Existing</fullName></flowDefinitions></Translations>`
       const sut = new FlowTranslationProcessor(getContext({ config, metadata }))
       const merge = await sut['_mergeTranslationWithOutput'](
-        `${FR}.translation${METAFILE_SUFFIX}`
+        `${FR}.translation${METAFILE_SUFFIX}`,
+        writtenOutput
       )
 
       // Only one flowDefinitions bucket must exist
@@ -612,7 +710,7 @@ describe('FlowTranslationProcessor', () => {
       // Assert
       expect(result.copies).toHaveLength(1)
       const copy = result.copies[0]
-      if (copy.kind === CopyOperationKind.StreamedContent) {
+      if (copy.kind === CopyOperationKind.AugmentedContent) {
         const output = await drainWriter(copy.writer)
         expect(output).toContain('second-flow')
         expect(output).not.toContain('first-flow')
@@ -757,7 +855,7 @@ describe('FlowTranslationProcessor', () => {
             expect(hasTranslationManifest(result)).toBe(true)
             expect(result.copies).toHaveLength(1)
             expect(result.copies[0].kind).toBe(
-              CopyOperationKind.StreamedContent
+              CopyOperationKind.AugmentedContent
             )
           })
         })
@@ -780,10 +878,7 @@ describe('FlowTranslationProcessor', () => {
               FLOW_XML_NAME,
               flowFullName
             )
-            mockedPathExists.mockResolvedValue(true as never)
-            mockedReadFile.mockResolvedValue(
-              `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customFieldTranslations><name>CF__c</name><label>Custom</label></customFieldTranslations><flowDefinitions><fullName>TestA</fullName></flowDefinitions></Translations>`
-            )
+            writtenOutput = `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><customFieldTranslations><name>CF__c</name><label>Custom</label></customFieldTranslations><flowDefinitions><fullName>TestA</fullName></flowDefinitions></Translations>`
           })
           it('preserves the customFieldTranslations sibling AND merges new flowDefinitions', async () => {
             // Act
@@ -792,7 +887,7 @@ describe('FlowTranslationProcessor', () => {
             // Assert
             expect(result.copies).toHaveLength(1)
             const copy = result.copies[0]
-            if (copy.kind === CopyOperationKind.StreamedContent) {
+            if (copy.kind === CopyOperationKind.AugmentedContent) {
               const output = await drainWriter(copy.writer)
               expect(output).toContain('<name>CF__c</name>')
               expect(output).toContain('<label>Custom</label>')
@@ -816,12 +911,9 @@ describe('FlowTranslationProcessor', () => {
               FLOW_XML_NAME,
               flowFullName
             )
-            mockedPathExists.mockResolvedValue(true as never)
             // Output already has `<fullName>test-flow</fullName>` — the new
             // flow with the same fullName must NOT duplicate (output-wins).
-            mockedReadFile.mockResolvedValue(
-              `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>${flowFullName}</fullName><label>OldLabel</label></flowDefinitions></Translations>`
-            )
+            writtenOutput = `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>${flowFullName}</fullName><label>OldLabel</label></flowDefinitions></Translations>`
           })
           it('does not duplicate the flow and keeps the output-side content (output-wins-on-conflict)', async () => {
             // Act
@@ -829,7 +921,7 @@ describe('FlowTranslationProcessor', () => {
             const copy = result.copies[0]
 
             // Assert
-            if (copy.kind === CopyOperationKind.StreamedContent) {
+            if (copy.kind === CopyOperationKind.AugmentedContent) {
               const output = await drainWriter(copy.writer)
               // exactly one occurrence of the fullName
               const matches = output.match(
@@ -856,10 +948,7 @@ describe('FlowTranslationProcessor', () => {
               FLOW_XML_NAME,
               flowFullName
             )
-            mockedPathExists.mockResolvedValue(true as never)
-            mockedReadFile.mockResolvedValue(
-              `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>TestA</fullName></flowDefinitions><flowDefinitions><fullName>TestB</fullName></flowDefinitions></Translations>`
-            )
+            writtenOutput = `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"><flowDefinitions><fullName>TestA</fullName></flowDefinitions><flowDefinitions><fullName>TestB</fullName></flowDefinitions></Translations>`
           })
           it('the flowDefinitions translations should be added to the translation file', async () => {
             // Act
@@ -875,9 +964,9 @@ describe('FlowTranslationProcessor', () => {
             expect(mockedReadPathFromGit).toHaveBeenCalled()
             expect(result.copies).toHaveLength(1)
             const copy = result.copies[0]
-            expect(copy.kind).toBe(CopyOperationKind.StreamedContent)
+            expect(copy.kind).toBe(CopyOperationKind.AugmentedContent)
             expect(copy.path).toBe(translationPath)
-            if (copy.kind === CopyOperationKind.StreamedContent) {
+            if (copy.kind === CopyOperationKind.AugmentedContent) {
               const output = await drainWriter(copy.writer)
               expect(output).toContain('test-flow')
               expect(output).toContain('TestA')
@@ -896,10 +985,7 @@ describe('FlowTranslationProcessor', () => {
               FLOW_XML_NAME,
               flowFullName
             )
-            mockedPathExists.mockResolvedValue(true as never)
-            mockedReadFile.mockResolvedValue(
-              `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"></Translations>`
-            )
+            writtenOutput = `<?xml version="1.0" encoding="UTF-8"?><Translations xmlns="http://soap.sforce.com/2006/04/metadata"></Translations>`
           })
           it('the flowDefinitions translations should be added to the translation file', async () => {
             // Act
@@ -915,9 +1001,9 @@ describe('FlowTranslationProcessor', () => {
             expect(mockedReadPathFromGit).toHaveBeenCalled()
             expect(result.copies).toHaveLength(1)
             const copy = result.copies[0]
-            expect(copy.kind).toBe(CopyOperationKind.StreamedContent)
+            expect(copy.kind).toBe(CopyOperationKind.AugmentedContent)
             expect(copy.path).toBe(translationPath)
-            if (copy.kind === CopyOperationKind.StreamedContent) {
+            if (copy.kind === CopyOperationKind.AugmentedContent) {
               expect(await drainWriter(copy.writer)).toContain('test-flow')
             }
           })

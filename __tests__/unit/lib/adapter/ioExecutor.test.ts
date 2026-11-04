@@ -12,7 +12,7 @@ import {
 } from '../../../../src/adapter/treeReader'
 import type { CopyOperation } from '../../../../src/types/handlerResult'
 import { CopyOperationKind } from '../../../../src/types/handlerResult'
-import { outputFile } from '../../../../src/utils/fsUtils'
+import { outputFile, readFile } from '../../../../src/utils/fsUtils'
 import {
   buildIgnoreHelper,
   IgnoreHelper,
@@ -46,6 +46,7 @@ vi.mock('node:fs', async () => {
 vi.mock('../../../../src/utils/fsUtils', async orig => ({
   ...(await orig<typeof import('../../../../src/utils/fsUtils')>()),
   outputFile: vi.fn(),
+  readFile: vi.fn(),
 }))
 
 vi.mock('../../../../src/utils/ignoreHelper')
@@ -1072,6 +1073,257 @@ describe('IOExecutor', () => {
       // Assert
       expect(firstWriter).toHaveBeenCalledTimes(1)
       expect(secondWriter).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Given an AugmentedContent operation', () => {
+    const augmentedPath = 'translations/fr.translation-meta.xml'
+
+    it('When it is listed before the base writer of its path, Then it runs after that base writer', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      mockCreateWriteStream
+        .mockReturnValueOnce(createFakeWriteStream())
+        .mockReturnValueOnce(createFakeWriteStream())
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const calls: string[] = []
+      const augmentWriter = vi.fn(async () => {
+        calls.push('augment')
+      })
+      const baseWriter = vi.fn(async () => {
+        calls.push('base')
+      })
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: augmentedPath,
+          writer: augmentWriter,
+        },
+        {
+          kind: CopyOperationKind.StreamedContent,
+          path: augmentedPath,
+          writer: baseWriter,
+        },
+      ])
+
+      // Assert
+      expect(calls).toEqual(['base', 'augment'])
+    })
+
+    it('When no base writer targets its path, Then it writes via sibling tmp and renames', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      const stream = createFakeWriteStream()
+      mockCreateWriteStream.mockReturnValueOnce(stream)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn(async (out: Writable) => {
+        out.write('<Translations/>')
+      })
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: augmentedPath,
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(writer).toHaveBeenCalledWith(stream, undefined)
+      expect(mockRename).toHaveBeenCalledWith(
+        `output/${augmentedPath}.tmp`,
+        `output/${augmentedPath}`
+      )
+    })
+
+    it('When a base writer of this run wrote its path, Then its writer receives what that base writer wrote', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      mockCreateWriteStream
+        .mockReturnValueOnce(createFakeWriteStream())
+        .mockReturnValueOnce(createFakeWriteStream())
+      vi.mocked(readFile).mockResolvedValueOnce('<Translations><base/>')
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn(async () => undefined)
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: augmentedPath,
+          writer,
+        },
+        {
+          kind: CopyOperationKind.StreamedContent,
+          path: augmentedPath,
+          writer: async () => undefined,
+        },
+      ])
+
+      // Assert
+      expect(readFile).toHaveBeenCalledWith(`output/${augmentedPath}`)
+      expect(writer).toHaveBeenCalledWith(
+        expect.anything(),
+        '<Translations><base/>'
+      )
+    })
+
+    it('When a git copy of this run wrote its path, Then its writer receives the copied content', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      mockGetBufferContentOrEscalate.mockResolvedValue(
+        Buffer.from('<Translations><copied/>')
+      )
+      vi.mocked(readFile).mockResolvedValueOnce('<Translations><copied/>')
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn(async () => undefined)
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: augmentedPath,
+          writer,
+        },
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: augmentedPath,
+          revision: work.config.to,
+        },
+      ])
+
+      // Assert
+      expect(readFile).toHaveBeenCalledWith(`output/${augmentedPath}`)
+      expect(writer).toHaveBeenCalledWith(
+        expect.anything(),
+        '<Translations><copied/>'
+      )
+    })
+
+    it('When a claimed base write fails but a stale destination exists, Then its writer receives no stale content', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      mockCreateWriteStream
+        .mockReturnValueOnce(createFakeWriteStream())
+        .mockReturnValueOnce(createFakeWriteStream())
+      vi.mocked(readFile).mockResolvedValueOnce(
+        '<Translations><stale/></Translations>'
+      )
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn(async () => undefined)
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.StreamedContent,
+          path: augmentedPath,
+          writer: async () => {
+            throw new Error('base write failed')
+          },
+        },
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: augmentedPath,
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(readFile).not.toHaveBeenCalled()
+      expect(writer).toHaveBeenCalledWith(expect.anything(), undefined)
+    })
+
+    it('When no op of this run wrote its path, Then a file left in the output directory is never read', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      mockCreateWriteStream.mockReturnValueOnce(createFakeWriteStream())
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn(async () => undefined)
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: augmentedPath,
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(readFile).not.toHaveBeenCalled()
+      expect(writer).toHaveBeenCalledWith(expect.anything(), undefined)
+    })
+
+    it('When its path is ignored, Then the writer is never invoked', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      mockBuildIgnoreHelper.mockResolvedValue({
+        globalIgnore: {
+          ignores: () => true,
+        } as unknown as Ignore,
+      } as unknown as IgnoreHelper)
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn()
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: augmentedPath,
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(writer).not.toHaveBeenCalled()
+      expect(mockCreateWriteStream).not.toHaveBeenCalled()
+    })
+
+    it('When its path escapes the output directory, Then the writer is never invoked', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.output = 'output'
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+      const writer = vi.fn()
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: '../escape.translation-meta.xml',
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(writer).not.toHaveBeenCalled()
+      expect(mockCreateWriteStream).not.toHaveBeenCalled()
     })
   })
 
