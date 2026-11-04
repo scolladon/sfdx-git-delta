@@ -52,6 +52,13 @@ export default class ObjectTranslationHandler extends ResourceHandler {
     return `${parse(this.element.basePath).dir}${PATH_SEP}${this._getElementName()}.${OBJECT_TRANSLATION_META_XML_SUFFIX}`
   }
 
+  // Sub-folder: the component folder; flat: <typeDir>/<name>, never a real path,
+  // so a flat deletion stays destructive. componentPath is not usable: the
+  // resolver anchors a fieldTranslation on the file itself.
+  protected override _getMetadataName(): string {
+    return `${this.element.typeDirectoryPath}${PATH_SEP}${this._getElementName()}`
+  }
+
   protected override _delegateFileCopy() {
     return !this.element.fullPath.endsWith(OBJECT_TRANSLATION_META_XML_SUFFIX)
   }
