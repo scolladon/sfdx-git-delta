@@ -185,6 +185,33 @@ describe('computeTreeIndexScope', () => {
     })
   })
 
+  describe('Given CustomObjectTranslation diff lines', () => {
+    it.each([
+      [
+        'a sub-folder field translation deletion',
+        'D\tforce-app/main/default/objectTranslations/Account-de/Foo__c.fieldTranslation-meta.xml',
+      ],
+      [
+        'a sub-folder object translation deletion',
+        'D\tforce-app/main/default/objectTranslations/Account-de/Account-de.objectTranslation-meta.xml',
+      ],
+      [
+        'a flat object translation deletion',
+        'D\tforce-app/main/default/objectTranslations/Account-de.objectTranslation-meta.xml',
+      ],
+    ])('When computed with %s, Then returns type directory', (_name, line) => {
+      // Arrange
+      const lines = [line]
+
+      // Act
+      const sut = computeTreeIndexScope(lines, metadata)
+
+      // Assert
+      expect(sut.has('force-app/main/default/objectTranslations')).toBe(true)
+      expect(sut.size).toBe(1)
+    })
+  })
+
   describe('Given multiple diff lines', () => {
     it('When computed, Then deduplicates type directories', () => {
       // Arrange
