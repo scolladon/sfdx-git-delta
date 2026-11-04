@@ -150,7 +150,7 @@ const outputHas = (output: string, path: string): boolean =>
 describe('Given a sub-folder object translation whose field translation and field are deleted', () => {
   it('When generating the delta, Then the translation is packaged, the field is destructive and the parent file is copied', async () => {
     // Arrange
-    const output = await trackedTempDir('sgd-object-translation-a-')
+    const output = await trackedTempDir('sgd-object-translation-field-deleted-')
 
     // Act
     const sut = await runSgd(fieldAndTranslationDeleted, output)
@@ -168,8 +168,12 @@ describe('Given a sub-folder object translation whose field translation and fiel
 
   it('When generating the delta without generateDelta, Then package.xml and destructiveChanges.xml equal the generateDelta run', async () => {
     // Arrange
-    const withDelta = await trackedTempDir('sgd-object-translation-a-delta-')
-    const withoutDelta = await trackedTempDir('sgd-object-translation-a-plain-')
+    const withDelta = await trackedTempDir(
+      'sgd-object-translation-field-deleted-with-delta-'
+    )
+    const withoutDelta = await trackedTempDir(
+      'sgd-object-translation-field-deleted-without-delta-'
+    )
     await runSgd(fieldAndTranslationDeleted, withDelta)
     await GitAdapter.closeAll()
 
@@ -186,7 +190,9 @@ describe('Given a sub-folder object translation whose field translation and fiel
 describe('Given a sub-folder object translation whose field translations are all deleted', () => {
   it('When generating the delta, Then the translation is packaged and the parent file is copied', async () => {
     // Arrange
-    const output = await trackedTempDir('sgd-object-translation-f-')
+    const output = await trackedTempDir(
+      'sgd-object-translation-all-fields-deleted-'
+    )
 
     // Act
     const sut = await runSgd(allFieldTranslationsDeleted, output)
@@ -202,7 +208,9 @@ describe('Given a sub-folder object translation whose field translations are all
 describe('Given a sub-folder object translation whose files are all deleted', () => {
   it('When generating the delta, Then the translation is destructive', async () => {
     // Arrange
-    const output = await trackedTempDir('sgd-object-translation-b-')
+    const output = await trackedTempDir(
+      'sgd-object-translation-folder-deleted-'
+    )
 
     // Act
     const sut = await runSgd(componentFolderDeleted, output)
@@ -219,7 +227,7 @@ describe('Given a sub-folder object translation whose files are all deleted', ()
 describe('Given a flat object translation that is deleted', () => {
   it('When generating the delta, Then the translation is destructive', async () => {
     // Arrange
-    const output = await trackedTempDir('sgd-object-translation-c-')
+    const output = await trackedTempDir('sgd-object-translation-flat-deleted-')
 
     // Act
     const sut = await runSgd(flatFileDeleted, output)
@@ -236,7 +244,9 @@ describe('Given a flat object translation that is deleted', () => {
 describe('Given a sub-folder object translation whose parent file only is deleted', () => {
   it('When generating the delta, Then the translation is packaged without the deleted parent file', async () => {
     // Arrange
-    const output = await trackedTempDir('sgd-object-translation-d-')
+    const output = await trackedTempDir(
+      'sgd-object-translation-parent-deleted-'
+    )
 
     // Act
     const sut = await runSgd(parentFileDeleted, output)
