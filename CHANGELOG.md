@@ -4,6 +4,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.7.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.6.0...v7.7.0) (2026-11-04)
+
+
+### Features
+
+* copy lwc, aura and genAiFunctions type-directory companions with --generate-delta ([#1521](https://github.com/scolladon/sfdx-git-delta/issues/1521)) ([c2d01e2](https://github.com/scolladon/sfdx-git-delta/commit/c2d01e2ba8ab0c530b0f1f6fe23c6eb6f7ba8525))
+* **metadata:** refresh SDR registry to 13.8.3 ([dc38869](https://github.com/scolladon/sfdx-git-delta/commit/dc3886968428958e0f3dfba1ddb4c7769806d52c))
+
+
+### Bug Fixes
+
+* include changes to files inside a UIBundle in the delta ([#1527](https://github.com/scolladon/sfdx-git-delta/issues/1527)) ([ca52076](https://github.com/scolladon/sfdx-git-delta/commit/ca52076b318744d034e405a25618a75783585dd0))
+* keep an object translation packaged when one of its field translations is deleted ([126eb6e](https://github.com/scolladon/sfdx-git-delta/commit/126eb6e4a8f5edad3377201415598c35d8427b1b))
+* keep the packaged flow translations when the locale file also changes in the delta ([3d4a44d](https://github.com/scolladon/sfdx-git-delta/commit/3d4a44dd2889e78e38159e38e3a08cd2c70fecc4))
+* never merge a file left by a previous run into the flow translation delta ([3d4a44d](https://github.com/scolladon/sfdx-git-delta/commit/3d4a44dd2889e78e38159e38e3a08cd2c70fecc4))
+
 ## [7.6.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.5.0...v7.6.0) (2026-10-22)
 
 
