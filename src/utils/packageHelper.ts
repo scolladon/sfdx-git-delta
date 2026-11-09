@@ -1,7 +1,6 @@
 'use strict'
 import type { Writable } from 'node:stream'
 
-import { OBJECT_TYPE } from '../constant/metadataConstants.js'
 import type { Config } from '../types/config.js'
 import type { Manifest } from '../types/work.js'
 import { log } from './LoggingDecorator.js'
@@ -47,20 +46,12 @@ export default class PackageBuilder {
 
   protected _buildTypesBlocks(strucDiffPerType: Manifest): TypeBlock[] {
     return Array.from(strucDiffPerType.keys())
-      .sort(this._sortTypesWithMetadata)
+      .sort(collator.compare)
       .map(metadataType => ({
         members: [...strucDiffPerType.get(metadataType)!].sort(
           collator.compare
         ),
         name: metadataType,
       }))
-  }
-
-  _sortTypesWithMetadata = (x: string, y: string) => {
-    // RATIONALE: Why must CustomObject be ordered first in package.xml?
-    // Deployments fail if dependent objects aren't deployed before their children.
-    // See: https://github.com/scolladon/sfdx-git-delta/wiki/Metadata-Specificities#customobject-ordering
-    if (x === OBJECT_TYPE) return -1 // @deprecated To remove when the order will not impact the result of the deployment
-    return collator.compare(x, y)
   }
 }

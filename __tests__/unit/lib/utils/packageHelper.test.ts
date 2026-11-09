@@ -86,14 +86,14 @@ const tests = [
     `<?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
+        <members>Field</members>
+        <name>CustomField</name>
+    </types>
+    <types>
         <members>Object</members>
         <members>OtherObject</members>
         <members>YetAnotherObject</members>
         <name>CustomObject</name>
-    </types>
-    <types>
-        <members>Field</members>
-        <name>CustomField</name>
     </types>
     <types>
         <members>Dashboard</members>
@@ -169,22 +169,29 @@ describe('Given a PackageBuilder', () => {
       expect(idxAccented).toBeLessThan(idxAlpha)
     })
 
-    it('When types include CustomObject, Then it is sorted first regardless of locale', async () => {
-      // Arrange — CustomObject must always be first because the comparator
-      // special-cases it (x === OBJECT_TYPE → return -1).
+    it('When types include CustomObject, Then it is sorted alphabetically like the other types', async () => {
+      // Arrange — the CLI (SDR) rebuilds the manifest in plain alphabetical
+      // type order, so CustomObject gets no special placement.
       const manifest = new Map([
-        ['ApexClass', new Set(['Foo'])],
+        ['CustomField', new Set(['Qux'])],
         ['CustomObject', new Set(['Bar'])],
         ['Workflow', new Set(['Baz'])],
+        ['ApexClass', new Set(['Foo'])],
       ])
 
       // Act
       const out = await buildToString(sut, manifest)
 
-      // Assert — CustomObject block comes before ApexClass block
-      const customObjectIdx = out.indexOf('<name>CustomObject</name>')
-      const apexClassIdx = out.indexOf('<name>ApexClass</name>')
-      expect(customObjectIdx).toBeLessThan(apexClassIdx)
+      // Assert
+      const typeNames = [...out.matchAll(/<name>(\w+)<\/name>/g)].map(
+        ([, name]) => name
+      )
+      expect(typeNames).toEqual([
+        'ApexClass',
+        'CustomField',
+        'CustomObject',
+        'Workflow',
+      ])
     })
   })
 
