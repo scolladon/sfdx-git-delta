@@ -1,13 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
-        <members>Account</members>
-        <members>CreateObjectWithMasterDetail</members>
-        <members>UpdateObject</members>
-        <members>UpdateObjectWithMasterDetail</members>
-        <name>CustomObject</name>
-    </types>
-    <types>
         <members>AddedClassFromInclusion</members>
         <members>CreatedClass</members>
         <members>ModifiedClass</members>
@@ -62,6 +55,13 @@
         <members>CreateDecomposedCustomLabel</members>
         <members>UpdateDecomposedCustomLabel</members>
         <name>CustomLabel</name>
+    </types>
+    <types>
+        <members>Account</members>
+        <members>CreateObjectWithMasterDetail</members>
+        <members>UpdateObject</members>
+        <members>UpdateObjectWithMasterDetail</members>
+        <name>CustomObject</name>
     </types>
     <types>
         <members>CreateObjectTranslation-fr</members>
