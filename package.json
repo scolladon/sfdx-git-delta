@@ -51,7 +51,7 @@
     "@oclif/core": "5.1.11",
     "@salesforce/core": "9.4.4",
     "@salesforce/sf-plugins-core": "13.0.8",
-    "@salesforce/source-deploy-retrieve": "13.11.0",
+    "@salesforce/source-deploy-retrieve": "13.11.1",
     "@scolladon/tsgit": "6.0.0",
     "ignore": "7.0.14",
     "txml": "6.0.3",
