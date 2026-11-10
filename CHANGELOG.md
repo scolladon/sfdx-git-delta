@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.7.1](https://github.com/scolladon/sfdx-git-delta/compare/v7.7.0...v7.7.1) (2026-11-10)
+
+
+### Bug Fixes
+
+* sort CustomObject alphabetically in generated manifests ([36ee48c](https://github.com/scolladon/sfdx-git-delta/commit/36ee48c41dad89c58207401dbf9d1a55de38f857))
+
 ## [7.7.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.6.0...v7.7.0) (2026-11-04)
 
 
