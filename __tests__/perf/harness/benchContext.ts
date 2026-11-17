@@ -1,4 +1,5 @@
 import { NO_UNIONS, type RunContext } from '../../../lib/types/runContext.js'
+import { createParentDiffMemo } from '../../../lib/utils/metadataDiff/parentDiffMemo.js'
 
 export type BenchContextFields = Pick<
   RunContext,
@@ -9,4 +10,5 @@ export type BenchContextFields = Pick<
 export const benchContext = (fields: BenchContextFields): RunContext => ({
   ...fields,
   unions: NO_UNIONS,
+  parentDiffs: createParentDiffMemo(),
 })

@@ -3,6 +3,7 @@
 import type { TreeReader } from '../adapter/treeReader.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { DiffOutcome } from '../utils/metadataDiff/index.js'
+import type { ParentDiffs } from '../utils/metadataDiff/parentDiffMemo.js'
 import type { Config } from './config.js'
 
 export type UnionOutcomes = ReadonlyMap<string, DiffOutcome>
@@ -14,6 +15,9 @@ export type RunContext = Readonly<{
   metadata: MetadataRepository
   trees: TreeReader
   unions: UnionOutcomes
+  // The one internally mutable collaborator on an otherwise read-only
+  // context: a run-scoped memo, replaced per revision pair.
+  parentDiffs: ParentDiffs
 }>
 
 /**
