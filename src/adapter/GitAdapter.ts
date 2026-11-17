@@ -9,8 +9,12 @@
  *   git diff --name-status -M -w        -> repo.diff({ recursive,
  *                                            detectRenames, ignoreWhitespace })
  *   git archive --format=tar            -> tree walk + streamBlob
- *   git grep -l                         -> tree walk + readBlob + RegExp
- *                                          (grepBlobs, shared by
+ *   git grep -l                         -> literal surface: per-revision
+ *                                          sorted path index (exact hit /
+ *                                          binary-searched prefix range) +
+ *                                          readBlob + RegExp; pattern
+ *                                          surface: tree walk + readBlob +
+ *                                          RegExp (grepBlobs, shared by
  *                                          grepUnderPaths and
  *                                          grepMatchingPathspecs)
  *   git merge-base <from> <to>          -> repo.primitives.mergeBase
@@ -55,7 +59,6 @@ import {
   SIZE_THRESHOLD,
 } from './gitBlobReader.js'
 import {
-  buildLiteralMatcher,
   buildPathspecMatcher,
   buildScopeMatcher,
   hasRootScope,
@@ -63,12 +66,27 @@ import {
   ROOT_PATHS,
   toDiffLines,
 } from './pathMatching.js'
+import { SortedPathIndex } from './sortedPathIndex.js'
 import { TreeIndex } from './treeIndex.js'
 import { mapTsgitError } from './tsgitErrorMap.js'
 
 // walkTree yields directories and gitlinks too; only blob-bearing modes
 // belong in the path -> blob id index (ls-tree -r parity).
 const BLOB_MODES = new Set(['100644', '100755', '120000'])
+
+type CandidateSelector = (
+  blobIds: ReadonlyMap<string, ObjectId>,
+  specs: string[]
+) => Iterable<string>
+
+function* keysMatching(
+  blobIds: ReadonlyMap<string, ObjectId>,
+  matches: (path: string) => boolean
+): Generator<string> {
+  for (const filePath of blobIds.keys()) {
+    if (matches(filePath)) yield filePath
+  }
+}
 
 // flattenRevision peels a revision to a commit, which the empty tree is not,
 // so its index — by definition empty — is served without resolving it.
@@ -169,6 +187,14 @@ export default class GitAdapter implements GitBlobReader {
     string,
     Promise<ReadonlyMap<string, ObjectId>>
   >
+  // Keyed by the blob map's identity, so it inherits the revision key and
+  // the evict-on-reject of `indexRevision` (a rejected build never produced
+  // a map). Deterministic per map, so safe to share across pooled runs like
+  // `blobIdIndex`.
+  protected readonly sortedPathIndex: WeakMap<
+    ReadonlyMap<string, ObjectId>,
+    SortedPathIndex
+  >
   private repoHandle: Promise<Repository> | null = null
 
   // `key` identifies the repository — the pool map key and every
@@ -182,6 +208,7 @@ export default class GitAdapter implements GitBlobReader {
     private readonly repoPath: string
   ) {
     this.blobIdIndex = new Map<string, Promise<ReadonlyMap<string, ObjectId>>>()
+    this.sortedPathIndex = new WeakMap()
   }
 
   // Read by ConfigValidator to render `error.PathIsNotGit` from the exact
@@ -390,6 +417,29 @@ export default class GitAdapter implements GitBlobReader {
     return build
   }
 
+  // Not `async` on purpose: the get and the set share one synchronous turn,
+  // so concurrent callers resumed from the same `indexRevision` await never
+  // sort the same map twice.
+  private sortedPathsOf(
+    blobIds: ReadonlyMap<string, ObjectId>
+  ): SortedPathIndex {
+    const memoised = this.sortedPathIndex.get(blobIds)
+    if (memoised) {
+      return memoised
+    }
+    const built = this.buildSortedPathIndex(blobIds)
+    this.sortedPathIndex.set(blobIds, built)
+    return built
+  }
+
+  // Protected only as the test seam that runs on a memo miss (same
+  // precedent as flattenRevision below).
+  protected buildSortedPathIndex(
+    blobIds: ReadonlyMap<string, ObjectId>
+  ): SortedPathIndex {
+    return new SortedPathIndex(blobIds)
+  }
+
   // flattenTree is the bulk traversal path (one call, no per-entry yields);
   // it takes a tree oid, so the commit is peeled first. Declared protected
   // to mark it as the test seam the integration memo guards spy: it is the
@@ -576,7 +626,8 @@ export default class GitAdapter implements GitBlobReader {
     return content.toString(UTF8_ENCODING)
   }
 
-  // Concrete-path surface: `path` comes straight off the repository (a git
+  // Concrete-path surface, resolved through the sorted path index: exact hit
+  // or binary-searched directory range. `path` comes straight off the repository (a git
   // diff path run through treatPathSep, or MetadataElement.basePath) and is
   // matched by literal directory prefix — never as a wildmatch pathspec, so
   // a metacharacter incidentally present in a real path (e.g. an object
@@ -587,7 +638,9 @@ export default class GitAdapter implements GitBlobReader {
     path: string | string[],
     revision: string
   ): Promise<string[]> {
-    return this.grepBlobs(pattern, path, revision, buildLiteralMatcher)
+    return this.grepBlobs(pattern, path, revision, (blobIds, specs) =>
+      this.sortedPathsOf(blobIds).pathsFor(specs)
+    )
   }
 
   // Pattern surface: `path` is an sgd-constructed pathspec (e.g.
@@ -599,36 +652,49 @@ export default class GitAdapter implements GitBlobReader {
     path: string | string[],
     revision: string
   ): Promise<string[]> {
-    return this.grepBlobs(pattern, path, revision, buildPathspecMatcher)
+    return this.grepBlobs(pattern, path, revision, (blobIds, specs) =>
+      keysMatching(blobIds, buildPathspecMatcher(specs))
+    )
   }
 
   private async grepBlobs(
     pattern: string,
     path: string | string[],
     revision: string,
-    buildMatcher: (specs: string[]) => (candidate: string) => boolean
+    selectCandidates: CandidateSelector
   ): Promise<string[]> {
     try {
       const repo = await this.getRepo()
       const paths = Array.isArray(path) ? path : [path]
       const blobIds = await this.indexRevision(revision)
-      const matcher = new RegExp(pattern)
-      const matchesPath = buildMatcher(paths)
-      const matches: string[] = []
-      for (const [filePath, blobId] of blobIds) {
-        if (!matchesPath(filePath)) continue
-        const blob = await repo.primitives.readBlob(blobId)
-        if (matcher.test(Buffer.from(blob.content).toString(UTF8_ENCODING))) {
-          matches.push(filePath)
-        }
-      }
-      return matches
+      return await this.readMatching(
+        repo,
+        new RegExp(pattern),
+        blobIds,
+        selectCandidates(blobIds, paths)
+      )
     } catch (error) {
       Logger.debug(
         lazy`grepBlobs: grep for '${pattern}' in '${path}' at '${revision}' failed: ${() => getErrorMessage(error)}`
       )
       return []
     }
+  }
+
+  private async readMatching(
+    repo: Repository,
+    matcher: RegExp,
+    blobIds: ReadonlyMap<string, ObjectId>,
+    candidates: Iterable<string>
+  ): Promise<string[]> {
+    const matches: string[] = []
+    for (const filePath of candidates) {
+      const blob = await repo.primitives.readBlob(blobIds.get(filePath)!)
+      if (matcher.test(Buffer.from(blob.content).toString(UTF8_ENCODING))) {
+        matches.push(filePath)
+      }
+    }
+    return matches
   }
 
   // One facade diff call carries the whole subprocess contract: `recursive`
