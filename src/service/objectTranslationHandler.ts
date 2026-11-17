@@ -32,9 +32,11 @@ export default class ObjectTranslationHandler extends ResourceHandler {
   }
 
   protected async _getObjectTranslationWriter(path: string) {
-    const inFileMetadata = this.element.getInFileAttributes()
-    const metadataDiff = new MetadataDiff(this.config, inFileMetadata)
-    const outcome = await metadataDiff.run(path)
+    const outcome = await this.ctx.parentDiffs.outcomeOf(path, () =>
+      new MetadataDiff(this.config, this.element.getInFileAttributes()).run(
+        path
+      )
+    )
     return outcome.writer
   }
 

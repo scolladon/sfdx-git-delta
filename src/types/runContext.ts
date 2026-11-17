@@ -3,7 +3,10 @@
 import type { TreeReader } from '../adapter/treeReader.js'
 import type { MetadataRepository } from '../metadata/MetadataRepository.js'
 import type { DiffOutcome } from '../utils/metadataDiff/index.js'
-import type { ParentDiffs } from '../utils/metadataDiff/parentDiffMemo.js'
+import {
+  createParentDiffMemo,
+  type ParentDiffs,
+} from '../utils/metadataDiff/parentDiffMemo.js'
 import type { Config } from './config.js'
 
 export type UnionOutcomes = ReadonlyMap<string, DiffOutcome>
@@ -29,11 +32,18 @@ export type RunContext = Readonly<{
  * empty tree: no reader ever indexes it (only commits are), so every tree
  * read there answers `false`/`[]`, as the empty tree must. `unions` is reset:
  * an overridden-revision pass is not the diff the outcomes were computed on.
+ * `parentDiffs` is replaced for the same reason as `unions`: its outcomes were
+ * computed under the other revisions.
  */
 export const withRevisions = (
   ctx: RunContext,
   revisions?: { from: string; to: string }
 ): RunContext =>
   revisions
-    ? { ...ctx, config: { ...ctx.config, ...revisions }, unions: NO_UNIONS }
+    ? {
+        ...ctx,
+        config: { ...ctx.config, ...revisions },
+        unions: NO_UNIONS,
+        parentDiffs: createParentDiffMemo(),
+      }
     : ctx
