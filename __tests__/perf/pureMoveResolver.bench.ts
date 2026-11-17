@@ -5,7 +5,7 @@ import { TAB } from '../../lib/constant/cliConstants.js'
 import { ADDITION, DELETION } from '../../lib/constant/gitConstants.js'
 import { getDefinition } from '../../lib/metadata/metadataManager.js'
 import type { Config } from '../../lib/types/config.js'
-import { NO_UNIONS, type RunContext } from '../../lib/types/runContext.js'
+import type { RunContext } from '../../lib/types/runContext.js'
 import { comparisonName } from '../../lib/utils/comparisonName.js'
 import PureMoveResolver, {
   type MovePorts,
@@ -14,6 +14,7 @@ import PureMoveResolver, {
 import type { DeferredDeletion } from '../../lib/utils/repoGitDiff.js'
 import { createTempDir } from '../__utils__/gitTestHarness.ts'
 import { buildLabelsUnionRepo } from './fixtures/labelsUnionRepoFixture.ts'
+import { benchContext } from './harness/benchContext.ts'
 import {
   assertMeanWithinCeiling,
   deriveCeilingMs,
@@ -43,12 +44,8 @@ const baseConfig: Config = {
 }
 
 const metadata = await getDefinition({})
-const contextOf = (config: Config): RunContext => ({
-  config,
-  metadata,
-  trees: undefined as never,
-  unions: NO_UNIONS,
-})
+const contextOf = (config: Config): RunContext =>
+  benchContext({ config, metadata, trees: undefined as never })
 
 const classPaths = (root: string, index: number): string[] => [
   `${root}/classes/Cls${index}.cls`,

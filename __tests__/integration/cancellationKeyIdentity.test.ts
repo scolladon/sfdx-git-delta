@@ -1,7 +1,6 @@
 'use strict'
 import { beforeAll, describe, expect, it } from 'vitest'
 
-import { EMPTY_TREE_READER } from '../../src/adapter/treeReader'
 import { TAB } from '../../src/constant/cliConstants'
 import { ADDITION } from '../../src/constant/gitConstants'
 import {
@@ -12,9 +11,8 @@ import type { MetadataRepository } from '../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../src/metadata/metadataManager'
 import TypeHandlerFactory from '../../src/service/typeHandlerFactory'
 import type { Metadata } from '../../src/types/metadata'
-import { NO_UNIONS } from '../../src/types/runContext'
 import RepoGitDiff from '../../src/utils/repoGitDiff'
-import { getConfig } from '../__utils__/testWork'
+import { getConfig, getContext } from '../__utils__/testWork'
 
 // The deleted-renamed cancellation index compares components by the key
 // RepoGitDiff derives from a diff line. That key is path-derived and
@@ -270,12 +268,7 @@ const descriptorOf = async (
 
 beforeAll(async () => {
   metadata = await getDefinition({})
-  factory = new TypeHandlerFactory({
-    config: getConfig(),
-    metadata,
-    trees: EMPTY_TREE_READER,
-    unions: NO_UNIONS,
-  })
+  factory = new TypeHandlerFactory(getContext({ metadata }))
   probe = new CancellationKeyProbe(getConfig(), metadata)
   sharedSuffixes = directoriesPerSharedSuffix(metadata.values())
 
