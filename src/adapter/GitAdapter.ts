@@ -9,13 +9,13 @@
  *   git diff --name-status -M -w        -> repo.diff({ recursive,
  *                                            detectRenames, ignoreWhitespace })
  *   git archive --format=tar            -> tree walk + streamBlob
- *   git grep -l                         -> literal surface: per-revision
- *                                          sorted path index (exact hit /
- *                                          binary-searched prefix range) +
- *                                          readBlob + RegExp; pattern
- *                                          surface: tree walk + readBlob +
- *                                          RegExp (grepBlobs, shared by
- *                                          grepUnderPaths and
+ *   git grep -l                         -> candidates: per-revision sorted
+ *                                          path index (exact hit / binary-
+ *                                          searched prefix range) on the
+ *                                          literal surface, tree walk on
+ *                                          the pattern surface; then
+ *                                          readBlob + RegExp (grepBlobs,
+ *                                          shared by grepUnderPaths and
  *                                          grepMatchingPathspecs)
  *   git merge-base <from> <to>          -> repo.primitives.mergeBase
  *
@@ -627,8 +627,9 @@ export default class GitAdapter implements GitBlobReader {
   }
 
   // Concrete-path surface, resolved through the sorted path index: exact hit
-  // or binary-searched directory range. `path` comes straight off the repository (a git
-  // diff path run through treatPathSep, or MetadataElement.basePath) and is
+  // or binary-searched directory range. `path` comes straight off the
+  // repository (a git diff path run through treatPathSep, or
+  // MetadataElement.basePath) and is
   // matched by literal directory prefix — never as a wildmatch pathspec, so
   // a metacharacter incidentally present in a real path (e.g. an object
   // folder named `Custom[1]__c`) can never be misread as a glob.

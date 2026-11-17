@@ -2,7 +2,8 @@ import type { ObjectId } from '@scolladon/tsgit'
 import { PATH_SEP } from '../constant/fsConstants.js'
 import { ROOT_PATHS } from './pathMatching.js'
 
-// first index i with sorted[i] >= key; String `<` = the code-unit order Array#sort uses
+// first index i with sorted[i] >= key; String `<` = the code-unit order
+// Array#sort uses
 export const lowerBound = (sorted: readonly string[], key: string): number => {
   let low = 0
   let high = sorted.length
