@@ -26,10 +26,10 @@ const objectPath = (object: string): string =>
 const fieldPath = (object: string, field: string): string =>
   `${OBJECTS_DIR}/${object}/fields/${field}.field-meta.xml`
 
-const objectXml = (): string =>
+const objectXml = (label = 'Object'): string =>
   `${XML_HEADER}
 <CustomObject xmlns="${NS}">
-    <label>Object</label>
+    <label>${label}</label>
 </CustomObject>
 `
 
@@ -55,6 +55,7 @@ let base: string
 let objectAdded: string
 let masterDetailFieldAdded: string
 let textFieldAdded: string
+let objectModified: string
 const tempDirs: string[] = []
 
 const trackedTempDir = async (prefix: string): Promise<string> => {
@@ -88,6 +89,9 @@ beforeAll(async () => {
   ])
   textFieldAdded = commitOnBase('add a text field', [
     addFile(fieldPath('Acc', 'Extra__c'), fieldXml('Extra__c', 'Text')),
+  ])
+  objectModified = commitOnBase('modify an object', [
+    addFile(objectPath('Acc'), objectXml('Account')),
   ])
 }, FIXTURE_HOOK_BUDGET_MS)
 
@@ -167,6 +171,20 @@ describe('Given master detail fields under prefix-sharing objects', () => {
       'destructiveChanges/destructiveChanges.xml',
       'destructiveChanges/package.xml',
       'force-app/objects/Acc/fields/Extra__c.field-meta.xml',
+      'package/package.xml',
+    ])
+  })
+
+  it('When an object is modified without field changes, Then only its master detail fields are copied, not those of the prefix-sharing sibling', async () => {
+    // Act
+    const result = await generate(objectModified)
+
+    // Assert
+    expect(result).toEqual([
+      'destructiveChanges/destructiveChanges.xml',
+      'destructiveChanges/package.xml',
+      'force-app/objects/Acc/Acc.object-meta.xml',
+      'force-app/objects/Acc/fields/Parent__c.field-meta.xml',
       'package/package.xml',
     ])
   })

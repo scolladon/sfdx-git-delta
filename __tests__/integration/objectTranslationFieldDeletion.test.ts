@@ -60,9 +60,26 @@ const parentXml = (): string =>
 </CustomObjectTranslation>
 `
 
+// The untouched Bar__c entry is what pruning drops, so the copied parent
+// differs from the raw head blob only when the diff's writer runs.
+const parentWithUntouchedFieldXml = (): string =>
+  `${XML_HEADER}
+<CustomObjectTranslation xmlns="${NS}">
+    <fields>
+        <label>Bar</label>
+        <name>Bar__c</name>
+    </fields>
+    <nameFieldLabel>Name</nameFieldLabel>
+</CustomObjectTranslation>
+`
+
 const modifiedParentXml = (): string =>
   `${XML_HEADER}
 <CustomObjectTranslation xmlns="${NS}">
+    <fields>
+        <label>Bar</label>
+        <name>Bar__c</name>
+    </fields>
     <fields>
         <label>Foo</label>
         <name>Foo__c</name>
@@ -121,7 +138,7 @@ beforeAll(async () => {
   fixtureDir = await trackedTempDir('sgd-object-translation-deletion-')
   initRepo(fixtureDir)
   base = makeCommit(fixtureDir, null, 'object translations', [
-    addFile(PARENT_PATH, parentXml()),
+    addFile(PARENT_PATH, parentWithUntouchedFieldXml()),
     addFile(FOO_TRANSLATION_PATH, fieldTranslationXml('Foo__c')),
     addFile(BAR_TRANSLATION_PATH, fieldTranslationXml('Bar__c')),
     addFile(FOO_FIELD_PATH, fieldXml()),
@@ -337,6 +354,18 @@ describe('Given a modified parent objectTranslation and three changed field tran
     expect(await readFile(join(output, PARENT_PATH), 'utf8')).toBe(
       PINNED_PARENT_BYTES
     )
+  })
+
+  it('When generating the delta, Then only the translation is packaged and nothing is destroyed', async () => {
+    // Arrange
+    const output = await trackedTempDir('sgd-object-translation-manifest-')
+
+    // Act
+    const sut = await runSgd(childrenAndParentModified, output)
+
+    // Assert
+    expect(members(sut.changes.forPackageManifest(), COT)).toEqual([SUB_FOLDER])
+    expect(members(sut.changes.forDestructiveManifest(), COT)).toEqual([])
   })
 
   it('When generating the delta without generateDelta, Then package.xml and destructiveChanges.xml equal the generateDelta run', async () => {

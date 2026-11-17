@@ -67,6 +67,16 @@ describe('Given a SortedPathIndex over a mixed corpus', () => {
       ['force-app', 'force-app/sub'],
       ['force-app/foo.cls', 'force-app/sub/bar.cls'],
     ],
+    [
+      'a child directory before its parent',
+      ['force-app/sub', 'force-app'],
+      ['force-app/sub/bar.cls', 'force-app/foo.cls'],
+    ],
+    [
+      'a file before its directory',
+      ['force-app/sub/bar.cls', 'force-app'],
+      ['force-app/sub/bar.cls', 'force-app/foo.cls'],
+    ],
   ])(
     'When resolving %s, Then it returns the matching paths once, in first-seen order',
     (_title, specs, expected) => {
@@ -80,6 +90,17 @@ describe('Given a SortedPathIndex over a mixed corpus', () => {
       expect(result).toEqual(expected)
     }
   )
+
+  it('When the blob map is empty, Then every spec resolves to nothing', () => {
+    // Arrange
+    const sut = new SortedPathIndex(new Map())
+
+    // Act
+    const result = sut.pathsFor(['', 'force-app', 'force-app/foo.cls'])
+
+    // Assert
+    expect(result).toEqual([])
+  })
 
   it('When a blob map is inserted in UTF-8 byte order, Then paths come back in code-unit order', () => {
     // Arrange
