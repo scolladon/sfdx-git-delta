@@ -1,12 +1,10 @@
 'use strict'
-import { Ignore } from 'ignore'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   createTreeReader,
   type TreeReader,
 } from '../../../../src/adapter/treeReader'
-import type { Config } from '../../../../src/types/config'
 import type { Work } from '../../../../src/types/work'
 import {
   contentIncludes,
@@ -16,28 +14,12 @@ import {
   pathExists,
   readDirs,
   readPathFromGit,
-  resetWrittenFiles,
-  writeFile,
 } from '../../../../src/utils/fsHelper'
-import { outputFile } from '../../../../src/utils/fsUtils'
-import {
-  buildIgnoreHelper,
-  IgnoreHelper,
-} from '../../../../src/utils/ignoreHelper'
 import { getContext, getWork } from '../../../__utils__/testWork'
-
-vi.mock('../../../../src/utils/fsUtils', async orig => ({
-  ...(await orig<typeof import('../../../../src/utils/fsUtils')>()),
-  outputFile: vi.fn(),
-}))
-
-vi.mock('../../../../src/utils/ignoreHelper')
 
 vi.mock('../../../../src/utils/LoggingService')
 
 import { Logger } from '../../../../src/utils/LoggingService'
-
-const mockBuildIgnoreHelper = vi.mocked(buildIgnoreHelper)
 
 const mockGetStringContent = vi.fn()
 const mockGrepUnderPaths = vi.fn()
@@ -387,74 +369,5 @@ describe('contentIncludes', () => {
 
     // Assert
     expect(result).toBe(false)
-  })
-})
-
-describe('writeFile', () => {
-  beforeEach(() => {
-    mockBuildIgnoreHelper.mockResolvedValue({
-      globalIgnore: {
-        ignores: () => false,
-      } as unknown as Ignore,
-    } as unknown as IgnoreHelper)
-  })
-  it('write the content to the file system', async () => {
-    // Arrange
-    const path = 'folder/file'
-    const config: Config = work.config
-    config.output = 'root'
-    const content = 'content'
-
-    // Act
-    await writeFile(path, content, config)
-
-    // Assert
-    expect(outputFile).toHaveBeenCalledWith('root/folder/file', content)
-  })
-
-  it('call only once for the same path', async () => {
-    // Arrange
-    const config: Config = work.config
-    config.output = 'root'
-    const content = 'content'
-    const path = 'other/path/file'
-    await writeFile(path, content, config)
-
-    // Act
-    await writeFile(path, content, config)
-
-    // Assert
-    expect(outputFile).toHaveBeenCalledTimes(1)
-  })
-
-  it('should not copy ignored path', async () => {
-    // Arrange
-    mockBuildIgnoreHelper.mockResolvedValue({
-      globalIgnore: {
-        ignores: () => true,
-      } as unknown as Ignore,
-    } as unknown as IgnoreHelper)
-
-    // Act
-    await writeFile('', '', {} as Config)
-
-    // Assert
-    expect(outputFile).not.toHaveBeenCalled()
-  })
-
-  it('Given resetWrittenFiles called, When writing same path twice, Then outputFile is called twice', async () => {
-    // Arrange
-    const path = 'reset/path/file'
-    const config: Config = work.config
-    config.output = 'root'
-    const content = 'content'
-    await writeFile(path, content, config)
-
-    // Act
-    resetWrittenFiles()
-    await writeFile(path, content, config)
-
-    // Assert
-    expect(outputFile).toHaveBeenCalledTimes(2)
   })
 })

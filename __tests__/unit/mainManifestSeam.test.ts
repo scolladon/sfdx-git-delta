@@ -1,5 +1,5 @@
 'use strict'
-import { PassThrough } from 'node:stream'
+import type { Writable } from 'node:stream'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -14,6 +14,7 @@ import { NO_UNIONS } from '../../src/types/runContext'
 import type { Manifest } from '../../src/types/work'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
 import PackageBuilder from '../../src/utils/packageHelper'
+import { sinkStream } from '../__utils__/outputStreams'
 
 // The manifest seam guard: the ChangeSet placed on the returned Work.changes
 // must be the same post-filter value PackageGenerator wrote to disk. It drives
@@ -142,6 +143,7 @@ vi.mock('../../src/adapter/ioExecutor', () => {
     default: vi.fn().mockImplementation(function () {
       return {
         execute: mockExecute,
+        warnings: () => [],
       }
     }),
   }
@@ -170,7 +172,7 @@ const asAsyncIterable = (lines: string[]): AsyncIterable<string> => ({
 // spy call args below — buildPackageStream carries no path of its own, and
 // Promise.all over the three write ops makes call order an implementation
 // detail.
-const pathByStream = new Map<PassThrough, string>()
+const pathByStream = new Map<Writable, string>()
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -186,7 +188,7 @@ beforeEach(() => {
   pathByStream.clear()
 
   mockCreateWriteStream.mockImplementation((path: string) => {
-    const stream = new PassThrough()
+    const stream = sinkStream()
     pathByStream.set(stream, path)
     return stream
   })
@@ -207,7 +209,7 @@ const buildPackageStreamSpy = vi.spyOn(
 const manifestByPath = (): Map<string, Manifest> => {
   const byPath = new Map<string, Manifest>()
   for (const call of buildPackageStreamSpy.mock.calls) {
-    const [manifest, ws] = call as [Manifest, PassThrough]
+    const [manifest, ws] = call as [Manifest, Writable]
     const path = pathByStream.get(ws)
     if (path) byPath.set(path, manifest)
   }

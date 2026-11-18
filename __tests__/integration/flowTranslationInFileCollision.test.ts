@@ -15,6 +15,7 @@ import {
 
 import GitAdapter from '../../src/adapter/GitAdapter'
 import sgd from '../../src/main'
+import { OutputWriteError } from '../../src/utils/errorUtils'
 import {
   FIXTURE_HOOK_BUDGET_MS,
   initRepo,
@@ -148,7 +149,7 @@ describe('Given an output directory that still holds the previous run', () => {
     expect(sut).not.toContain(`<name>${CHANGED_LABEL}</name>`)
   })
 
-  it('When the base translation rename fails, Then the augment does not merge the stale output file', async () => {
+  it('When the base translation rename fails, Then the stale output file is left untouched and a warning names it', async () => {
     // Arrange — this is a real Git fixture and real output file; only the
     // atomic rename is failed to deterministically reproduce the disk error.
     const output = await trackedTempDir('sgd-flow-translation-failed-base-out-')
@@ -171,17 +172,19 @@ describe('Given an output directory that still holds the previous run', () => {
         await originalRename(source, target)
       })
 
-    try {
-      // Act
-      await runSgd({ from, to }, output)
-    } finally {
+    // Act
+    const work = await runSgd({ from, to }, output).finally(() =>
       renameSpy.mockRestore()
-    }
+    )
 
     // Assert
     expect(failedBaseWrite).toBe(true)
     const result = await readFile(destination, 'utf8')
-    expect(result).toContain(`<fullName>${FLOW_NAME}</fullName>`)
-    expect(result).not.toContain('StaleFromPreviousRun')
+    expect(result).toBe(staleTranslation)
+    const writeWarnings = work.warnings.filter(
+      warning => warning instanceof OutputWriteError
+    )
+    expect(writeWarnings).toHaveLength(1)
+    expect(writeWarnings[0]?.message).toContain('fr.translation-meta.xml')
   })
 })

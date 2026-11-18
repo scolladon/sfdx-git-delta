@@ -1,9 +1,7 @@
 'use strict'
 import type { Writable } from 'node:stream'
-import { PassThrough } from 'node:stream'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-
 import { MetadataRepository } from '../../../../src/metadata/MetadataRepository'
 import { getDefinition } from '../../../../src/metadata/metadataManager'
 import PackageGenerator from '../../../../src/post-processor/packageGenerator'
@@ -11,7 +9,9 @@ import type { Config } from '../../../../src/types/config'
 import { ChangeKind } from '../../../../src/types/handlerResult'
 import type { Manifest } from '../../../../src/types/work'
 import ChangeSet from '../../../../src/utils/changeSet'
+import { OutputWriteError } from '../../../../src/utils/errorUtils'
 import { addChange } from '../../../__utils__/handlerResultView'
+import { failingOpenStream, sinkStream } from '../../../__utils__/outputStreams'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
 const {
@@ -64,7 +64,7 @@ beforeEach(() => {
   mockMkdir.mockResolvedValue(undefined)
   mockCreateWriteStream.mockImplementation((path: string) => {
     writtenPaths.push(path)
-    return new PassThrough()
+    return sinkStream()
   })
 })
 
@@ -127,6 +127,43 @@ describe('PackageGenerator', () => {
       const thirdCallManifest = mockBuildPackageStream.mock.calls[2]![0]
       expect(thirdCallManifest).toBeInstanceOf(Map)
       expect((thirdCallManifest as Map<string, Set<string>>).size).toBe(0)
+    })
+
+    it('When the package manifest cannot be opened, Then process rejects with an OutputWriteError naming that manifest', async () => {
+      // Arrange
+      mockCreateWriteStream.mockImplementation((path: string) => {
+        writtenPaths.push(path)
+        return path === 'test/package/package.xml'
+          ? failingOpenStream('EISDIR')
+          : sinkStream()
+      })
+      const sut = new PackageGenerator(getContext({ config, metadata }))
+
+      // Act
+      const result = sut.process(changes)
+
+      // Assert
+      await expect(result).rejects.toBeInstanceOf(OutputWriteError)
+      await expect(result).rejects.toMatchObject({
+        path: 'test/package/package.xml',
+      })
+    })
+
+    it('When a manifest folder cannot be created, Then process rejects with an OutputWriteError naming the manifest', async () => {
+      // Arrange
+      mockMkdir.mockRejectedValueOnce(
+        Object.assign(new Error('EEXIST'), { code: 'EEXIST' })
+      )
+      const sut = new PackageGenerator(getContext({ config, metadata }))
+
+      // Act
+      const result = sut.process(changes)
+
+      // Assert
+      await expect(result).rejects.toBeInstanceOf(OutputWriteError)
+      await expect(result).rejects.toMatchObject({
+        path: expect.stringMatching(/\.xml$/),
+      })
     })
 
     describe.each([

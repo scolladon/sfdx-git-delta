@@ -6,6 +6,7 @@ import type ChangeSet from '../utils/changeSet.js'
 import type { RenameBucket } from '../utils/changeSet.js'
 import { outputFile } from '../utils/fsUtils.js'
 import { log } from '../utils/LoggingDecorator.js'
+import { asOutputWrite } from '../utils/streamedWrite.js'
 import BaseProcessor, {
   emptyOutcome,
   type ProcessorOutcome,
@@ -41,7 +42,9 @@ export default class ChangesManifestProcessor extends BaseProcessor {
       [ChangeKind.Delete]: this._buildKindBucket(view[ChangeKind.Delete]),
       [ChangeKind.Rename]: this._buildRenameBucket(view[ChangeKind.Rename]),
     }
-    await outputFile(targetPath, JSON.stringify(payload, null, 2))
+    await asOutputWrite(targetPath, () =>
+      outputFile(targetPath, JSON.stringify(payload, null, 2))
+    )
     return emptyOutcome()
   }
 

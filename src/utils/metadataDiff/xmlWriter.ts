@@ -1,5 +1,4 @@
 'use strict'
-import { once } from 'node:events'
 import type { Writable } from 'node:stream'
 
 import {
@@ -184,6 +183,32 @@ const frameForChild = (key: string, value: unknown, depth: number): Frame => {
   return toFrameForObjectChild(key, value as XmlContent, depth)
 }
 
+const CLOSED_BEFORE_DRAIN = 'output stream closed before drain'
+
+const closedBeforeDrain = (out: Writable): Error =>
+  out.errored ?? new Error(CLOSED_BEFORE_DRAIN)
+
+// Plain listeners that remove each other: an AbortController per wait costs
+// an AbortError (with its stack) on every drain under backpressure.
+const awaitDrain = (out: Writable): Promise<void> =>
+  new Promise((resolve, reject) => {
+    if (out.destroyed) {
+      reject(closedBeforeDrain(out))
+      return
+    }
+    const settle = (outcome: () => void) => () => {
+      out.off('drain', onDrain)
+      out.off('error', onFailure)
+      out.off('close', onFailure)
+      outcome()
+    }
+    const onDrain = settle(resolve)
+    const onFailure = settle(() => reject(closedBeforeDrain(out)))
+    out.once('drain', onDrain)
+    out.once('error', onFailure)
+    out.once('close', onFailure)
+  })
+
 // Buffered emitter: pushes frame fragments into a string until the
 // FLUSH_THRESHOLD is crossed, then writes a single chunk to the
 // underlying stream. Replaces the prior per-frame `out.write` which
@@ -191,6 +216,8 @@ const frameForChild = (key: string, value: unknown, depth: number): Frame => {
 // writes per Profile prune). Backpressure is honoured at flush time:
 // if `out.write` returns false we await the next `drain` before
 // continuing — same semantics as before, just at coarser granularity.
+// A closed or errored stream never emits `drain`, so the wait also settles
+// on `close` instead of hanging the run.
 class ChunkBuffer {
   private buffer = ''
   constructor(private readonly out: Writable) {}
@@ -210,7 +237,7 @@ class ChunkBuffer {
     // Stryker disable next-line StringLiteral -- equivalent: buffer reset; the test fixtures emit small documents that fit under FLUSH_THRESHOLD so flush() runs exactly once and the buffer state after the reset is unobservable to the consumer (next push starts a fresh accumulation that the next flush ships in full)
     this.buffer = ''
     if (this.out.write(payload)) return
-    return once(this.out, 'drain').then(() => undefined)
+    return awaitDrain(this.out)
   }
 }
 
