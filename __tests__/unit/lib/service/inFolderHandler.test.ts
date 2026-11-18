@@ -10,13 +10,13 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import { pathExists } from '../../../../src/utils/fsHelper'
+import { fileExists } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
-const mockedPathExists = vi.mocked(pathExists)
+const mockedFileExists = vi.mocked(fileExists)
 
 const entity = 'folder/test'
 const extension = 'document'
@@ -157,7 +157,7 @@ describe('InFolderHandler', () => {
 
     it('Given the component has an extensionless file, When collect, Then copies the file named as the component', async () => {
       // Arrange
-      mockedPathExists.mockResolvedValueOnce(true)
+      mockedFileExists.mockResolvedValueOnce(true)
       const ctx = getContext({ config })
       const { changeType, element } = createElement(
         line,
@@ -175,12 +175,12 @@ describe('InFolderHandler', () => {
         path: COMPONENT_PATH,
         revision: config.to,
       })
-      expect(mockedPathExists).toHaveBeenCalledWith(COMPONENT_PATH, ctx)
+      expect(mockedFileExists).toHaveBeenCalledWith(COMPONENT_PATH, ctx)
     })
 
     it('Given no file is named as the component, When collect, Then copies no file named as the component', async () => {
       // Arrange
-      mockedPathExists.mockResolvedValueOnce(false)
+      mockedFileExists.mockResolvedValueOnce(false)
       const { changeType, element } = createElement(
         line,
         objectType,
@@ -268,7 +268,7 @@ describe('InFolderHandler', () => {
 
       // Assert
       expect(elementsOf(result).length).toBeGreaterThan(0)
-      expect(mockedPathExists).not.toHaveBeenCalled()
+      expect(mockedFileExists).not.toHaveBeenCalled()
       expect(
         result.copies.some(c => c.kind === CopyOperationKind.GitComponentCopy)
       ).toBe(false)

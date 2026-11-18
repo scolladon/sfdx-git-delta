@@ -41,6 +41,11 @@ export const pathExists = async (
   ctx: RunContext
 ): Promise<boolean> => ctx.trees.pathExists(ctx.config.to, path)
 
+export const fileExists = async (
+  path: string,
+  ctx: RunContext
+): Promise<boolean> => ctx.trees.fileExists(ctx.config.to, path)
+
 export const readDirs = async (
   paths: string | string[],
   ctx: RunContext

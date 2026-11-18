@@ -8,7 +8,6 @@ import {
   METAFILE_SUFFIX,
 } from '../constant/metadataConstants.js'
 import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
-import { pathExists } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
 
 export default class InFolderHandler extends StandardHandler {
@@ -46,16 +45,6 @@ export default class InFolderHandler extends StandardHandler {
   protected _getComponentPath(): string {
     const { dir, name } = parse(this.element.basePath)
     return join(dir, name)
-  }
-
-  // An extensionless content file is named exactly as the component, so the
-  // component expansion cannot reach it.
-  protected async _collectExactNameCopy(
-    copies: CopyOperation[],
-    componentPath: string
-  ): Promise<void> {
-    if (!(await pathExists(componentPath, this.ctx))) return
-    this._collectCopy(copies, componentPath)
   }
 
   protected override _getElementName() {

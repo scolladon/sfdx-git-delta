@@ -90,4 +90,32 @@ describe('DiffLineInterpreter with resource components', () => {
       )
     })
   })
+
+  describe('Given an extensionless content file whose meta file changed', () => {
+    const CONTENT_FILE = `${RESOURCE_ROOT}/lib`
+    const CONTENT_META_FILE = `${RESOURCE_ROOT}/lib.resource-meta.xml`
+
+    it('When the copies are expanded, Then they include the content file', async () => {
+      // Arrange
+      const index = new TreeIndex()
+      for (const path of [CONTENT_FILE, CONTENT_META_FILE]) index.add(path)
+      const trees = createTreeReader(new Map([[TO, index]]))
+      const config = { ...getConfig(), to: TO, generateDelta: true }
+      const sut = new DiffLineInterpreter(
+        getContext({ config, metadata, trees })
+      )
+      const result = await sut.process([
+        `${MODIFICATION}${TAB}${CONTENT_META_FILE}`,
+      ])
+
+      // Act
+      const expanded = expandComponentCopies(
+        expandTypeDirCompanionCopies(result.copies, trees),
+        trees
+      )
+
+      // Assert
+      expect(new Set(expanded.map(op => op.path))).toContain(CONTENT_FILE)
+    })
+  })
 })

@@ -71,6 +71,32 @@ describe('createTreeReader', () => {
       })
     })
 
+    describe('When fileExists is called for the indexed revision with a file present in the index', () => {
+      it('Then it returns true', () => {
+        // Arrange
+        const sut = createTreeReader(new Map([['HEAD', buildIndex()]]))
+
+        // Act
+        const result = sut.fileExists('HEAD', 'force-app/classes/Foo.cls')
+
+        // Assert
+        expect(result).toBe(true)
+      })
+    })
+
+    describe('When fileExists is called for a revision nobody built an index for', () => {
+      it('Then it returns false', () => {
+        // Arrange
+        const sut = createTreeReader(new Map([['HEAD', buildIndex()]]))
+
+        // Act
+        const result = sut.fileExists('OTHER', 'force-app/classes/Foo.cls')
+
+        // Assert
+        expect(result).toBe(false)
+      })
+    })
+
     describe('When pathExists is called for a revision nobody built an index for', () => {
       it('Then it returns false', () => {
         // Arrange

@@ -12,6 +12,9 @@ export default class ResourceHandler extends StandardHandler {
     this.metadataName = this._getMetadataName()
     const result = await super.collectAddition()
     const copies = [...result.copies]
+    if (this._shouldCollectCopies()) {
+      await this._collectExactNameCopy(copies, this.metadataName!)
+    }
     this._collectResourceCopies(copies)
     return { ...result, copies }
   }

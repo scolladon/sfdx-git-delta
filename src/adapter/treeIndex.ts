@@ -82,6 +82,10 @@ export class TreeIndex {
     return this.hasPath(path)
   }
 
+  public fileExists(path: string): boolean {
+    return this.has(path)
+  }
+
   public getFilesPath(paths: string | string[]): string[] {
     const list = Array.isArray(paths) ? paths : [paths]
     const result: string[] = []

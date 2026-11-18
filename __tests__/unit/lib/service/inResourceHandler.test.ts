@@ -11,7 +11,11 @@ import {
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
 import type { RunContext } from '../../../../src/types/runContext'
-import { pathExists, readDirs } from '../../../../src/utils/fsHelper'
+import {
+  fileExists,
+  pathExists,
+  readDirs,
+} from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig, getContext } from '../../../__utils__/testWork'
@@ -19,6 +23,7 @@ import { getConfig, getContext } from '../../../__utils__/testWork'
 vi.mock('../../../../src/utils/fsHelper')
 
 const mockedPathExists = vi.mocked(pathExists)
+const mockedFileExists = vi.mocked(fileExists)
 
 const lwcType = {
   directoryName: 'lwc',
@@ -451,6 +456,58 @@ describe('InResourceHandler', () => {
               componentRequest(`${basePath}/${elementName}`),
             ])
           )
+        })
+      })
+
+      describe('Given a content file named exactly as the component', () => {
+        it('When collect, Then copies that file', async () => {
+          // Arrange
+          mockedFileExists.mockResolvedValueOnce(true)
+          const { changeType, element } = createElement(
+            line,
+            staticResourceType,
+            globalMetadata
+          )
+          const sut = new InResourceHandler(changeType, element, ctx)
+
+          // Act
+          const result = await sut.collect()
+
+          // Assert
+          expect(result.copies).toContainEqual({
+            kind: CopyOperationKind.GitCopy,
+            path: `${basePath}/${elementName}`,
+            revision: config.to,
+          })
+          expect(mockedFileExists).toHaveBeenCalledWith(
+            `${basePath}/${elementName}`,
+            ctx
+          )
+        })
+      })
+
+      describe('Given no file is named exactly as the component', () => {
+        it('When collect, Then copies no file at the component path', async () => {
+          // Arrange
+          mockedFileExists.mockResolvedValueOnce(false)
+          const { changeType, element } = createElement(
+            line,
+            staticResourceType,
+            globalMetadata
+          )
+          const sut = new InResourceHandler(changeType, element, ctx)
+
+          // Act
+          const result = await sut.collect()
+
+          // Assert
+          expect(
+            result.copies.filter(
+              c =>
+                c.kind === CopyOperationKind.GitCopy &&
+                c.path === `${basePath}/${elementName}`
+            )
+          ).toEqual([])
         })
       })
     })

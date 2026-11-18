@@ -102,6 +102,32 @@ describe('TreeIndex', () => {
     })
   })
 
+  describe('fileExists', () => {
+    it('Given an indexed file path, When fileExists, Then returns true', () => {
+      // Arrange
+      const sut = new TreeIndex()
+      sut.add('classes/MyClass.cls')
+
+      // Act
+      const result = sut.fileExists('classes/MyClass.cls')
+
+      // Assert
+      expect(result).toBe(true)
+    })
+
+    it('Given a directory path, When fileExists, Then returns false', () => {
+      // Arrange
+      const sut = new TreeIndex()
+      sut.add('classes/MyClass.cls')
+
+      // Act
+      const result = sut.fileExists('classes')
+
+      // Assert
+      expect(result).toBe(false)
+    })
+  })
+
   describe('getFilesPath', () => {
     const populated = () => {
       const index = new TreeIndex()
