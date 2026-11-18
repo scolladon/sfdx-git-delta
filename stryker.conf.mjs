@@ -42,7 +42,6 @@ const config = {
   // than by line — line numbers in this block had already rotted twice
   // before anyone noticed, because nothing verifies them:
   //   - src/adapter/GitAdapter.ts      buildTreeIndex   catch
-  //   - src/adapter/GitAdapter.ts      streamArchive    finally
   //   - src/adapter/ioExecutor.ts      _executeGitDirCopy catch
   //   - src/utils/configValidator.ts   _getApiVersion   catch
   //
