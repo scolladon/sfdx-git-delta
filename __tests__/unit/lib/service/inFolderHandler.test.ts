@@ -117,6 +117,44 @@ describe('InFolderHandler', () => {
       ])
     })
 
+    it('Given document meta addition, When collect, Then copies the changed file and folder descriptor before requesting the component', async () => {
+      // Arrange
+      config.to = 'sha123'
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new InFolder(changeType, element, getContext({ config }))
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.copies).toEqual([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: `${COMPONENT_PATH}.document`,
+          revision: 'sha123',
+        },
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: `${COMPONENT_PATH}.document-meta.xml`,
+          revision: 'sha123',
+        },
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: `${DOCUMENT_DIR}.document-meta.xml`,
+          revision: 'sha123',
+        },
+        {
+          kind: CopyOperationKind.GitComponentCopy,
+          path: COMPONENT_PATH,
+          revision: 'sha123',
+        },
+      ])
+    })
+
     it('Given the component has an extensionless file, When collect, Then copies the file named as the component', async () => {
       // Arrange
       mockedPathExists.mockResolvedValueOnce(true)
