@@ -1,21 +1,11 @@
 'use strict'
-import { join } from 'node:path/posix'
-
 import GitAdapter from '../adapter/GitAdapter.js'
 import type { Config } from '../types/config.js'
 import type { FileGitRef } from '../types/git.js'
 import type { RunContext } from '../types/runContext.js'
 
 import { getErrorMessage } from './errorUtils.js'
-import { outputFile } from './fsUtils.js'
-import { buildIgnoreHelper } from './ignoreHelper.js'
 import { Logger, lazy } from './LoggingService.js'
-
-const writtenFiles = new Set<string>()
-
-export const resetWrittenFiles = (): void => {
-  writtenFiles.clear()
-}
 
 export const readPathFromGit = async (forRef: FileGitRef, config: Config) => {
   let utf8Data = ''
@@ -76,21 +66,4 @@ export const contentIncludes = async (
 ): Promise<boolean> => {
   const results = await grepContentUnder(pattern, path, config)
   return results.length > 0
-}
-
-export const writeFile = async (
-  path: string,
-  content: string,
-  config: Config
-) => {
-  if (writtenFiles.has(path)) {
-    return
-  }
-  writtenFiles.add(path)
-
-  const ignoreHelper = await buildIgnoreHelper(config)
-  if (ignoreHelper.globalIgnore.ignores(path)) {
-    return
-  }
-  await outputFile(join(config.output, path), content)
 }
