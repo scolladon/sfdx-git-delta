@@ -6,6 +6,7 @@ import ChangesManifestProcessor from '../../../../src/post-processor/changesMani
 import type { Config } from '../../../../src/types/config'
 import { ChangeKind } from '../../../../src/types/handlerResult'
 import ChangeSet from '../../../../src/utils/changeSet'
+import { OutputWriteError } from '../../../../src/utils/errorUtils'
 import { outputFile } from '../../../../src/utils/fsUtils'
 import { addChange, addRename } from '../../../__utils__/handlerResultView'
 import { getConfig, getContext } from '../../../__utils__/testWork'
@@ -24,6 +25,27 @@ describe('ChangesManifestProcessor', () => {
   beforeEach(() => {
     config = getConfig()
     changes = new ChangeSet()
+    vi.mocked(outputFile).mockResolvedValue(undefined)
+  })
+
+  describe('Given the changes manifest cannot be written', () => {
+    it('When process runs, Then it rejects with an OutputWriteError naming the changes manifest path', async () => {
+      // Arrange
+      config.changesManifest = 'reports/changes.json'
+      vi.mocked(outputFile).mockRejectedValueOnce(
+        Object.assign(new Error('EACCES'), { code: 'EACCES' })
+      )
+      const sut = new ChangesManifestProcessor(getContext({ config, metadata }))
+
+      // Act
+      const result = sut.process(changes)
+
+      // Assert
+      await expect(result).rejects.toBeInstanceOf(OutputWriteError)
+      await expect(result).rejects.toMatchObject({
+        path: 'reports/changes.json',
+      })
+    })
   })
 
   describe('Given changes-manifest flag is not set', () => {

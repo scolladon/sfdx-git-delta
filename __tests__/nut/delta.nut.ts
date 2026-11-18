@@ -1,4 +1,7 @@
 'use strict'
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { execCmd } from '@salesforce/cli-plugins-testkit'
 import { describe, expect, it } from 'vitest'
 
@@ -157,5 +160,25 @@ describe('sgd source delta NUTS', () => {
 
     // Assert
     expect(sut).toContain('output-dir')
+  })
+
+  it('Given a directory planted at package/package.xml in --output-dir, When running command, Then exits 0 and warns that the manifest could not be written', () => {
+    // Arrange
+    const out = mkdtempSync(join(tmpdir(), 'sgd-nut-output-'))
+    mkdirSync(join(out, 'package', 'package.xml'), { recursive: true })
+
+    try {
+      // Act
+      const sut = run(
+        `sgd source delta --from HEAD --to HEAD --output-dir "${out}" --json`,
+        0
+      )
+
+      // Assert
+      expect(sut).toContain('Unable to write')
+      expect(sut).toContain('package.xml')
+    } finally {
+      rmSync(out, { recursive: true, force: true })
+    }
   })
 })

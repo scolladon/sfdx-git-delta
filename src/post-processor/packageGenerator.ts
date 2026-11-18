@@ -1,11 +1,12 @@
 'use strict'
 
-import { createWriteStream, promises as fsPromises } from 'node:fs'
+import { promises as fsPromises } from 'node:fs'
 import { dirname, join } from 'node:path/posix'
 import type { Manifest } from '../types/work.js'
 import type ChangeSet from '../utils/changeSet.js'
 import { log } from '../utils/LoggingDecorator.js'
 import PackageBuilder from '../utils/packageHelper.js'
+import { asOutputWrite, writeStreamed } from '../utils/streamedWrite.js'
 import BaseProcessor, {
   emptyOutcome,
   type ProcessorOutcome,
@@ -56,12 +57,11 @@ export default class PackageGenerator extends BaseProcessor {
     op: WriteOp
   ): Promise<void> {
     const dst = join(this.config.output, op.folder, op.filename)
-    await fsPromises.mkdir(dirname(dst), { recursive: true })
-    const ws = createWriteStream(dst)
-    await builder.buildPackageStream(op.manifest, ws)
-    await new Promise<void>((resolve, reject) => {
-      /* v8 ignore next -- defensive: createWriteStream's end-callback fires with err only on synchronous fd write failure */
-      ws.end((err?: Error | null) => (err ? reject(err) : resolve()))
-    })
+    await asOutputWrite(dst, () =>
+      fsPromises.mkdir(dirname(dst), { recursive: true })
+    )
+    await writeStreamed(dst, out =>
+      builder.buildPackageStream(op.manifest, out)
+    )
   }
 }
