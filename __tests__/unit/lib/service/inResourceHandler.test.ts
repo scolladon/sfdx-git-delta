@@ -147,6 +147,22 @@ describe('InResourceHandler', () => {
         expect(result.copies).toHaveLength(0)
       })
 
+      it('Given generateDelta false, When collect, Then the exact-name file is not looked up', async () => {
+        // Arrange
+        const { changeType, element } = createElement(
+          line,
+          staticResourceType,
+          globalMetadata
+        )
+        const sut = new InResourceHandler(changeType, element, ctx)
+
+        // Act
+        await sut.collect()
+
+        // Assert
+        expect(mockedFileExists).not.toHaveBeenCalled()
+      })
+
       it('should correctly identify component name in deeply nested metadata kind folder structure', async () => {
         // Arrange
         const lwcType = {
