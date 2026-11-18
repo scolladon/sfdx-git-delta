@@ -1,13 +1,16 @@
 'use strict'
+import { createHash } from 'node:crypto'
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   realpathSync,
   rmSync,
   unlinkSync,
+  writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, relative, sep } from 'node:path'
+import { dirname, join, relative, sep } from 'node:path'
 
 import { runGit, runGitText } from './gitTestHarness.ts'
 
@@ -2010,4 +2013,112 @@ export const buildRenameUnprocessableFixtureRepo = (
     root,
     ...Object.fromEntries(scenarios),
   } as RenameUnprocessableFixtureRefs
+}
+
+export const LFS_PS_DIR = `${SFDX_DEFAULT_ROOT}/permissionsets/MyPS`
+const LFS_PS_META_PATH = `${LFS_PS_DIR}/MyPS.permissionset-meta.xml`
+const LFS_SFDX_PROJECT_PATH = 'sfdx-project.json'
+const LFS_SFDX_PROJECT_CONTENT =
+  '{"packageDirectories":[{"path":"force-app","default":true}],"sourceApiVersion":"62.0"}'
+const LFS_PS_META_CONTENT =
+  '<?xml version="1.0" encoding="UTF-8"?>\n<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata"><label>MyPS</label></PermissionSet>\n'
+const LFS_POINTER_PREFIX = 'version https://git-lfs.github.com/spec/v1\n'
+const LFS_OID_DIR_LENGTH = 2
+const LFS_CHANGED_CHILD = 1
+
+export const lfsObjectSettingsPath = (i: number): string =>
+  `${LFS_PS_DIR}/objectSettings/Obj${i}.objectSettings-meta.xml`
+
+const lfsObjectSettingsContent = (object: string): string =>
+  `<?xml version="1.0" encoding="UTF-8"?>\n<ObjectSettings xmlns="http://soap.sforce.com/2006/04/metadata"><object>${object}</object></ObjectSettings>\n`
+
+const lfsHash = (real: string): string =>
+  createHash('sha256').update(real).digest('hex')
+
+const lfsObjectPath = (dir: string, real: string): string => {
+  const hex = lfsHash(real)
+  return join(
+    dir,
+    '.git',
+    'lfs',
+    'objects',
+    hex.slice(0, LFS_OID_DIR_LENGTH),
+    hex.slice(LFS_OID_DIR_LENGTH, 2 * LFS_OID_DIR_LENGTH),
+    hex
+  )
+}
+
+const lfsPointerFor = (real: string): string =>
+  `${LFS_POINTER_PREFIX}oid sha256:${lfsHash(real)}\nsize ${Buffer.byteLength(real)}\n`
+
+const storeLfsObject = (dir: string, real: string): void => {
+  const objectPath = lfsObjectPath(dir, real)
+  mkdirSync(dirname(objectPath), { recursive: true })
+  writeFileSync(objectPath, real)
+}
+
+export const removeLfsObject = (dir: string, content: string): void => {
+  const objectPath = lfsObjectPath(dir, content)
+  if (!existsSync(objectPath)) {
+    throw new Error(`expected an lfs object at ${objectPath}`)
+  }
+  unlinkSync(objectPath)
+}
+
+export type LfsDirCopyFixtureRefs = {
+  readonly base: string
+  readonly head: string
+  // Every path at head, mapped to its resolved (real) bytes.
+  readonly contents: ReadonlyMap<string, string>
+}
+
+const psFileOps = (
+  dir: string,
+  files: ReadonlyMap<string, string>,
+  lfs: boolean
+): FixtureOp[] =>
+  [...files].map(([path, real]) => {
+    if (!lfs) return { kind: 'add', mode: '100644', path, content: real }
+    storeLfsObject(dir, real)
+    return { kind: 'add', mode: '100644', path, content: lfsPointerFor(real) }
+  })
+
+const lfsPsFiles = (
+  childCount: number,
+  changedChild: number | null
+): Map<string, string> => {
+  const files = new Map([[LFS_PS_META_PATH, LFS_PS_META_CONTENT]])
+  for (let i = 1; i <= childCount; i++) {
+    const object = i === changedChild ? `Obj${i}b__c` : `Obj${i}__c`
+    files.set(lfsObjectSettingsPath(i), lfsObjectSettingsContent(object))
+  }
+  return files
+}
+
+/**
+ * A decomposed permission set dir of `childCount` children plus its meta
+ * file, committed as LFS pointers (real bytes in .git/lfs/objects, no git-lfs
+ * binary needed) or, with `lfs: false`, as plain blobs. Head changes child 1.
+ */
+export const buildLfsDirCopyFixtureRepo = (
+  dir: string,
+  childCount: number,
+  options: { lfs?: boolean } = {}
+): LfsDirCopyFixtureRefs => {
+  const lfs = options.lfs ?? true
+  initRepo(dir)
+  const baseFiles = lfsPsFiles(childCount, null)
+  const headFiles = lfsPsFiles(childCount, LFS_CHANGED_CHILD)
+  const base = makeCommit(dir, null, 'base', [
+    {
+      kind: 'add',
+      mode: '100644',
+      path: LFS_SFDX_PROJECT_PATH,
+      content: LFS_SFDX_PROJECT_CONTENT,
+    },
+    ...psFileOps(dir, baseFiles, lfs),
+  ])
+  const head = makeCommit(dir, base, 'head', psFileOps(dir, headFiles, lfs))
+  runGit(['update-ref', 'HEAD', head], { cwd: dir })
+  return { base, head, contents: headFiles }
 }
