@@ -9,7 +9,6 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import { readDirs } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig, getContext } from '../../../__utils__/testWork'
@@ -111,7 +110,7 @@ describe('InNestedFolderHandler', () => {
   )
 
   describe.each(testContext)(
-    'when called with generateDelta true',
+    'Given generateDelta is true and %s',
     (changePath: string, expectedMember: string, expectedType: string, componentPath: string) => {
       beforeEach(() => {
         config.generateDelta = true
@@ -154,7 +153,11 @@ describe('InNestedFolderHandler', () => {
             revision: config.to,
           },
         ])
-        expect(readDirs).not.toHaveBeenCalled()
+        expect(result.copies).toContainEqual({
+          kind: CopyOperationKind.GitCopy,
+          path: 'force-app/main/default/reports/folder-meta.xml',
+          revision: config.to,
+        })
       })
     }
   )

@@ -55,6 +55,8 @@ const FILES = [
   `${ROOT}/dashboards/df.dashboardFolder-meta.xml`,
   `${DASHBOARD_FOLDER}/d.dashboard-meta.xml`,
   `${DASHBOARD_FOLDER}/d1.dashboard-meta.xml`,
+  `${DASHBOARD_FOLDER}/sub.dashboardFolder-meta.xml`,
+  `${DASHBOARD_FOLDER}/sub/d.dashboard-meta.xml`,
 ]
 
 const ROWS = [

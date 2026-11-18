@@ -10,13 +10,12 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import { pathExists, readDirs } from '../../../../src/utils/fsHelper'
+import { pathExists } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
-const mockedReadDirs = vi.mocked(readDirs)
 const mockedPathExists = vi.mocked(pathExists)
 
 const entity = 'folder/test'
@@ -116,7 +115,6 @@ describe('InFolderHandler', () => {
           revision: config.to,
         },
       ])
-      expect(mockedReadDirs).not.toHaveBeenCalled()
     })
 
     it('Given the component has an extensionless file, When collect, Then copies the file named as the component', async () => {
@@ -217,7 +215,7 @@ describe('InFolderHandler', () => {
       expect(folderMetaCopy).toBeDefined()
     })
 
-    it('Given addition with generateDelta false, When collect, Then _shouldCollectCopies prevents special extension copies', async () => {
+    it('Given addition with generateDelta false, When collect, Then requests no component copy', async () => {
       // Arrange
       config.generateDelta = false
       const { changeType, element } = createElement(
@@ -232,7 +230,6 @@ describe('InFolderHandler', () => {
 
       // Assert
       expect(elementsOf(result).length).toBeGreaterThan(0)
-      expect(mockedReadDirs).not.toHaveBeenCalled()
       expect(mockedPathExists).not.toHaveBeenCalled()
       expect(
         result.copies.some(c => c.kind === CopyOperationKind.GitComponentCopy)
