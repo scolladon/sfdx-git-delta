@@ -127,7 +127,8 @@ const IGNORE_WHITESPACE_OPTIONS = {
   ignoreBlankLines: true,
 } as const
 
-// Streaming LFS-pointer detection for streamContent: the literal magic
+// Streaming LFS-pointer detection for blobContentChunks (behind both
+// streamContent and streamArchive): the literal magic
 // prefix released LFS pointer files start with, and a generous upper
 // bound on pointer body size (real pointers are ~130 bytes; this guards
 // against a corrupt/oversized "pointer" masquerading as one).
@@ -578,6 +579,18 @@ export default class GitAdapter implements GitBlobReader {
   ): AsyncGenerator<Uint8Array> {
     const repo = await this.getRepo()
     const chunks = normalizeChunks(await repo.primitives.streamBlob(blobId))
+    // A consumer destroying the stream while paused on `yield head` never
+    // reaches the `yield*` that would close the blob iterator for us.
+    try {
+      yield* this.resolvedBlobChunks(chunks)
+    } finally {
+      await chunks.return(undefined)
+    }
+  }
+
+  private async *resolvedBlobChunks(
+    chunks: AsyncGenerator<Uint8Array>
+  ): AsyncGenerator<Uint8Array> {
     const head = await peekHead(chunks)
     if (isLfsPointer(head)) {
       yield* this.lfsObjectChunks(await accumulatePointer(chunks, head))

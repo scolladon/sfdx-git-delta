@@ -2208,10 +2208,27 @@ describe('GitAdapter', () => {
       const sut = GitAdapter.getInstance(makeConfig())
       fakeRepo.revParse.mockRejectedValue('raw-string-failure')
 
-      // Act & Assert
-      await expect(
-        drain(sut.streamContent({ path: 'force-app/foo.cls', oid: 'HEAD' }))
-      ).rejects.toThrow('raw-string-failure')
+      // Act
+      const result = await drain(
+        sut.streamContent({ path: 'force-app/foo.cls', oid: 'HEAD' })
+      ).catch((error: unknown) => error)
+
+      // Assert
+      expect(result).toBeInstanceOf(Error)
+      expect((result as Error).message).toBe('raw-string-failure')
+    })
+
+    it('When the stream is never read, Then neither the revision nor the blob is read', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+
+      // Act
+      sut.streamContent({ path: 'force-app/foo.cls', oid: 'HEAD' })
+      await new Promise(resolve => setImmediate(resolve))
+
+      // Assert
+      expect(fakeRepo.revParse).not.toHaveBeenCalled()
+      expect(fakeRepo.primitives.streamBlob).not.toHaveBeenCalled()
     })
   })
 
@@ -2337,6 +2354,41 @@ describe('GitAdapter', () => {
       expect(fakeRepo.primitives.streamBlob).not.toHaveBeenCalled()
       expect(createReadStreamMocked).not.toHaveBeenCalled()
       expect(onError).not.toHaveBeenCalled()
+    })
+
+    it('When an entry stream is destroyed while its first chunk is still buffered, Then the blob iterator is closed', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree.mockResolvedValue(
+        flatten([['force-app/a.bin', { mode: '100644', id: 'blob-1' }]])
+      )
+      const chunks = [Buffer.alloc(100_000, 0x61), Buffer.from('tail')]
+      const closeBlobIterator = vi.fn(async () => ({
+        done: true as const,
+        value: undefined,
+      }))
+      fakeRepo.primitives.streamBlob.mockResolvedValue({
+        [Symbol.asyncIterator]: () => ({
+          next: async () => {
+            const value = chunks.shift()
+            return value === undefined
+              ? { done: true, value: undefined }
+              : { done: false, value }
+          },
+          return: closeBlobIterator,
+        }),
+      })
+      const [entry] = await collect(sut.streamArchive('force-app', 'HEAD'))
+      await once(entry!.stream, 'readable')
+
+      // Act
+      entry!.stream.destroy()
+      await new Promise(resolve => setImmediate(resolve))
+
+      // Assert
+      expect(closeBlobIterator).toHaveBeenCalled()
     })
 
     it("When one entry's LFS pointer exceeds LFS_POINTER_CAP, Then that entry stream errors and the next entry still streams", async () => {

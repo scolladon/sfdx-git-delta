@@ -5,8 +5,8 @@ import type { FileGitRef } from '../types/git.js'
 
 /**
  * Signal (not Error) used to redirect _executeGitFileCopy from the buffered
- * `getBufferContentOrEscalate` path to the dedicated streaming path. Carries the offending
- * blob's size for size-tiered dispatch telemetry.
+ * `getBufferContentOrEscalate` path to the dedicated streaming path. Carries
+ * the offending blob's size for size-tiered dispatch telemetry.
  *
  * Deliberately not an Error subclass: zero stack trace allocation, clear
  * flow-control-not-exception semantics at call sites that catch it.
