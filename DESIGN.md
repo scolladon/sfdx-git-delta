@@ -295,7 +295,7 @@ Detects the format by file extension and routes accordingly. In the monolithic f
 **Extends**: StandardHandler
 **Used by**: Document, EmailTemplate (and any type with `inFolder: true` not explicitly overridden)
 
-Handles metadata stored in named folders. When a file changes, the handler also copies the folder's `-meta.xml` descriptor and any companion files sharing the same base name (e.g. thumbnails). Element names use the `Folder/MemberName` format.
+Handles metadata stored in named folders. When a file changes, the handler also copies the folder's `-meta.xml` descriptor and, under `--generate-delta`, the changed component's own files: every file of its directory whose path starts with the component path (the base path without its last extension) followed by `.` or `/`, plus a file named exactly as the component (an extensionless content file). A folder descriptor line of a type with meta files (Document, EmailTemplate) therefore also copies the folder's content. Element names use the `Folder/MemberName` format.
 
 #### ReportingFolderHandler
 

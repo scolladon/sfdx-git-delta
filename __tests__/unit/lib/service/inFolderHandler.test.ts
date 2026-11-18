@@ -10,13 +10,14 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import { readDirs } from '../../../../src/utils/fsHelper'
+import { pathExists, readDirs } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
 const mockedReadDirs = vi.mocked(readDirs)
+const mockedPathExists = vi.mocked(pathExists)
 
 const entity = 'folder/test'
 const extension = 'document'
@@ -27,6 +28,8 @@ const objectType = {
   suffix: 'document',
   xmlName: 'Document',
 }
+const DOCUMENT_DIR = `force-app/main/default/${objectType.directoryName}/folder`
+const COMPONENT_PATH = `${DOCUMENT_DIR}/test`
 const line = `A       force-app/main/default/${objectType.directoryName}/${entity}.${extension}-meta.xml`
 
 let config: Config
@@ -92,9 +95,15 @@ describe('InFolderHandler', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
-    it('Given document addition with matching special extension files, When collect, Then includes special extension copies', async () => {
+    it('Given a folder holding the component and look-alike files, When collect, Then copies only the component files', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([entity, 'not/matching'])
+      mockedReadDirs.mockResolvedValueOnce([
+        `${DOCUMENT_DIR}/test.png`,
+        `${DOCUMENT_DIR}/test10.png`,
+        `${DOCUMENT_DIR}/my_test.png`,
+        `${DOCUMENT_DIR}/test/inner.png`,
+        `${DOCUMENT_DIR}/test.document-meta.xml`,
+      ])
       const { changeType, element } = createElement(
         line,
         objectType,
@@ -115,8 +124,66 @@ describe('InFolderHandler', () => {
           }),
         ])
       )
-      expect(result.copies.length).toBeGreaterThan(1)
+      const paths = result.copies.map(c => c.path)
+      expect(paths).toEqual(
+        expect.arrayContaining([
+          `${DOCUMENT_DIR}/test.png`,
+          `${DOCUMENT_DIR}/test.document-meta.xml`,
+          `${DOCUMENT_DIR}/test/inner.png`,
+          `${DOCUMENT_DIR}/test/inner.document-meta.xml`,
+        ])
+      )
+      for (const excluded of [
+        `${DOCUMENT_DIR}/test10.png`,
+        `${DOCUMENT_DIR}/test10.document-meta.xml`,
+        `${DOCUMENT_DIR}/my_test.png`,
+        `${DOCUMENT_DIR}/my_test.document-meta.xml`,
+      ]) {
+        expect(paths).not.toContain(excluded)
+      }
       expect(result.warnings).toHaveLength(0)
+    })
+
+    it('Given the component has an extensionless file, When collect, Then copies the file named as the component', async () => {
+      // Arrange
+      mockedReadDirs.mockResolvedValueOnce([])
+      mockedPathExists.mockResolvedValueOnce(true)
+      const ctx = getContext({ config })
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new InFolder(changeType, element, ctx)
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.copies).toContainEqual({
+        kind: CopyOperationKind.GitCopy,
+        path: COMPONENT_PATH,
+        revision: config.to,
+      })
+      expect(mockedPathExists).toHaveBeenCalledWith(COMPONENT_PATH, ctx)
+    })
+
+    it('Given no file is named as the component, When collect, Then copies no file named as the component', async () => {
+      // Arrange
+      mockedReadDirs.mockResolvedValueOnce([])
+      mockedPathExists.mockResolvedValueOnce(false)
+      const { changeType, element } = createElement(
+        line,
+        objectType,
+        globalMetadata
+      )
+      const sut = new InFolder(changeType, element, getContext({ config }))
+
+      // Act
+      const result = await sut.collect()
+
+      // Assert
+      expect(result.copies.map(c => c.path)).not.toContain(COMPONENT_PATH)
     })
 
     it('Given folder name ending with INFOLDER_SUFFIX, When collect, Then folder meta copy uses empty suffix', async () => {
@@ -191,6 +258,7 @@ describe('InFolderHandler', () => {
       // Assert
       expect(elementsOf(result).length).toBeGreaterThan(0)
       expect(mockedReadDirs).not.toHaveBeenCalled()
+      expect(mockedPathExists).not.toHaveBeenCalled()
     })
 
     it('Given file directly in type directory with non-matching extension, When collect, Then _isProcessable returns false and result is empty', async () => {

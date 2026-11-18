@@ -41,21 +41,25 @@ const testContext = [
     `A       force-app/main/default/${objectType.directoryName}/${entity}.${extension}-meta.xml`,
     entity,
     'Report',
+    'force-app/main/default/reports/folder/test',
   ],
   [
     `A       force-app/main/default/${objectType.directoryName}/${entity}.reportFolder-meta.xml`,
     entity,
     'ReportFolder',
+    'force-app/main/default/reports/folder/test',
   ],
   [
     `A       force-app/main/default/${objectType.directoryName}/folder/${entity}.reportFolder-meta.xml`,
     `folder/${entity}`,
     'ReportFolder',
+    'force-app/main/default/reports/folder/folder/test',
   ],
   [
     `A       force-app/main/default/${objectType.directoryName}/folder/folder/${entity}.reportFolder-meta.xml`,
     `folder/folder/${entity}`,
     'ReportFolder',
+    'force-app/main/default/reports/folder/folder/folder/test',
   ],
 ]
 
@@ -110,7 +114,7 @@ describe('InNestedFolderHandler', () => {
 
   describe.each(testContext)(
     'when called with generateDelta true',
-    (changePath: string, expectedMember: string, expectedType: string) => {
+    (changePath: string, expectedMember: string, expectedType: string, componentPath: string) => {
       beforeEach(() => {
         config.generateDelta = true
       })
@@ -156,7 +160,7 @@ describe('InNestedFolderHandler', () => {
       })
 
       describe('when readDirs returns files', () => {
-        it('should include special extension copies', async () => {
+        it('When collectAddition, Then copies only the component files', async () => {
           // Arrange
           const { changeType, element } = createElement(
             changePath,
@@ -169,7 +173,10 @@ describe('InNestedFolderHandler', () => {
             getContext({ config })
           )
           mockedReadDirs.mockImplementationOnce(() =>
-            Promise.resolve([entity, 'not/matching'])
+            Promise.resolve([
+              `${componentPath}.report-meta.xml`,
+              `${componentPath}x.report-meta.xml`,
+            ])
           )
 
           // Act
@@ -186,7 +193,9 @@ describe('InNestedFolderHandler', () => {
             ])
           )
           expect(readDirs).toHaveBeenCalledTimes(1)
-          expect(result.copies).toHaveLength(5)
+          const paths = result.copies.map(c => c.path)
+          expect(paths).toContain(`${componentPath}.report-meta.xml`)
+          expect(paths).not.toContain(`${componentPath}x.report-meta.xml`)
         })
       })
     }
