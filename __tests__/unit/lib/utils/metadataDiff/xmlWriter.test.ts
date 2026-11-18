@@ -543,6 +543,21 @@ describe('Given a drain wait on the output stream', () => {
     await expect(result).rejects.toBe(error)
   })
 
+  it('When the stream is destroyed during the drain wait, Then no drain listener is left on the stream', async () => {
+    // Arrange
+    const stream = slowStream()
+    stream.on('error', () => undefined)
+    const drainBefore = stream.listenerCount('drain')
+    const result = writeXmlDocument(stream, profileCapture, largeLabels())
+
+    // Act
+    setImmediate(() => stream.destroy(new Error('EIO')))
+    await result.catch(() => undefined)
+
+    // Assert
+    expect(stream.listenerCount('drain')).toBe(drainBefore)
+  })
+
   it('When drain arrives, Then no drain, error or close listener is left on the stream', async () => {
     // Arrange
     const stream = slowStream()

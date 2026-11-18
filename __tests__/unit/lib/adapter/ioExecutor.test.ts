@@ -1999,6 +1999,28 @@ describe('IOExecutor', () => {
       expect(loggedMessages()).not.toContain(result[0]?.message)
     })
 
+    it('When a streamed producer throws a non-write error, Then the debug log names the destination and the error message and no warning is recorded', async () => {
+      // Arrange
+      const sut = makeSut()
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.StreamedContent,
+          path: LABELS_PATH,
+          writer: async () => {
+            throw new Error('producer broke')
+          },
+        },
+      ])
+
+      // Assert
+      expect(loggedMessages()).toContain(
+        `IOExecutor copy failed for ${LABELS_DST}: producer broke`
+      )
+      expect(sut.warnings()).toEqual([])
+    })
+
     it('When the returned warnings are mutated, Then a later warnings() call is unaffected', async () => {
       // Arrange
       mockCreateWriteStream.mockReturnValueOnce(failingOpenStream('EISDIR'))
