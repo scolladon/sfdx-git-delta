@@ -35,14 +35,18 @@ export interface GitBlobReader {
    */
   getBufferContentOrEscalate(ref: FileGitRef): Promise<Buffer>
   /**
-   * Streams ref's blob from the tsgit object store, peeks the LFS pointer
-   * magic, and returns a Readable that either forwards the blob stream or
-   * (on LFS match) opens the underlying LFS object file.
+   * Returns a lazy Readable: nothing is read from the tsgit object store
+   * until the consumer reads. It peeks the LFS pointer magic and either
+   * forwards the blob stream or (on LFS match) opens the underlying LFS
+   * object file.
    */
   streamContent(ref: FileGitRef): Readable
   /**
    * Streams every blob under `<path>` at `<revision>` and yields one
    * `{ path, stream }` per file entry. Directories are filtered out.
+   * Entries are lazy: no blob or LFS read happens until the stream is read,
+   * and LFS pointers resolve to the local LFS object exactly like
+   * `streamContent`.
    * A caller that does not want an entry must `destroy()` it; `resume()`
    * would read it, and an unhandled read error would crash the process.
    */

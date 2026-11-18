@@ -8,7 +8,9 @@
  *   git cat-file --batch / blob         -> repo.primitives.readBlob / streamBlob
  *   git diff --name-status -M -w        -> repo.diff({ recursive,
  *                                            detectRenames, ignoreWhitespace })
- *   git archive --format=tar            -> tree walk + streamBlob
+ *   git archive --format=tar            -> tree walk + streamBlob, LFS
+ *                                          pointers resolved (git archive +
+ *                                          lfs smudge)
  *   git grep -l                         -> candidates: per-revision sorted
  *                                          path index (exact hit / binary-
  *                                          searched prefix range) on the
@@ -29,11 +31,10 @@
  * values, already validated to carry no wildcard metacharacters, reach the
  * latter.
  */
-import { once } from 'node:events'
 import { createReadStream } from 'node:fs'
 import { readFile, stat } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
-import { PassThrough, Readable } from 'node:stream'
+import { Readable } from 'node:stream'
 
 import {
   type Commit,
@@ -558,62 +559,51 @@ export default class GitAdapter implements GitBlobReader {
     return content
   }
 
-  // Peeks the first LFS_MAGIC.length bytes off the pull-based streamBlob
-  // iterator: a match hands off to the resolved LFS object file, otherwise
-  // the peeked head and every remaining chunk are forwarded as-is. Backed
-  // by the async iterator's own pull semantics, so no pause/resume is
-  // needed to respect backpressure — only out.write()'s own signal.
+  // One lazy, pull-based generator wrapped by Readable.from: nothing is read
+  // until the consumer reads, and backpressure comes from Readable.from's own
+  // _read pulls. A blob starting with the LFS pointer magic is replaced by
+  // the resolved local LFS object.
   public streamContent(forRef: FileGitRef): Readable {
-    const out = new PassThrough()
-    this.pipeBlobContent(forRef, out).catch((error: unknown) => {
-      out.destroy(
-        error instanceof Error ? error : new Error(getErrorMessage(error))
-      )
-    })
-    return out
+    return toByteStream(this.resolvedContentChunks(forRef))
   }
 
-  private async pipeBlobContent(
-    forRef: FileGitRef,
-    out: PassThrough
-  ): Promise<void> {
+  private async *resolvedContentChunks(
+    forRef: FileGitRef
+  ): AsyncGenerator<Uint8Array> {
+    yield* this.blobContentChunks(await this.resolveObjectId(forRef))
+  }
+
+  private async *blobContentChunks(
+    blobId: ObjectId
+  ): AsyncGenerator<Uint8Array> {
     const repo = await this.getRepo()
-    const blobId = await this.resolveObjectId(forRef)
-    const blobStream = await repo.primitives.streamBlob(blobId)
-    const chunks = normalizeChunks(blobStream)
-    const { head, exhausted } = await peekHead(chunks)
+    const chunks = normalizeChunks(await repo.primitives.streamBlob(blobId))
+    const head = await peekHead(chunks)
     if (isLfsPointer(head)) {
-      await this.pipeLfsObject(chunks, head, out)
+      yield* this.lfsObjectChunks(await accumulatePointer(chunks, head))
       return
     }
-    await forwardChunks(chunks, out, head, exhausted)
+    yield head
+    yield* chunks
   }
 
-  private async pipeLfsObject(
-    chunks: AsyncGenerator<Uint8Array>,
-    head: Buffer,
-    out: PassThrough
-  ): Promise<void> {
-    const pointer = await accumulatePointer(chunks, head)
-    const lfsPath = getLFSObjectContentPath(pointer)
-    createReadStream(join(this.repoPath, lfsPath))
-      .on('error', (error: Error) => out.destroy(error))
-      .pipe(out)
+  private lfsObjectChunks(pointer: Buffer): AsyncIterable<Uint8Array> {
+    return createReadStream(
+      join(this.repoPath, getLFSObjectContentPath(pointer))
+    )
   }
 
   public async *streamArchive(
     path: string,
     revision: string
   ): AsyncGenerator<{ path: string; stream: Readable }> {
-    const repo = await this.getRepo()
     const blobIds = await this.indexRevision(revision)
     const inArchiveScope = buildScopeMatcher([path])
     for (const [filePath, blobId] of blobIds) {
       if (!inArchiveScope(filePath)) continue
-      const blob = await repo.primitives.streamBlob(blobId)
       yield {
         path: filePath,
-        stream: Readable.from(blob, { objectMode: false }),
+        stream: toByteStream(this.blobContentChunks(blobId)),
       }
     }
   }
@@ -760,13 +750,27 @@ export default class GitAdapter implements GitBlobReader {
 
 // Normalizes streamBlob's result (a real BlobStream in production, plain
 // arrays of chunks in unit fakes) into a single stateful AsyncGenerator so
-// streamContent can peek a few chunks via next() and later hand the same
-// cursor to a for-await loop without losing its place.
+// blobContentChunks can peek a few chunks via next() and later hand the same
+// cursor to a yield* without losing its place.
 async function* normalizeChunks(
   source: AsyncIterable<Uint8Array>
 ): AsyncGenerator<Uint8Array> {
   yield* source
 }
+
+// Surfaces any rejection as an Error so a stream consumer always gets one.
+async function* asErrors(
+  source: AsyncGenerator<Uint8Array>
+): AsyncGenerator<Uint8Array> {
+  try {
+    yield* source
+  } catch (error) {
+    throw error instanceof Error ? error : new Error(getErrorMessage(error))
+  }
+}
+
+const toByteStream = (source: AsyncGenerator<Uint8Array>): Readable =>
+  Readable.from(asErrors(source), { objectMode: false })
 
 const isLfsPointer = (head: Buffer): boolean =>
   // Stryker disable next-line ConditionalExpression -- equivalent: the length guard is redundant. Buffer#subarray clamps rather than throwing when the end index exceeds the buffer, and Buffer#equals is false for operands of differing length, so the comparison alone already returns false for any head shorter than the magic
@@ -775,48 +779,17 @@ const isLfsPointer = (head: Buffer): boolean =>
 
 const peekHead = async (
   chunks: AsyncGenerator<Uint8Array>
-): Promise<{ head: Buffer; exhausted: boolean }> => {
+): Promise<Buffer> => {
   const parts: Uint8Array[] = []
   let length = 0
-  // Stryker disable next-line EqualityOperator -- equivalent: `<=` only shifts where the peek stops versus what the caller's remaining-chunk iteration picks up; the same total bytes reach forwardChunks/accumulatePointer either way, so the streamed output is byte-identical
+  // Stryker disable next-line EqualityOperator -- equivalent: `<=` only shifts where the peek stops versus what the caller's remaining-chunk yield* / accumulatePointer picks up; the same total bytes reach the output either way, so the streamed output is byte-identical
   while (length < LFS_MAGIC.length) {
     const result = await chunks.next()
-    if (result.done) {
-      // Stryker disable next-line BooleanLiteral -- equivalent: `exhausted` only gates whether forwardChunks re-enters a `for await` over the generator, and per the async-generator protocol a generator that has returned done keeps returning done — so re-entering when already exhausted is a guaranteed zero-iteration no-op
-      return { head: Buffer.concat(parts, length), exhausted: true }
-    }
+    if (result.done) break
     parts.push(result.value)
     length += result.value.length
   }
-  return { head: Buffer.concat(parts, length), exhausted: false }
-}
-
-const writeChunk = async (
-  out: PassThrough,
-  chunk: Uint8Array
-): Promise<void> => {
-  if (!out.write(chunk)) {
-    await once(out, 'drain')
-  }
-}
-
-const forwardChunks = async (
-  chunks: AsyncGenerator<Uint8Array>,
-  out: PassThrough,
-  head: Buffer,
-  exhausted: boolean
-): Promise<void> => {
-  // Stryker disable next-line ConditionalExpression,EqualityOperator -- equivalent: writing a zero-length Buffer to a PassThrough is a no-op (no 'data' event, readableLength/writableLength unchanged, write() returns true), so calling writeChunk unconditionally when head is empty is indistinguishable from skipping it
-  if (head.length > 0) {
-    await writeChunk(out, head)
-  }
-  // Stryker disable next-line ConditionalExpression -- equivalent: same reasoning as the `exhausted: true` return in peekHead — entering this loop on an already-exhausted generator iterates zero times
-  if (!exhausted) {
-    for await (const chunk of chunks) {
-      await writeChunk(out, chunk)
-    }
-  }
-  out.end()
+  return Buffer.concat(parts, length)
 }
 
 const assertWithinPointerCap = (length: number): void => {
