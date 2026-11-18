@@ -1,4 +1,5 @@
 'use strict'
+import { once } from 'node:events'
 import { PassThrough } from 'node:stream'
 
 import { describe, expect, it } from 'vitest'
@@ -26,6 +27,19 @@ const profileCapture: RootCapture = {
   rootKey: 'Profile',
   rootAttributes: { '@_xmlns': 'http://soap.sforce.com/2006/04/metadata' },
 }
+
+// Large enough to cross the 8 KB flush threshold.
+const largeLabels = (): [string, unknown][] =>
+  Array.from({ length: 200 }, (_, i): [string, unknown] => [
+    'labels',
+    {
+      fullName: `Label_${i}`,
+      language: 'en_US',
+      protected: 'false',
+      shortDescription: 'A short description that exists',
+      value: `A label value with words ${i}`,
+    },
+  ])
 
 describe('writeXmlDocument', () => {
   it('Given an empty root child list, When the writer runs, Then root renders as single-line <Root></Root>', async () => {
@@ -459,17 +473,7 @@ describe('writeXmlDocument', () => {
     stream.pause()
     const sinkChunks: Buffer[] = []
     stream.on('data', chunk => sinkChunks.push(Buffer.from(chunk)))
-    // Build a payload large enough to cross the 8 KB flush threshold.
-    const labels = Array.from({ length: 200 }, (_, i): [string, unknown] => [
-      'labels',
-      {
-        fullName: `Label_${i}`,
-        language: 'en_US',
-        protected: 'false',
-        shortDescription: 'A short description that exists',
-        value: `A label value with words ${i}`,
-      },
-    ])
+    const labels = largeLabels()
     const writePromise = writeXmlDocument(stream, profileCapture, labels)
     // Yield once so the writer enters drain-await, then flip the stream
     // back to flowing mode to release backpressure.
@@ -479,5 +483,68 @@ describe('writeXmlDocument', () => {
     const out = Buffer.concat(sinkChunks).toString('utf8')
     expect(out).toContain('<Profile')
     expect(out.match(/<labels>/g)?.length).toBe(200)
+  })
+})
+
+describe('Given a drain wait on the output stream', () => {
+  const slowStream = (): PassThrough => new PassThrough({ highWaterMark: 16 })
+
+  it('When the stream was already destroyed with an error, Then writeXmlDocument rejects with that error', async () => {
+    // Arrange
+    const stream = new PassThrough()
+    const error = new Error('EISDIR')
+    const errored = once(stream, 'error')
+    stream.destroy(error)
+    await errored
+
+    // Act
+    const result = writeXmlDocument(stream, profileCapture, [])
+
+    // Assert
+    await expect(result).rejects.toBe(error)
+  })
+
+  it('When the stream is destroyed without an error during the drain wait, Then writeXmlDocument rejects with closed before drain', async () => {
+    // Arrange
+    const stream = slowStream()
+    const result = writeXmlDocument(stream, profileCapture, largeLabels())
+
+    // Act
+    setImmediate(() => stream.destroy())
+
+    // Assert
+    await expect(result).rejects.toThrow('output stream closed before drain')
+  })
+
+  it('When the stream is destroyed with an error during the drain wait, Then writeXmlDocument rejects with that error', async () => {
+    // Arrange
+    const stream = slowStream()
+    stream.on('error', () => undefined)
+    const error = new Error('EIO')
+    const result = writeXmlDocument(stream, profileCapture, largeLabels())
+
+    // Act
+    setImmediate(() => stream.destroy(error))
+
+    // Assert
+    await expect(result).rejects.toBe(error)
+  })
+
+  it('When drain arrives, Then no drain or close listener is left on the stream', async () => {
+    // Arrange
+    const stream = slowStream()
+    stream.pause()
+    stream.on('data', () => undefined)
+    const drainBefore = stream.listenerCount('drain')
+    const closeBefore = stream.listenerCount('close')
+    const result = writeXmlDocument(stream, profileCapture, largeLabels())
+
+    // Act
+    setImmediate(() => stream.resume())
+    await result
+
+    // Assert
+    expect(stream.listenerCount('drain')).toBe(drainBefore)
+    expect(stream.listenerCount('close')).toBe(closeBefore)
   })
 })
