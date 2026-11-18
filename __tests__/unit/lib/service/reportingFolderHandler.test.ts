@@ -15,7 +15,6 @@ import { createElement } from '../../../__utils__/testElement'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
-const mockedReadDirs = vi.mocked(readDirs)
 
 const entity = 'folder/test'
 const extension = 'report'
@@ -67,7 +66,6 @@ let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
   config = getConfig()
-  mockedReadDirs.mockResolvedValue([])
 })
 
 describe('InNestedFolderHandler', () => {
@@ -119,84 +117,44 @@ describe('InNestedFolderHandler', () => {
         config.generateDelta = true
       })
 
-      describe(`when readDirs does not return files`, () => {
-        it(`should return manifest and copy entries for ${expectedType}`, async () => {
-          // Arrange
-          const { changeType, element } = createElement(
-            changePath,
-            objectType,
-            globalMetadata
-          )
-          const sut = new ReportingFolderHandler(
-            changeType,
-            element,
-            getContext({ config })
-          )
-          mockedReadDirs.mockImplementation(() => Promise.resolve([]))
+      it('When collectAddition, Then requests the component files once instead of listing the folder', async () => {
+        // Arrange
+        const { changeType, element } = createElement(
+          changePath,
+          objectType,
+          globalMetadata
+        )
+        const sut = new ReportingFolderHandler(
+          changeType,
+          element,
+          getContext({ config })
+        )
 
-          // Act
-          const result = await sut.collectAddition()
+        // Act
+        const result = await sut.collectAddition()
 
-          // Assert
-          expect(elementsOf(result)).toEqual(
-            expect.arrayContaining([
-              expect.objectContaining({
-                target: ManifestTarget.Package,
-                type: expectedType,
-                member: expectedMember,
-              }),
-            ])
+        // Assert
+        expect(elementsOf(result)).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              target: ManifestTarget.Package,
+              type: expectedType,
+              member: expectedMember,
+            }),
+          ])
+        )
+        expect(
+          result.copies.filter(
+            c => c.kind === CopyOperationKind.GitComponentCopy
           )
-          expect(readDirs).toHaveBeenCalledTimes(1)
-          expect(result.copies).toHaveLength(3)
-          expect(result.copies).toEqual(
-            expect.arrayContaining([
-              expect.objectContaining({
-                kind: CopyOperationKind.GitCopy,
-              }),
-            ])
-          )
-        })
-      })
-
-      describe('when readDirs returns files', () => {
-        it('When collectAddition, Then copies only the component files', async () => {
-          // Arrange
-          const { changeType, element } = createElement(
-            changePath,
-            objectType,
-            globalMetadata
-          )
-          const sut = new ReportingFolderHandler(
-            changeType,
-            element,
-            getContext({ config })
-          )
-          mockedReadDirs.mockImplementationOnce(() =>
-            Promise.resolve([
-              `${componentPath}.report-meta.xml`,
-              `${componentPath}x.report-meta.xml`,
-            ])
-          )
-
-          // Act
-          const result = await sut.collectAddition()
-
-          // Assert
-          expect(elementsOf(result)).toEqual(
-            expect.arrayContaining([
-              expect.objectContaining({
-                target: ManifestTarget.Package,
-                type: expectedType,
-                member: expectedMember,
-              }),
-            ])
-          )
-          expect(readDirs).toHaveBeenCalledTimes(1)
-          const paths = result.copies.map(c => c.path)
-          expect(paths).toContain(`${componentPath}.report-meta.xml`)
-          expect(paths).not.toContain(`${componentPath}x.report-meta.xml`)
-        })
+        ).toEqual([
+          {
+            kind: CopyOperationKind.GitComponentCopy,
+            path: componentPath,
+            revision: config.to,
+          },
+        ])
+        expect(readDirs).not.toHaveBeenCalled()
       })
     }
   )

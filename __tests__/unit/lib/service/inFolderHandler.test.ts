@@ -64,7 +64,6 @@ describe('InFolderHandler', () => {
 
     it('Given document addition, When collect, Then returns manifest and folder meta copies', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([])
       const { changeType, element } = createElement(
         line,
         objectType,
@@ -95,15 +94,8 @@ describe('InFolderHandler', () => {
       expect(result.warnings).toHaveLength(0)
     })
 
-    it('Given a folder holding the component and look-alike files, When collect, Then copies only the component files', async () => {
+    it('Given generateDelta, When collect, Then requests the component files once instead of listing the folder', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValueOnce([
-        `${DOCUMENT_DIR}/test.png`,
-        `${DOCUMENT_DIR}/test10.png`,
-        `${DOCUMENT_DIR}/my_test.png`,
-        `${DOCUMENT_DIR}/test/inner.png`,
-        `${DOCUMENT_DIR}/test.document-meta.xml`,
-      ])
       const { changeType, element } = createElement(
         line,
         objectType,
@@ -115,38 +107,20 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(elementsOf(result)).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            target: ManifestTarget.Package,
-            type: 'Document',
-            member: entity,
-          }),
-        ])
-      )
-      const paths = result.copies.map(c => c.path)
-      expect(paths).toEqual(
-        expect.arrayContaining([
-          `${DOCUMENT_DIR}/test.png`,
-          `${DOCUMENT_DIR}/test.document-meta.xml`,
-          `${DOCUMENT_DIR}/test/inner.png`,
-          `${DOCUMENT_DIR}/test/inner.document-meta.xml`,
-        ])
-      )
-      for (const excluded of [
-        `${DOCUMENT_DIR}/test10.png`,
-        `${DOCUMENT_DIR}/test10.document-meta.xml`,
-        `${DOCUMENT_DIR}/my_test.png`,
-        `${DOCUMENT_DIR}/my_test.document-meta.xml`,
-      ]) {
-        expect(paths).not.toContain(excluded)
-      }
-      expect(result.warnings).toHaveLength(0)
+      expect(
+        result.copies.filter(c => c.kind === CopyOperationKind.GitComponentCopy)
+      ).toEqual([
+        {
+          kind: CopyOperationKind.GitComponentCopy,
+          path: COMPONENT_PATH,
+          revision: config.to,
+        },
+      ])
+      expect(mockedReadDirs).not.toHaveBeenCalled()
     })
 
     it('Given the component has an extensionless file, When collect, Then copies the file named as the component', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValueOnce([])
       mockedPathExists.mockResolvedValueOnce(true)
       const ctx = getContext({ config })
       const { changeType, element } = createElement(
@@ -170,7 +144,6 @@ describe('InFolderHandler', () => {
 
     it('Given no file is named as the component, When collect, Then copies no file named as the component', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValueOnce([])
       mockedPathExists.mockResolvedValueOnce(false)
       const { changeType, element } = createElement(
         line,
@@ -183,12 +156,15 @@ describe('InFolderHandler', () => {
       const result = await sut.collect()
 
       // Assert
-      expect(result.copies.map(c => c.path)).not.toContain(COMPONENT_PATH)
+      expect(
+        result.copies
+          .filter(c => c.kind === CopyOperationKind.GitCopy)
+          .map(c => c.path)
+      ).not.toContain(COMPONENT_PATH)
     })
 
     it('Given folder name ending with INFOLDER_SUFFIX, When collect, Then folder meta copy uses empty suffix', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([])
       const folderSuffixLine = `A       force-app/main/default/${objectType.directoryName}/testFolder/test.${extension}${METAFILE_SUFFIX}`
       const { changeType, element } = createElement(
         folderSuffixLine,
@@ -217,7 +193,6 @@ describe('InFolderHandler', () => {
 
     it('Given type with uppercase suffix, When collect, Then folder meta file uses lowercase suffix', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([])
       const upperSuffixType = {
         ...objectType,
         suffix: 'Document',
@@ -259,6 +234,9 @@ describe('InFolderHandler', () => {
       expect(elementsOf(result).length).toBeGreaterThan(0)
       expect(mockedReadDirs).not.toHaveBeenCalled()
       expect(mockedPathExists).not.toHaveBeenCalled()
+      expect(
+        result.copies.some(c => c.kind === CopyOperationKind.GitComponentCopy)
+      ).toBe(false)
     })
 
     it('Given file directly in type directory with non-matching extension, When collect, Then _isProcessable returns false and result is empty', async () => {
@@ -281,7 +259,6 @@ describe('InFolderHandler', () => {
 
     it('Given element name with meta suffix, When collect, Then _getElementName strips META_REGEX', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([])
       const metaLine = `A       force-app/main/default/${objectType.directoryName}/folder/test.${extension}${METAFILE_SUFFIX}`
       const { changeType, element } = createElement(
         metaLine,
@@ -304,7 +281,6 @@ describe('InFolderHandler', () => {
 
     it('Given element name with extension suffix, When collect, Then _getElementName strips EXTENSION_SUFFIX_REGEX', async () => {
       // Arrange
-      mockedReadDirs.mockResolvedValue([])
       const { changeType, element } = createElement(
         line,
         objectType,
@@ -326,7 +302,6 @@ describe('InFolderHandler', () => {
     it('Given element name ending with Folder, When collect, Then _getElementName strips INFOLDER_SUFFIX_REGEX so member has no trailing Folder', async () => {
       // Arrange — a bare folder entry with no dot-extension so pathAfterType = ['myFolder']
       // _getElementName: join → "myFolder" → META_REGEX (no match) → INFOLDER_SUFFIX_REGEX strips trailing "Folder" → "my" → EXTENSION_SUFFIX_REGEX (no dot, no change) → "my"
-      mockedReadDirs.mockResolvedValue([])
       const folderEntryLine = `A       force-app/main/default/${objectType.directoryName}/myFolder`
       const { changeType, element } = createElement(
         folderEntryLine,
@@ -349,7 +324,6 @@ describe('InFolderHandler', () => {
 
     it('Given element name containing meta suffix, When collect, Then _getElementName strips META_REGEX leaving no meta keyword', async () => {
       // Arrange — path whose joined pathAfterType contains the full -meta.xml token
-      mockedReadDirs.mockResolvedValue([])
       const metaInNameLine = `A       force-app/main/default/${objectType.directoryName}/subfolder/item.documentFolder-meta.xml`
       const { changeType, element } = createElement(
         metaInNameLine,

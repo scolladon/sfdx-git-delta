@@ -1,10 +1,6 @@
 'use strict'
-import { dirname, join, parse } from 'node:path/posix'
-import {
-  DOT,
-  EXTENSION_SUFFIX_REGEX,
-  PATH_SEP,
-} from '../constant/fsConstants.js'
+import { join, parse } from 'node:path/posix'
+import { EXTENSION_SUFFIX_REGEX, PATH_SEP } from '../constant/fsConstants.js'
 import {
   INFOLDER_SUFFIX,
   INFOLDER_SUFFIX_REGEX,
@@ -12,17 +8,9 @@ import {
   METAFILE_SUFFIX,
 } from '../constant/metadataConstants.js'
 import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
-import { pathExists, readDirs } from '../utils/fsHelper.js'
+import { CopyOperationKind } from '../types/handlerResult.js'
+import { pathExists } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
-
-// A file belongs to a component when its path continues the component path
-// with a dot (its own files) or a slash (a folder named as the component).
-const isComponentMember = (componentPath: string) => {
-  const dottedPrefix = `${componentPath}${DOT}`
-  const folderPrefix = `${componentPath}${PATH_SEP}`
-  return (file: string): boolean =>
-    file.startsWith(dottedPrefix) || file.startsWith(folderPrefix)
-}
 
 export default class InFolderHandler extends StandardHandler {
   public override async collectAddition(): Promise<HandlerResult> {
@@ -51,10 +39,11 @@ export default class InFolderHandler extends StandardHandler {
     if (!this._shouldCollectCopies()) return
     const componentPath = this._getComponentPath()
     await this._collectExactNameCopy(copies, componentPath)
-    const dirContent = await readDirs(dirname(componentPath), this.ctx)
-    for (const file of dirContent.filter(isComponentMember(componentPath))) {
-      this._collectCopyWithMetaFile(copies, file)
-    }
+    copies.push({
+      kind: CopyOperationKind.GitComponentCopy,
+      path: componentPath,
+      revision: this.config.to,
+    })
   }
 
   // The base path without its last extension: the path every file of the
@@ -65,7 +54,7 @@ export default class InFolderHandler extends StandardHandler {
   }
 
   // An extensionless content file is named exactly as the component, so the
-  // dot/slash membership above cannot reach it.
+  // component expansion cannot reach it.
   protected async _collectExactNameCopy(
     copies: CopyOperation[],
     componentPath: string

@@ -24,7 +24,8 @@ import { sourceDirs } from './harness/sourceDirs.ts'
 // Cost rows of the resource delta copies: one component with many changed
 // files (expanded once), many components in one type directory (listed
 // once), and one changed bundle among many sibling bundles (the per-sibling
-// bundle test of the type-directory companions).
+// bundle test of the type-directory companions), and many changed documents
+// in one folder (the folder listed once).
 
 const FILES_2K = 2_000
 const FILES_10K = 10_000
@@ -32,9 +33,12 @@ const COMPONENTS_2K = 2_000
 const COMPONENTS_4K = 4_000
 const SIBLINGS_2K = 2_000
 const SIBLINGS_4K = 4_000
+const DOCUMENTS_2K = 2_000
+const DOCUMENTS_4K = 4_000
 const TO = 'to-sha'
 const RESOURCES = 'force-app/main/default/staticresources'
 const LWC = 'force-app/main/default/lwc'
+const DOCUMENTS = 'force-app/main/default/documents'
 
 // Seeded from the first ubuntu-latest CI run of these rows (perf-memory.json
 // means): a developer-machine mean under-measures CI, so the ceilings come
@@ -127,6 +131,25 @@ const lwcSiblings = (siblingCount: number): Fixture => ({
   buildLines: () => linesOf([`${LWC}/x0/x0.js`]),
 })
 
+const documentFiles = (i: number): string[] => [
+  `${DOCUMENTS}/folder/doc${i}.document`,
+  `${DOCUMENTS}/folder/doc${i}.document-meta.xml`,
+]
+
+const documentsInOneFolder = (documentCount: number): Fixture => ({
+  trees: readerOf([
+    `${DOCUMENTS}/folder.documentFolder-meta.xml`,
+    ...Array.from({ length: documentCount }, (_, i) => documentFiles(i)).flat(),
+  ]),
+  buildLines: () =>
+    linesOf(
+      Array.from(
+        { length: documentCount },
+        (_, i) => `${DOCUMENTS}/folder/doc${i}.document`
+      )
+    ),
+})
+
 const runRow = <Name extends string>(
   name: Name,
   { trees, buildLines }: Fixture,
@@ -191,4 +214,14 @@ runRow(
   'lwc-companions-4k-siblings',
   lwcSiblings(SIBLINGS_4K),
   linearFrom(siblings2k, SIBLINGS_4K / SIBLINGS_2K)
+)
+const documents2k = runRow(
+  'infolder-copies-2k-documents',
+  documentsInOneFolder(DOCUMENTS_2K),
+  BASELINE_ONLY
+)
+runRow(
+  'infolder-copies-4k-documents',
+  documentsInOneFolder(DOCUMENTS_4K),
+  linearFrom(documents2k, DOCUMENTS_4K / DOCUMENTS_2K)
 )
