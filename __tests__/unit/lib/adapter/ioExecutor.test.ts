@@ -53,7 +53,26 @@ vi.mock('../../../../src/utils/fsUtils', async orig => ({
 
 vi.mock('../../../../src/utils/ignoreHelper')
 
-vi.mock('../../../../src/utils/LoggingService')
+// Distinct debug and warn sinks: the shared manual mock routes both levels to
+// one vi.fn, which would hide a warning silently demoted to debug.
+vi.mock('../../../../src/utils/LoggingService', async importActual => {
+  const { lazy } =
+    await importActual<typeof import('../../../../src/utils/LoggingService')>()
+  const sink = () =>
+    vi.fn((msg: unknown) => {
+      if (typeof msg === 'function') (msg as () => void)()
+    })
+  return {
+    lazy,
+    Logger: {
+      debug: sink(),
+      warn: sink(),
+      info: vi.fn(),
+      error: vi.fn(),
+      trace: vi.fn(),
+    },
+  }
+})
 
 const mockBuildIgnoreHelper = vi.mocked(buildIgnoreHelper)
 
@@ -122,12 +141,16 @@ const createFakeWriteStream = (): FakeWriteStream => {
   return stream
 }
 
-const loggedMessages = (): string[] =>
+const messagesLoggedBy = (sink: (msg: unknown) => void): string[] =>
   vi
-    .mocked(Logger.debug)
+    .mocked(sink)
     .mock.calls.map(([msg]) =>
       typeof msg === 'function' ? (msg as () => string)() : String(msg)
     )
+
+const loggedMessages = (): string[] => messagesLoggedBy(Logger.debug)
+
+const warnedMessages = (): string[] => messagesLoggedBy(Logger.warn)
 
 const LABELS_PATH = 'labels/CustomLabels.labels'
 const LABELS_DST = `output/${LABELS_PATH}`
@@ -665,7 +688,8 @@ describe('IOExecutor', () => {
       expect((result[0] as OutputWriteError).path).toBe(
         'output/classes/Bad.cls'
       )
-      expect(loggedMessages()).toContain(result[0]?.message)
+      expect(warnedMessages()).toContain(result[0]?.message)
+      expect(loggedMessages()).not.toContain(result[0]?.message)
     })
 
     it('When the first of three GitDirCopy files cannot be written, Then the other two are still written and one OutputWriteError names the first', async () => {
@@ -1971,7 +1995,8 @@ describe('IOExecutor', () => {
       expect((result[0] as OutputWriteError).path).toBe(LABELS_TMP)
       expect(mockUnlink).toHaveBeenCalledWith(LABELS_TMP)
       expect(mockRename).not.toHaveBeenCalled()
-      expect(loggedMessages()).toContain(result[0]?.message)
+      expect(warnedMessages()).toContain(result[0]?.message)
+      expect(loggedMessages()).not.toContain(result[0]?.message)
     })
 
     it('When the returned warnings are mutated, Then a later warnings() call is unaffected', async () => {
