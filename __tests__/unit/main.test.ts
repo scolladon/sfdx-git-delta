@@ -36,6 +36,7 @@ const {
   mockCollectAll,
   mockExecuteRemaining,
   mockExecute,
+  mockIoWarnings,
   mockCloseAll,
   mockGetMessage,
 } = vi.hoisted(() => ({
@@ -54,6 +55,7 @@ const {
   mockCollectAll: vi.fn<(changes: ChangeSet) => Promise<HandlerResult>>(),
   mockExecuteRemaining: vi.fn(),
   mockExecute: vi.fn(),
+  mockIoWarnings: vi.fn<() => readonly Error[]>(),
   mockCloseAll: vi.fn(),
   mockGetMessage: vi.fn(
     (key: string, tokens?: string[]) => `${key}:${tokens?.join(',') ?? ''}`
@@ -162,6 +164,7 @@ vi.mock('../../src/adapter/ioExecutor', () => {
     default: vi.fn().mockImplementation(function () {
       return {
         execute: mockExecute,
+        warnings: mockIoWarnings,
       }
     }),
   }
@@ -183,6 +186,7 @@ beforeEach(() => {
   mockProcess.mockResolvedValue(emptyResult())
   mockCollectAll.mockResolvedValue(emptyResult())
   mockExecuteRemaining.mockResolvedValue([])
+  mockIoWarnings.mockReturnValue([])
   mockGetLines.mockReturnValue(asAsyncIterable([]) as never)
   mockGetRenamePairs.mockReturnValue([])
   mockGetUnmatchedSourceScopes.mockReturnValue([])
@@ -410,12 +414,14 @@ describe('external library inclusion', () => {
 
     it('Given every producer emits a warning, When sgd runs, Then all are surfaced in producer order', async () => {
       // Arrange — config validation runs first, then the handler pass and its
-      // collectors, then the remaining processors. That sequence is printed
+      // collectors, then the IOExecutor copy step, then the remaining processors. That sequence is printed
       // verbatim to the user, so it is asserted as a sequence, not a set.
       const configWarning = new Error('config warning')
       const handlerWarning = new Error('handler warning')
       const collectorWarning = new Error('collector warning')
+      const ioWarning = new Error('io warning')
       const processorWarning = new Error('processor warning')
+      mockIoWarnings.mockReturnValueOnce([ioWarning])
       mockValidateConfig.mockResolvedValueOnce([configWarning])
       mockProcess.mockResolvedValueOnce(
         makeHandlerResult({ warnings: [handlerWarning] })
@@ -433,8 +439,22 @@ describe('external library inclusion', () => {
         configWarning,
         handlerWarning,
         collectorWarning,
+        ioWarning,
         processorWarning,
       ])
+    })
+
+    it('Given the IOExecutor reports two output write warnings, When sgd runs, Then both are surfaced and sgd resolves', async () => {
+      // Arrange
+      const first = new Error('first write failure')
+      const second = new Error('second write failure')
+      mockIoWarnings.mockReturnValueOnce([first, second])
+
+      // Act
+      const result = await sgd({} as ConfigInput)
+
+      // Assert
+      expect(result.warnings).toEqual([first, second])
     })
   })
 

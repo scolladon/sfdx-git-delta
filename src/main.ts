@@ -135,7 +135,8 @@ export default async (configInput: ConfigInput): Promise<Work> => {
       warnings: assemblyWarnings,
     } = assembleChanges(handlerResult, postResult, renameTriples)
 
-    await new IOExecutor(ctx).execute(copies)
+    const ioExecutor = new IOExecutor(ctx)
+    await ioExecutor.execute(copies)
     const processorWarnings = await postProcessors.executeRemaining(changes)
 
     // The diff is fully drained by this point (the same assumption
@@ -223,6 +224,7 @@ export default async (configInput: ConfigInput): Promise<Work> => {
       warnings: [
         ...configWarnings,
         ...assemblyWarnings,
+        ...ioExecutor.warnings(),
         ...processorWarnings,
         ...sourceScopeWarnings,
         ...ignoredMoveWarnings,

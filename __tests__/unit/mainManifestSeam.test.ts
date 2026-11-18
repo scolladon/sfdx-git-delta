@@ -143,6 +143,7 @@ vi.mock('../../src/adapter/ioExecutor', () => {
     default: vi.fn().mockImplementation(function () {
       return {
         execute: mockExecute,
+        warnings: () => [],
       }
     }),
   }
