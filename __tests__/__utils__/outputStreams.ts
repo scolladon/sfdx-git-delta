@@ -31,3 +31,15 @@ export const sinkStream = (): Writable =>
       callback()
     },
   })
+
+// Opens successfully one event-loop turn later, like an fs.WriteStream: a
+// destroy() issued before the open completes only closes after it.
+export const slowOpeningStream = (): Writable =>
+  new Writable({
+    construct(callback) {
+      setImmediate(() => callback())
+    },
+    write(_chunk, _encoding, callback) {
+      callback()
+    },
+  })

@@ -13,6 +13,7 @@ import {
   failingOpenStream,
   failingWriteStream,
   sinkStream,
+  slowOpeningStream,
 } from '../../../__utils__/outputStreams'
 
 const { mockCreateWriteStream } = vi.hoisted(() => ({
@@ -164,5 +165,22 @@ describe('Given writeStreamed', () => {
     await expect(act).rejects.toThrow('read side failure')
     await expect(act).rejects.not.toBeInstanceOf(OutputWriteError)
     expect(stream.destroyed).toBe(true)
+  })
+
+  it('When the producer rejects before the stream opened, Then the stream is closed by the time it rejects, so the caller can remove the file', async () => {
+    // Arrange
+    const stream = slowOpeningStream()
+    mockCreateWriteStream.mockReturnValueOnce(stream)
+    let closedWhenRejected: boolean | undefined
+
+    // Act
+    await writeStreamed(OUTPUT_PATH, async () => {
+      throw new Error('producer failure')
+    }).catch(() => {
+      closedWhenRejected = stream.closed
+    })
+
+    // Assert
+    expect(closedWhenRejected).toBe(true)
   })
 })

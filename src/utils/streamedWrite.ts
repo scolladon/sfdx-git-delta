@@ -40,6 +40,13 @@ const produceThenEnd = async (
   out.end()
 }
 
+// An fs stream opens asynchronously: destroy() before the open completes
+// still creates the file, so callers that remove it must wait for 'close'.
+const untilClosed = (out: Writable): Promise<void> =>
+  out.closed
+    ? Promise.resolve()
+    : new Promise(resolve => out.once('close', () => resolve()))
+
 // finished() and the producer are awaited together: a finished() promise that is
 // not awaited while the producer awaits I/O becomes an unhandled rejection.
 export const writeStreamed = async (
@@ -53,6 +60,7 @@ export const writeStreamed = async (
   } catch (error) {
     const writeFailure = out.errored
     out.destroy()
+    await untilClosed(out)
     throw writeFailure ? toOutputWriteError(path, writeFailure) : error
   }
 }
