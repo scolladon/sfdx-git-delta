@@ -452,6 +452,8 @@ With `--generate-delta`, when a bundle of `lwc/`, `aura/`, `genAiFunctions/` or 
 > sf sgd source delta --from "HEAD~1" --output-dir changed-sources/ --generate-delta
 > ```
 
+If SGD cannot write a file into `--output-dir` (a folder already sits at that path, no write permission, a full disk), it does not stop: it emits a warning naming the file (`Unable to write '<path>' in the output directory. Caused by: <reason>`), keeps writing the rest, and still exits with status 0. The file is missing from the output folder, or the copy a previous run left there stays as it was, so check the warnings (`--json` lists them under `warnings`) before deploying. This applies to `package.xml` and `destructiveChanges.xml` too.
+
 ### Exclude some metadata only from destructiveChanges.xml
 
 The `--ignore-file [-i]` parameter allows you to specify an [ignore file](https://git-scm.com/docs/gitignore) to filter the
