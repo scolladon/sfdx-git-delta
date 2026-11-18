@@ -10,6 +10,7 @@ import type { Config } from '../../../../src/types/config'
 import type { Work } from '../../../../src/types/work'
 import {
   contentIncludes,
+  fileExists,
   grepContentMatching,
   grepContentUnder,
   pathExists,
@@ -59,9 +60,11 @@ vi.mock('../../../../src/adapter/GitAdapter', () => {
 // instead of through a separate holder lookup.
 const mockFilesUnder = vi.fn()
 const mockPathExists = vi.fn()
+const mockFileExists = vi.fn()
 const mockChildren = vi.fn()
 const treeReader = {
   pathExists: mockPathExists,
+  fileExists: mockFileExists,
   filesUnder: mockFilesUnder,
   children: mockChildren,
 } as unknown as TreeReader
@@ -206,6 +209,21 @@ describe('readDirs', () => {
       // Assert
       expect(dirContent).toEqual([])
     })
+  })
+})
+
+describe('fileExists', () => {
+  it('Given the reader knows a file at `to`, When fileExists, Then returns true from the `to` revision', async () => {
+    // Arrange
+    mockFileExists.mockReturnValueOnce(true)
+    const ctx = getContext({ config: work.config, trees: treeReader })
+
+    // Act
+    const result = await fileExists('path', ctx)
+
+    // Assert
+    expect(result).toBe(true)
+    expect(mockFileExists).toHaveBeenCalledWith(work.config.to, 'path')
   })
 })
 

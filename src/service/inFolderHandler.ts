@@ -8,7 +8,6 @@ import {
   METAFILE_SUFFIX,
 } from '../constant/metadataConstants.js'
 import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
-import { readDirs } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
 
 export default class InFolderHandler extends StandardHandler {
@@ -16,7 +15,7 @@ export default class InFolderHandler extends StandardHandler {
     const result = await super.collectAddition()
     const copies = [...result.copies]
     this._collectFolderMetaCopies(copies)
-    await this._collectSpecialExtensionCopies(copies)
+    await this._collectComponentCopies(copies)
     return { ...result, copies }
   }
 
@@ -32,18 +31,20 @@ export default class InFolderHandler extends StandardHandler {
     this._collectCopyWithMetaFile(copies, join(folderPath, folderFileName))
   }
 
-  protected async _collectSpecialExtensionCopies(
+  protected async _collectComponentCopies(
     copies: CopyOperation[]
   ): Promise<void> {
     if (!this._shouldCollectCopies()) return
-    const parsedLine = parse(this.element.basePath)
-    const dirContent = await readDirs(parsedLine.dir, this.ctx)
+    const componentPath = this._getComponentPath()
+    await this._collectExactNameCopy(copies, componentPath)
+    this._collectComponentCopy(copies, componentPath)
+  }
 
-    for (const file of dirContent) {
-      if (file.includes(parsedLine.name)) {
-        this._collectCopyWithMetaFile(copies, file)
-      }
-    }
+  // The base path without its last extension: the path every file of the
+  // changed component starts with.
+  protected _getComponentPath(): string {
+    const { dir, name } = parse(this.element.basePath)
+    return join(dir, name)
   }
 
   protected override _getElementName() {

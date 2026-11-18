@@ -10,6 +10,7 @@ import { TreeIndex } from './treeIndex.js'
 // shared empty index (a Null Object), never `undefined`.
 export type TreeReader = Readonly<{
   pathExists(revision: string, path: string): boolean
+  fileExists(revision: string, path: string): boolean
   filesUnder(revision: string, paths: string | string[]): string[]
   children(revision: string, dir: string): string[]
 }>
@@ -21,7 +22,7 @@ export type TreeReader = Readonly<{
 // otherwise compile clean while poisoning every other run's empty reads.
 type ReadableIndex = Pick<
   TreeIndex,
-  'pathExists' | 'getFilesPath' | 'listChildren'
+  'pathExists' | 'fileExists' | 'getFilesPath' | 'listChildren'
 >
 
 // Null Object. An index with no entries answers every question with exactly
@@ -38,6 +39,7 @@ export const createTreeReader = (
     entries.get(revision) ?? NO_INDEX
   return {
     pathExists: (revision, path) => indexAt(revision).pathExists(path),
+    fileExists: (revision, path) => indexAt(revision).fileExists(path),
     filesUnder: (revision, paths) => indexAt(revision).getFilesPath(paths),
     children: (revision, dir) => indexAt(revision).listChildren(dir),
   }

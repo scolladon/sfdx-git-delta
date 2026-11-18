@@ -235,6 +235,7 @@ describe('the type handler factory', () => {
       const filesUnder = vi.fn().mockReturnValue([])
       const trees = {
         pathExists: vi.fn().mockReturnValue(false),
+        fileExists: vi.fn().mockReturnValue(false),
         filesUnder,
         children: vi.fn().mockReturnValue([]),
       }

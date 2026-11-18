@@ -17,6 +17,7 @@ import {
 } from '../types/handlerResult.js'
 import type { RunContext } from '../types/runContext.js'
 import { getErrorMessage, wrapError } from '../utils/errorUtils.js'
+import { fileExists } from '../utils/fsHelper.js'
 import { log } from '../utils/LoggingDecorator.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
 import type { MetadataElement } from '../utils/metadataElement.js'
@@ -148,6 +149,26 @@ export default class StandardHandler {
     if (!this._shouldCollectCopies()) return
     copies.push({
       kind: CopyOperationKind.GitCopy,
+      path,
+      revision: this.config.to,
+    })
+  }
+
+  // An extensionless content file is named exactly as its component, so the
+  // component expansion (members continue the path with `.` or `/`) cannot
+  // reach it.
+  protected async _collectExactNameCopy(
+    copies: CopyOperation[],
+    componentPath: string
+  ): Promise<void> {
+    if (!(await fileExists(componentPath, this.ctx))) return
+    this._collectCopy(copies, componentPath)
+  }
+
+  protected _collectComponentCopy(copies: CopyOperation[], path: string): void {
+    if (!this._shouldCollectCopies()) return
+    copies.push({
+      kind: CopyOperationKind.GitComponentCopy,
       path,
       revision: this.config.to,
     })

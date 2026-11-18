@@ -9,13 +9,11 @@ import {
   CopyOperationKind,
   ManifestTarget,
 } from '../../../../src/types/handlerResult'
-import { readDirs } from '../../../../src/utils/fsHelper'
 import { elementsOf } from '../../../__utils__/handlerResultView'
 import { createElement } from '../../../__utils__/testElement'
 import { getConfig, getContext } from '../../../__utils__/testWork'
 
 vi.mock('../../../../src/utils/fsHelper')
-const mockedReadDirs = vi.mocked(readDirs)
 
 const entity = 'folder/test'
 const extension = 'report'
@@ -41,21 +39,25 @@ const testContext = [
     `A       force-app/main/default/${objectType.directoryName}/${entity}.${extension}-meta.xml`,
     entity,
     'Report',
+    'force-app/main/default/reports/folder/test',
   ],
   [
     `A       force-app/main/default/${objectType.directoryName}/${entity}.reportFolder-meta.xml`,
     entity,
     'ReportFolder',
+    'force-app/main/default/reports/folder/test',
   ],
   [
     `A       force-app/main/default/${objectType.directoryName}/folder/${entity}.reportFolder-meta.xml`,
     `folder/${entity}`,
     'ReportFolder',
+    'force-app/main/default/reports/folder/folder/test',
   ],
   [
     `A       force-app/main/default/${objectType.directoryName}/folder/folder/${entity}.reportFolder-meta.xml`,
     `folder/folder/${entity}`,
     'ReportFolder',
+    'force-app/main/default/reports/folder/folder/folder/test',
   ],
 ]
 
@@ -63,7 +65,6 @@ let config: Config
 beforeEach(() => {
   vi.clearAllMocks()
   config = getConfig()
-  mockedReadDirs.mockResolvedValue([])
 })
 
 describe('InNestedFolderHandler', () => {
@@ -109,84 +110,53 @@ describe('InNestedFolderHandler', () => {
   )
 
   describe.each(testContext)(
-    'when called with generateDelta true',
-    (changePath: string, expectedMember: string, expectedType: string) => {
+    'Given generateDelta is true and %s',
+    (changePath: string, expectedMember: string, expectedType: string, componentPath: string) => {
       beforeEach(() => {
         config.generateDelta = true
       })
 
-      describe(`when readDirs does not return files`, () => {
-        it(`should return manifest and copy entries for ${expectedType}`, async () => {
-          // Arrange
-          const { changeType, element } = createElement(
-            changePath,
-            objectType,
-            globalMetadata
-          )
-          const sut = new ReportingFolderHandler(
-            changeType,
-            element,
-            getContext({ config })
-          )
-          mockedReadDirs.mockImplementation(() => Promise.resolve([]))
+      it('When collectAddition, Then requests the component files once instead of listing the folder', async () => {
+        // Arrange
+        const { changeType, element } = createElement(
+          changePath,
+          objectType,
+          globalMetadata
+        )
+        const sut = new ReportingFolderHandler(
+          changeType,
+          element,
+          getContext({ config })
+        )
 
-          // Act
-          const result = await sut.collectAddition()
+        // Act
+        const result = await sut.collectAddition()
 
-          // Assert
-          expect(elementsOf(result)).toEqual(
-            expect.arrayContaining([
-              expect.objectContaining({
-                target: ManifestTarget.Package,
-                type: expectedType,
-                member: expectedMember,
-              }),
-            ])
+        // Assert
+        expect(elementsOf(result)).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              target: ManifestTarget.Package,
+              type: expectedType,
+              member: expectedMember,
+            }),
+          ])
+        )
+        expect(
+          result.copies.filter(
+            c => c.kind === CopyOperationKind.GitComponentCopy
           )
-          expect(readDirs).toHaveBeenCalledTimes(1)
-          expect(result.copies).toHaveLength(3)
-          expect(result.copies).toEqual(
-            expect.arrayContaining([
-              expect.objectContaining({
-                kind: CopyOperationKind.GitCopy,
-              }),
-            ])
-          )
-        })
-      })
-
-      describe('when readDirs returns files', () => {
-        it('should include special extension copies', async () => {
-          // Arrange
-          const { changeType, element } = createElement(
-            changePath,
-            objectType,
-            globalMetadata
-          )
-          const sut = new ReportingFolderHandler(
-            changeType,
-            element,
-            getContext({ config })
-          )
-          mockedReadDirs.mockImplementationOnce(() =>
-            Promise.resolve([entity, 'not/matching'])
-          )
-
-          // Act
-          const result = await sut.collectAddition()
-
-          // Assert
-          expect(elementsOf(result)).toEqual(
-            expect.arrayContaining([
-              expect.objectContaining({
-                target: ManifestTarget.Package,
-                type: expectedType,
-                member: expectedMember,
-              }),
-            ])
-          )
-          expect(readDirs).toHaveBeenCalledTimes(1)
-          expect(result.copies).toHaveLength(5)
+        ).toEqual([
+          {
+            kind: CopyOperationKind.GitComponentCopy,
+            path: componentPath,
+            revision: config.to,
+          },
+        ])
+        expect(result.copies).toContainEqual({
+          kind: CopyOperationKind.GitCopy,
+          path: 'force-app/main/default/reports/folder-meta.xml',
+          revision: config.to,
         })
       })
     }

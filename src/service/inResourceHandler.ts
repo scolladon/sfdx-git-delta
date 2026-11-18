@@ -2,7 +2,6 @@
 
 import { METAFILE_SUFFIX } from '../constant/metadataConstants.js'
 import type { CopyOperation, HandlerResult } from '../types/handlerResult.js'
-import { CopyOperationKind } from '../types/handlerResult.js'
 import { pathExists } from '../utils/fsHelper.js'
 import StandardHandler from './standardHandler.js'
 
@@ -13,6 +12,9 @@ export default class ResourceHandler extends StandardHandler {
     this.metadataName = this._getMetadataName()
     const result = await super.collectAddition()
     const copies = [...result.copies]
+    if (this._shouldCollectCopies()) {
+      await this._collectExactNameCopy(copies, this.metadataName!)
+    }
     this._collectResourceCopies(copies)
     return { ...result, copies }
   }
@@ -28,13 +30,7 @@ export default class ResourceHandler extends StandardHandler {
   }
 
   protected _collectResourceCopies(copies: CopyOperation[]): void {
-    if (!this._shouldCollectCopies()) return
-
-    copies.push({
-      kind: CopyOperationKind.GitComponentCopy,
-      path: this.metadataName!,
-      revision: this.config.to,
-    })
+    this._collectComponentCopy(copies, this.metadataName!)
   }
 
   protected override _getElementName() {
