@@ -1,5 +1,4 @@
 'use strict'
-import { once } from 'node:events'
 import type { Writable } from 'node:stream'
 
 import {
@@ -189,21 +188,26 @@ const CLOSED_BEFORE_DRAIN = 'output stream closed before drain'
 const closedBeforeDrain = (out: Writable): Error =>
   out.errored ?? new Error(CLOSED_BEFORE_DRAIN)
 
-const awaitDrain = async (out: Writable): Promise<void> => {
-  if (out.destroyed) throw closedBeforeDrain(out)
-  const abort = new AbortController()
-  const { signal } = abort
-  try {
-    await Promise.race([
-      once(out, 'drain', { signal }),
-      once(out, 'close', { signal }).then(() => {
-        throw closedBeforeDrain(out)
-      }),
-    ])
-  } finally {
-    abort.abort()
-  }
-}
+// Plain listeners that remove each other: an AbortController per wait costs
+// an AbortError (with its stack) on every drain under backpressure.
+const awaitDrain = (out: Writable): Promise<void> =>
+  new Promise((resolve, reject) => {
+    if (out.destroyed) {
+      reject(closedBeforeDrain(out))
+      return
+    }
+    const settle = (outcome: () => void) => () => {
+      out.off('drain', onDrain)
+      out.off('error', onFailure)
+      out.off('close', onFailure)
+      outcome()
+    }
+    const onDrain = settle(resolve)
+    const onFailure = settle(() => reject(closedBeforeDrain(out)))
+    out.once('drain', onDrain)
+    out.once('error', onFailure)
+    out.once('close', onFailure)
+  })
 
 // Buffered emitter: pushes frame fragments into a string until the
 // FLUSH_THRESHOLD is crossed, then writes a single chunk to the
