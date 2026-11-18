@@ -1,7 +1,6 @@
 'use strict'
-import { createWriteStream, promises as fsPromises } from 'node:fs'
+import { promises as fsPromises } from 'node:fs'
 import { dirname, join } from 'node:path/posix'
-import type { Writable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
 import type { Config } from '../types/config.js'
@@ -19,10 +18,15 @@ import {
 } from '../utils/componentCopies.js'
 import { eachLimit } from '../utils/concurrency/index.js'
 import { getConcurrencyThreshold } from '../utils/concurrencyUtils.js'
-import { getErrorMessage } from '../utils/errorUtils.js'
+import { getErrorMessage, OutputWriteError } from '../utils/errorUtils.js'
 import { isSubDir, outputFile, readFile } from '../utils/fsUtils.js'
 import { buildIgnoreHelper, type IgnoreHelper } from '../utils/ignoreHelper.js'
 import { Logger, lazy } from '../utils/LoggingService.js'
+import {
+  asOutputWrite,
+  type StreamProducer,
+  writeStreamed,
+} from '../utils/streamedWrite.js'
 import { expandTypeDirCompanionCopies } from '../utils/typeDirCompanionCopies.js'
 import GitAdapter from './GitAdapter.js'
 import {
@@ -59,6 +63,7 @@ export default class IOExecutor {
   // processedPaths records what an operation claimed; a claimed write can
   // still fail. Only destinations whose write completed land here.
   protected readonly writtenDestinations: Set<string> = new Set()
+  private readonly outputWarnings: OutputWriteError[] = []
   protected ignoreHelper!: IgnoreHelper
 
   constructor(
@@ -70,6 +75,10 @@ export default class IOExecutor {
 
   protected get config(): Config {
     return this.ctx.config
+  }
+
+  public warnings(): readonly Error[] {
+    return [...this.outputWarnings]
   }
 
   public async execute(copies: readonly CopyOperation[]): Promise<void> {
@@ -276,34 +285,51 @@ export default class IOExecutor {
     await this._writeAtomicallyViaTmp(dst, op.writer)
   }
 
+  private _warnWriteFailure(failure: OutputWriteError): void {
+    Logger.warn(lazy`${failure.message}`)
+    this.outputWarnings.push(failure)
+  }
+
+  private _onCopyFailure(dst: string, error: unknown): void {
+    if (error instanceof OutputWriteError) {
+      this._warnWriteFailure(error)
+      return
+    }
+    Logger.debug(
+      lazy`IOExecutor copy failed for ${dst}: ${() => getErrorMessage(error)}`
+    )
+  }
+
   // Writes `producer` output to a sibling `.tmp` file, then atomically renames
   // on success. Same-directory tmp avoids EXDEV on cross-filesystem moves
-  // (Docker-on-CI overlayfs + tmpfs /tmp scenario). Errors destroy the stream,
-  // unlink the tmp, and log at debug — matching _executeGitFileCopy precedent.
+  // (Docker-on-CI overlayfs + tmpfs /tmp scenario). On failure the tmp is
+  // unlinked; a failure to write the output becomes a run warning, while a
+  // failure on the read or producer side is only logged at debug.
   protected async _writeAtomicallyViaTmp(
     dst: string,
-    producer: (ws: Writable) => Promise<void>
+    producer: StreamProducer
   ): Promise<void> {
     const tmp = `${dst}${TMP_SUFFIX}`
-    await fsPromises.mkdir(dirname(dst), { recursive: true })
-    const ws = createWriteStream(tmp)
     try {
-      await producer(ws)
-      await new Promise<void>((resolve, reject) => {
-        /* v8 ignore next -- defensive: createWriteStream's end-callback fires with err only on synchronous fd write failure */
-        ws.end((err?: Error | null) => (err ? reject(err) : resolve()))
-      })
-      await fsPromises.rename(tmp, dst)
+      await asOutputWrite(dst, () =>
+        fsPromises.mkdir(dirname(dst), { recursive: true })
+      )
+      await writeStreamed(tmp, producer)
+      await asOutputWrite(dst, () => fsPromises.rename(tmp, dst))
       this.writtenDestinations.add(dst)
     } catch (error) {
-      ws.destroy()
-      /* v8 ignore next -- defensive cleanup: best-effort tmp removal swallows ENOENT and permission errors */
-      await fsPromises.unlink(tmp).catch(() => undefined)
-      // Stryker disable next-line CallExpression -- equivalent: removing the call entirely is observability only; the failed write's real effects (unlink called, rename not called, stream destroyed) are already asserted
-      Logger.debug(
-        // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: lazy log content is observability only; tests assert on the failed-write side-effect (no output file)
-        lazy`IOExecutor atomicWrite failed for ${dst}: ${() => getErrorMessage(error)}`
-      )
+      await this._discardTmp(tmp)
+      this._onCopyFailure(dst, error)
     }
+  }
+
+  private async _discardTmp(tmp: string): Promise<void> {
+    await fsPromises
+      .unlink(tmp)
+      .catch((error: unknown) =>
+        Logger.debug(
+          lazy`IOExecutor tmp cleanup failed for ${tmp}: ${() => getErrorMessage(error)}`
+        )
+      )
   }
 }

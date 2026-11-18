@@ -12,12 +12,14 @@ import {
 } from '../../../../src/adapter/treeReader'
 import type { CopyOperation } from '../../../../src/types/handlerResult'
 import { CopyOperationKind } from '../../../../src/types/handlerResult'
+import { OutputWriteError } from '../../../../src/utils/errorUtils'
 import { outputFile, readFile } from '../../../../src/utils/fsUtils'
 import {
   buildIgnoreHelper,
   IgnoreHelper,
 } from '../../../../src/utils/ignoreHelper'
 import { Logger } from '../../../../src/utils/LoggingService'
+import { failingOpenStream } from '../../../__utils__/outputStreams'
 import { getContext, getWork } from '../../../__utils__/testWork'
 
 const { mockCreateWriteStream, mockMkdir, mockRename, mockUnlink } = vi.hoisted(
@@ -110,21 +112,36 @@ beforeEach(() => {
 
 type FakeWriteStream = Writable & {
   written: Buffer[]
-  destroyed: boolean
 }
 
 const createFakeWriteStream = (): FakeWriteStream => {
   const stream = new PassThrough() as unknown as FakeWriteStream
   stream.written = []
-  stream.destroyed = false
   stream.on('data', chunk => stream.written.push(Buffer.from(chunk)))
-  const originalDestroy = stream.destroy.bind(stream)
-  stream.destroy = (err?: Error) => {
-    stream.destroyed = true
-    return originalDestroy(err)
-  }
   return stream
 }
+
+const loggedMessages = (): string[] =>
+  vi
+    .mocked(Logger.debug)
+    .mock.calls.map(([msg]) =>
+      typeof msg === 'function' ? (msg as () => string)() : String(msg)
+    )
+
+const LABELS_PATH = 'labels/CustomLabels.labels'
+const LABELS_DST = `output/${LABELS_PATH}`
+const LABELS_TMP = `${LABELS_DST}.tmp`
+
+const errnoError = (code: string): NodeJS.ErrnoException =>
+  Object.assign(new Error(code), { code })
+
+const labelsOperation = (): CopyOperation => ({
+  kind: CopyOperationKind.StreamedContent,
+  path: LABELS_PATH,
+  writer: async (out: Writable) => {
+    out.write('<Root></Root>')
+  },
+})
 
 const readerOf = (paths: string[], revision = 'abc123'): TreeReader => {
   const index = new TreeIndex()
@@ -989,6 +1006,7 @@ describe('IOExecutor', () => {
         'output/labels/CustomLabels.labels.tmp'
       )
       expect(stream.destroyed).toBe(true)
+      expect(sut.warnings()).toEqual([])
     })
 
     it('When path is ignored, Then the writer is never invoked', async () => {
@@ -1623,6 +1641,73 @@ describe('IOExecutor', () => {
       )
     })
 
+    it('When one archive entry tmp cannot be opened, Then the other entries are still renamed and one OutputWriteError names that tmp', async () => {
+      // Arrange
+      const knownPaths = makeFilePaths(26)
+      const { sut } = makeArchiveSut(knownPaths, [
+        { path: knownPaths[0]! },
+        { path: knownPaths[1]! },
+      ])
+      mockCreateWriteStream.mockImplementationOnce(() =>
+        failingOpenStream('EISDIR')
+      )
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitDirCopy,
+          path: 'bundle',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      const result = sut.warnings()
+      expect(result).toHaveLength(1)
+      expect((result[0] as OutputWriteError).path).toBe(
+        `output/${knownPaths[0]}.tmp`
+      )
+      expect(mockRename).toHaveBeenCalledTimes(1)
+      expect(mockRename).toHaveBeenCalledWith(
+        `output/${knownPaths[1]}.tmp`,
+        `output/${knownPaths[1]}`
+      )
+    })
+
+    it('When a wanted archive entry fails on read, Then the other entries are still renamed and warnings() is empty', async () => {
+      // Arrange
+      const knownPaths = makeFilePaths(26)
+      const { sut } = makeArchiveSut(knownPaths, [
+        {
+          path: knownPaths[0]!,
+          makeStream: () =>
+            new Readable({
+              read() {
+                this.destroy(new Error('unreadable'))
+              },
+            }),
+        },
+        { path: knownPaths[1]! },
+      ])
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitDirCopy,
+          path: 'bundle',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(sut.warnings()).toEqual([])
+      expect(mockRename).toHaveBeenCalledTimes(1)
+      expect(mockRename).toHaveBeenCalledWith(
+        `output/${knownPaths[1]}.tmp`,
+        `output/${knownPaths[1]}`
+      )
+    })
+
     it('When archive entry is valid, Then _writeAtomicallyViaTmp is called and rename occurs (L196 kills BlockStatement {})', async () => {
       // Arrange
       const knownPaths = makeFilePaths(26)
@@ -1690,6 +1775,172 @@ describe('IOExecutor', () => {
       // With real code: no tmp created, no unlink called
       expect(mockUnlink).not.toHaveBeenCalled()
       expect(mockRename).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Given an output write failure on the atomic tmp path', () => {
+    const makeSut = () => {
+      const work = getWork()
+      work.config.output = 'output'
+      return new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+    }
+
+    it('When every write succeeds, Then warnings() is empty', async () => {
+      // Arrange
+      const sut = makeSut()
+
+      // Act
+      await sut.execute([labelsOperation()])
+
+      // Assert
+      expect(sut.warnings()).toEqual([])
+    })
+
+    it('When the tmp of a StreamedContent cannot be opened, Then execute resolves with one OutputWriteError naming the tmp, the tmp is unlinked and rename is not called', async () => {
+      // Arrange
+      mockCreateWriteStream.mockReturnValueOnce(failingOpenStream('EISDIR'))
+      const sut = makeSut()
+
+      // Act
+      await sut.execute([labelsOperation()])
+
+      // Assert
+      const result = sut.warnings()
+      expect(result).toHaveLength(1)
+      expect(result[0]).toBeInstanceOf(OutputWriteError)
+      expect((result[0] as OutputWriteError).path).toBe(LABELS_TMP)
+      expect(mockUnlink).toHaveBeenCalledWith(LABELS_TMP)
+      expect(mockRename).not.toHaveBeenCalled()
+      expect(loggedMessages()).toContain(result[0]?.message)
+    })
+
+    it('When the returned warnings are mutated, Then a later warnings() call is unaffected', async () => {
+      // Arrange
+      mockCreateWriteStream.mockReturnValueOnce(failingOpenStream('EISDIR'))
+      const sut = makeSut()
+      await sut.execute([labelsOperation()])
+
+      // Act
+      ;(sut.warnings() as Error[]).pop()
+      const result = sut.warnings()
+
+      // Assert
+      expect(result).toHaveLength(1)
+    })
+
+    it('When the destination folder cannot be created, Then execute resolves with one OutputWriteError naming the destination', async () => {
+      // Arrange
+      mockMkdir.mockRejectedValueOnce(errnoError('EEXIST'))
+      const sut = makeSut()
+
+      // Act
+      await sut.execute([labelsOperation()])
+
+      // Assert
+      const result = sut.warnings()
+      expect(result).toHaveLength(1)
+      expect((result[0] as OutputWriteError).path).toBe(LABELS_DST)
+      expect(mockCreateWriteStream).not.toHaveBeenCalled()
+    })
+
+    it('When the tmp cannot be renamed, Then execute resolves with one OutputWriteError naming the destination and the tmp is unlinked', async () => {
+      // Arrange
+      mockRename.mockRejectedValueOnce(errnoError('EXDEV'))
+      const sut = makeSut()
+
+      // Act
+      await sut.execute([labelsOperation()])
+
+      // Assert
+      const result = sut.warnings()
+      expect(result).toHaveLength(1)
+      expect((result[0] as OutputWriteError).path).toBe(LABELS_DST)
+      expect(mockUnlink).toHaveBeenCalledWith(LABELS_TMP)
+    })
+
+    it('When the tmp cleanup also fails, Then the warning carries the write failure and the cleanup failure is debug-logged with the tmp path', async () => {
+      // Arrange
+      mockCreateWriteStream.mockReturnValueOnce(failingOpenStream('EISDIR'))
+      mockUnlink.mockRejectedValueOnce(errnoError('EPERM'))
+      const sut = makeSut()
+
+      // Act
+      await sut.execute([labelsOperation()])
+
+      // Assert
+      const result = sut.warnings()
+      expect(result).toHaveLength(1)
+      const cause = (result[0] as OutputWriteError)
+        .cause as NodeJS.ErrnoException
+      expect(cause.code).toBe('EISDIR')
+      expect(loggedMessages()).toContain(
+        `IOExecutor tmp cleanup failed for ${LABELS_TMP}: EPERM`
+      )
+    })
+
+    it('When the tmp of an escalated GitCopy cannot be opened, Then execute resolves with one OutputWriteError naming that tmp', async () => {
+      // Arrange
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      const fakeBlobReader = {
+        getBufferContent: vi.fn(),
+        getBufferContentOrEscalate: vi.fn(() =>
+          Promise.reject(
+            new EscalateToStreamingSignal(5_000_000, {
+              oid: 'abc123',
+              path: 'resources/big.bin',
+            })
+          )
+        ),
+        streamContent: vi.fn(() => Readable.from([Buffer.from('BIGBIG')])),
+        streamArchive: vi.fn(emptyArchiveStream),
+      }
+      mockCreateWriteStream.mockReturnValueOnce(failingOpenStream('EISDIR'))
+      const sut = new IOExecutor(
+        getContext({ config: work.config, trees: treeReader }),
+        fakeBlobReader
+      )
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: 'resources/big.bin',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      const result = sut.warnings()
+      expect(result).toHaveLength(1)
+      expect((result[0] as OutputWriteError).path).toBe(
+        'output/resources/big.bin.tmp'
+      )
+    })
+
+    it('When the tmp of an AugmentedContent with no base cannot be opened, Then execute resolves with one OutputWriteError naming that tmp', async () => {
+      // Arrange
+      mockCreateWriteStream.mockReturnValueOnce(failingOpenStream('EISDIR'))
+      const sut = makeSut()
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: LABELS_PATH,
+          writer: async (out: Writable) => {
+            out.write('<Translations/>')
+          },
+        },
+      ])
+
+      // Assert
+      const result = sut.warnings()
+      expect(result).toHaveLength(1)
+      expect((result[0] as OutputWriteError).path).toBe(LABELS_TMP)
     })
   })
 
@@ -1827,6 +2078,7 @@ describe('IOExecutor', () => {
       // Assert
       expect(mockRename).not.toHaveBeenCalled()
       expect(mockUnlink).toHaveBeenCalledWith('output/resources/big.bin.tmp')
+      expect(sut.warnings()).toEqual([])
     })
   })
 })
