@@ -25,6 +25,17 @@ describe('withRevisions', () => {
       expect(result).toBe(ctx)
     })
 
+    it('When called, Then parentDiffs is the same memo', () => {
+      // Arrange
+      const ctx = getContext()
+
+      // Act
+      const result = withRevisions(ctx)
+
+      // Assert
+      expect(result.parentDiffs).toBe(ctx.parentDiffs)
+    })
+
     it('When called, Then the union outcomes are the same map', () => {
       // Arrange
       const unions = new Map([['p', outcome]])
@@ -84,6 +95,17 @@ describe('withRevisions', () => {
 
       // Assert
       expect(result.unions).toBe(NO_UNIONS)
+    })
+
+    it('When called, Then the derived context carries a fresh parent diff memo', () => {
+      // Arrange
+      const ctx = getContext()
+
+      // Act
+      const result = withRevisions(ctx, { from: 'firstSHA', to: 'headSHA' })
+
+      // Assert
+      expect(result.parentDiffs).not.toBe(ctx.parentDiffs)
     })
 
     it('When called, Then the original context is left unmutated', () => {

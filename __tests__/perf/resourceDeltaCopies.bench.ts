@@ -9,9 +9,9 @@ import { MODIFICATION } from '../../lib/constant/gitConstants.js'
 import { getDefinition } from '../../lib/metadata/metadataManager.js'
 import DiffLineInterpreter from '../../lib/service/diffLineInterpreter.js'
 import type { Config } from '../../lib/types/config.js'
-import { NO_UNIONS } from '../../lib/types/runContext.js'
 import { expandComponentCopies } from '../../lib/utils/componentCopies.js'
 import { expandTypeDirCompanionCopies } from '../../lib/utils/typeDirCompanionCopies.js'
+import { benchContext } from './harness/benchContext.ts'
 import {
   assertMeanWithinCeiling,
   assertScalesLinearly,
@@ -132,7 +132,7 @@ const runRow = <Name extends string>(
   { trees, buildLines }: Fixture,
   check: RowCheck<Name>
 ): SampledRow => {
-  const ctx = { config, metadata, trees, unions: NO_UNIONS }
+  const ctx = benchContext({ config, metadata, trees })
   const elapsedMs: number[] = []
   let lines: string[] = []
   describe(name, () => {

@@ -115,15 +115,6 @@ export function* toDiffLines(
 const GLOB_CHARS = /[*?[]/
 const REGEXP_SPECIALS = /[.+^${}()|\\\]]/g
 
-// Concrete repository paths are matched by directory prefix only — no
-// wildmatch, no leading-prefix normalisation. A path off the repository can
-// never carry a leading './' or '/' (treatPathSep and basePath already rule
-// those out), and treating `[` as a glob-class opener would misread real
-// path segments like an object folder named `Custom[1]__c`.
-export const buildLiteralMatcher = (
-  specs: string[]
-): ((path: string) => boolean) => buildScopeMatcher(specs)
-
 // Git pathspec semantics: a literal pathspec matches by directory prefix; a
 // pathspec containing wildcards uses wildmatch where `*` also crosses `/`
 // (no `:(glob)` magic). Callers mix both shapes (e.g. flow translations use

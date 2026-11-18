@@ -14,6 +14,7 @@ import ConfigValidator from './utils/configValidator.js'
 import { Logger, lazy } from './utils/LoggingService.js'
 import { MessageService } from './utils/MessageService.js'
 import { sanitizeForMessage } from './utils/messageSanitizer.js'
+import { createParentDiffMemo } from './utils/metadataDiff/parentDiffMemo.js'
 import { parseSourceDirs } from './utils/pathspec.js'
 import PureMoveResolver from './utils/pureMoveResolver.js'
 import RenameResolver from './utils/renameResolver.js'
@@ -98,7 +99,13 @@ export default async (configInput: ConfigInput): Promise<Work> => {
       config,
       scopePaths
     )
-    const baseCtx: RunContext = { config, metadata, trees, unions: NO_UNIONS }
+    const baseCtx: RunContext = {
+      config,
+      metadata,
+      trees,
+      unions: NO_UNIONS,
+      parentDiffs: createParentDiffMemo(),
+    }
     const moves = await new PureMoveResolver(baseCtx, gitAdapter).resolve(
       rawLines,
       repoGitDiffHelper.getCancelledDeletions()

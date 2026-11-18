@@ -543,5 +543,90 @@ describe('ObjectTranslation', () => {
       ).toBe(true)
       expect(result.warnings).toHaveLength(0)
     })
+
+    describe('Given two fieldTranslation additions of one parent', () => {
+      const lines = [
+        'A       force-app/main/default/objectTranslations/Account-es/Foo__c.fieldTranslation-meta.xml',
+        'A       force-app/main/default/objectTranslations/Account-es/Bar__c.fieldTranslation-meta.xml',
+      ]
+      const handlersOn = (contexts: ReturnType<typeof getContext>[]) =>
+        lines.map((fieldLine, index) => {
+          const { changeType, element } = createElement(
+            fieldLine,
+            objectType,
+            globalMetadata
+          )
+          return new ObjectTranslation(changeType, element, contexts[index]!)
+        })
+      const writersOf = (
+        results: Awaited<ReturnType<ObjectTranslation['collect']>>[]
+      ) =>
+        results.map(
+          r =>
+            r.copies.find(
+              c => c.kind === CopyOperationKind.StreamedContent
+            ) as {
+              writer: unknown
+            }
+        )
+
+      it('When both collect concurrently on one context, Then MetadataDiff.run runs once and both StreamedContent copies carry the same writer', async () => {
+        // Arrange
+        const ctx = getContext({ config })
+        const [first, second] = handlersOn([ctx, ctx])
+
+        // Act
+        const results = await Promise.all([first!.collect(), second!.collect()])
+
+        // Assert
+        expect(mockRun).toHaveBeenCalledTimes(1)
+        const [firstCopy, secondCopy] = writersOf(results)
+        expect(firstCopy!.writer).toBe(mockWriter)
+        expect(secondCopy!.writer).toBe(firstCopy!.writer)
+      })
+
+      it('When both collect on two contexts, Then MetadataDiff.run runs twice', async () => {
+        // Arrange
+        const [first, second] = handlersOn([
+          getContext({ config }),
+          getContext({ config }),
+        ])
+
+        // Act
+        await Promise.all([first!.collect(), second!.collect()])
+
+        // Assert
+        expect(mockRun).toHaveBeenCalledTimes(2)
+      })
+
+      it('When the parent diff rejects, Then each child returns its own warning and no parent copy', async () => {
+        // Arrange
+        mockRun.mockRejectedValue(new Error('boom'))
+        const ctx = getContext({ config })
+        const [first, second] = handlersOn([ctx, ctx])
+
+        // Act
+        const results = await Promise.all([first!.collect(), second!.collect()])
+
+        // Assert
+        expect(results.map(r => r.warnings)).toEqual([
+          [
+            expect.objectContaining({
+              message: expect.stringMatching(/Foo__c.*boom/),
+            }),
+          ],
+          [
+            expect.objectContaining({
+              message: expect.stringMatching(/Bar__c.*boom/),
+            }),
+          ],
+        ])
+        expect(
+          results
+            .flatMap(r => r.copies)
+            .some(c => c.kind === CopyOperationKind.StreamedContent)
+        ).toBe(false)
+      })
+    })
   })
 })

@@ -3,8 +3,8 @@ import { EMPTY_TREE_READER } from '../../lib/adapter/treeReader.js'
 import { getDefinition } from '../../lib/metadata/metadataManager.js'
 import DiffLineInterpreter from '../../lib/service/diffLineInterpreter.js'
 import type { Config } from '../../lib/types/config.js'
-import { NO_UNIONS } from '../../lib/types/runContext.js'
 import { generateDiffFixtures } from './fixtures/generateFixtures.ts'
+import { benchContext } from './harness/benchContext.ts'
 import { perfBench } from './harness/perfBench.ts'
 import { sourceDirs } from './harness/sourceDirs.ts'
 
@@ -51,12 +51,9 @@ for (const size of sizes) {
   describe(`pipeline-handler-${size}`, () => {
     perfBench(`pipeline-handler-dispatch-${size}`, async () => {
       const config = createConfig()
-      const interpreter = new DiffLineInterpreter({
-        config,
-        metadata,
-        trees: EMPTY_TREE_READER,
-        unions: NO_UNIONS,
-      })
+      const interpreter = new DiffLineInterpreter(
+        benchContext({ config, metadata, trees: EMPTY_TREE_READER })
+      )
       await interpreter.process(lines)
     })
   })

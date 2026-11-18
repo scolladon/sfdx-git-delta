@@ -1691,6 +1691,37 @@ describe('GitAdapter', () => {
       expect(barContent).toEqual(Buffer.from('blob-2'))
     })
 
+    it('When two grepUnderPaths calls for a cold revision start before the walk settles, Then flattenTree runs once and the sorted index is built once', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      armWalk()
+      fakeRepo.primitives.readBlob.mockResolvedValue({
+        type: 'blob',
+        id: 'blob',
+        content: new Uint8Array(Buffer.from('needle')),
+      })
+      const build = vi.spyOn(
+        GitAdapter.prototype as unknown as {
+          buildSortedPathIndex: (blobIds: unknown) => unknown
+        },
+        'buildSortedPathIndex'
+      )
+      const { release } = holdFlattenTree()
+
+      // Act
+      const first = sut.grepUnderPaths('needle', 'force-app', 'HEAD')
+      const second = sut.grepUnderPaths('needle', 'force-app/foo.cls', 'HEAD')
+      await walkReached()
+      release(TWO_BLOBS)
+      const [firstResult, secondResult] = await Promise.all([first, second])
+
+      // Assert
+      expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledOnce()
+      expect(build).toHaveBeenCalledOnce()
+      expect(firstResult).toEqual(['force-app/bar.cls', 'force-app/foo.cls'])
+      expect(secondResult).toEqual(['force-app/foo.cls'])
+    })
+
     it('When callers for two different revisions start before either walk settles, Then each revision is flattened exactly once and every caller is served its own tree', async () => {
       // Arrange
       const sut = GitAdapter.getInstance(makeConfig())
@@ -2327,6 +2358,150 @@ describe('GitAdapter', () => {
       expect(resolveLazyCall(vi.mocked(Logger.debug))).toBe(
         "grepBlobs: grep for 'needle' in 'force-app' at 'HEAD' failed: grep boom"
       )
+    })
+  })
+
+  describe('Given grepUnderPaths over an indexed revision', () => {
+    type FlattenRevisionHost = {
+      flattenRevision: (
+        revision: string
+      ) => Promise<ReadonlyMap<string, string>>
+    }
+    type SortedIndexHost = {
+      buildSortedPathIndex: (blobIds: unknown) => unknown
+    }
+
+    class CountingMap<K, V> extends Map<K, V> {
+      public iterations = 0
+
+      public override [Symbol.iterator]() {
+        this.iterations++
+        return super[Symbol.iterator]()
+      }
+
+      public override entries() {
+        this.iterations++
+        return super.entries()
+      }
+
+      public override keys() {
+        this.iterations++
+        return super.keys()
+      }
+
+      public override values() {
+        this.iterations++
+        return super.values()
+      }
+
+      public override forEach(
+        callback: (value: V, key: K, map: Map<K, V>) => void
+      ) {
+        this.iterations++
+        super.forEach(callback)
+      }
+    }
+
+    const blobMap = <T extends Map<string, string>>(map: T): T => {
+      map.set('force-app/a.cls', 'blob-a')
+      map.set('force-app/b.cls', 'blob-b')
+      map.set('other/c.cls', 'blob-c')
+      return map
+    }
+
+    const readsAsNeedle = () =>
+      fakeRepo.primitives.readBlob.mockImplementation((id: string) =>
+        Promise.resolve({
+          type: 'blob',
+          id,
+          content: new Uint8Array(Buffer.from('needle')),
+        })
+      )
+
+    it('When the same revision is grepped three times with a file spec, Then the blob map is iterated once', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      const blobIds = blobMap(new CountingMap<string, string>())
+      vi.spyOn(
+        sut as unknown as FlattenRevisionHost,
+        'flattenRevision'
+      ).mockResolvedValue(blobIds)
+      readsAsNeedle()
+
+      // Act
+      await sut.grepUnderPaths('needle', 'force-app/a.cls', 'HEAD')
+      await sut.grepUnderPaths('needle', 'force-app/a.cls', 'HEAD')
+      await sut.grepUnderPaths('needle', 'force-app/a.cls', 'HEAD')
+
+      // Assert
+      expect(blobIds.iterations).toBe(1)
+    })
+
+    it('When the same revision is grepped twice sequentially, Then buildSortedPathIndex runs once', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      vi.spyOn(
+        sut as unknown as FlattenRevisionHost,
+        'flattenRevision'
+      ).mockResolvedValue(blobMap(new Map<string, string>()))
+      const build = vi.spyOn(
+        sut as unknown as SortedIndexHost,
+        'buildSortedPathIndex'
+      )
+      readsAsNeedle()
+
+      // Act
+      await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
+      await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
+
+      // Assert
+      expect(build).toHaveBeenCalledOnce()
+    })
+
+    it('When a file spec is grepped, Then readBlob is called once, with that blob id', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      vi.spyOn(
+        sut as unknown as FlattenRevisionHost,
+        'flattenRevision'
+      ).mockResolvedValue(blobMap(new Map<string, string>()))
+      readsAsNeedle()
+
+      // Act
+      const result = await sut.grepUnderPaths(
+        'needle',
+        'force-app/b.cls',
+        'HEAD'
+      )
+
+      // Assert
+      expect(result).toEqual(['force-app/b.cls'])
+      expect(fakeRepo.primitives.readBlob).toHaveBeenCalledExactlyOnceWith(
+        'blob-b'
+      )
+    })
+
+    it('When flattenTree rejects once, Then the grep returns [] with the debug log and the next grep rebuilds', async () => {
+      // Arrange
+      const sut = GitAdapter.getInstance(makeConfig())
+      fakeRepo.revParse.mockResolvedValue(revParsed('commit-oid'))
+      fakeRepo.primitives.readObject.mockResolvedValue(asCommit('tree-oid'))
+      fakeRepo.primitives.flattenTree
+        .mockRejectedValueOnce(new Error('walk boom'))
+        .mockResolvedValue(
+          flatten([['force-app/a.cls', { mode: '100644', id: 'blob-a' }]])
+        )
+      readsAsNeedle()
+
+      // Act
+      const failed = await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
+      const retried = await sut.grepUnderPaths('needle', 'force-app', 'HEAD')
+
+      // Assert
+      expect(failed).toEqual([])
+      expect(resolveLazyCall(vi.mocked(Logger.debug))).toContain('walk boom')
+      expect(retried).toEqual(['force-app/a.cls'])
+      expect(fakeRepo.primitives.flattenTree).toHaveBeenCalledTimes(2)
     })
   })
 

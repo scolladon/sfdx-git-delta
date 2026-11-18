@@ -4,6 +4,7 @@ import type { Config } from '../../src/types/config'
 import { NO_UNIONS, type RunContext } from '../../src/types/runContext'
 import type { Work } from '../../src/types/work'
 import ChangeSet from '../../src/utils/changeSet'
+import { createParentDiffMemo } from '../../src/utils/metadataDiff/parentDiffMemo'
 import { sourceDirs } from './sourceDirs'
 import { createMetadataRepositoryMock } from './testMetadataRepository'
 
@@ -36,5 +37,6 @@ export const getContext = (
   metadata: createMetadataRepositoryMock(),
   trees: EMPTY_TREE_READER,
   unions: NO_UNIONS,
+  parentDiffs: createParentDiffMemo(),
   ...overrides,
 })

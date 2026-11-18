@@ -364,6 +364,8 @@ Both layouts SDR resolves to one component are supported: the sub-folder spellin
 
 Deletion liveness: a deletion under `objectTranslations/` is a modification when `<typeDir>/<component>` still exists at `--to`, and destructive otherwise. The handler overrides `_getMetadataName` to build that anchor from `typeDirectoryPath` and the element name; `componentPath` is not usable because `MetadataBoundaryResolver` anchors a `fieldTranslation` file on the file itself. In the flat layout `<typeDir>/<component>` is never a real tree path, so a flat deletion stays destructive. A deleted parent `objectTranslation` file whose component folder survives is a modification with nothing copied and no warning: SDR rejects that tree at deploy (`TypeInferenceError: Unexpected child metadata`), and sgd does not re-enforce metadata-shape rules.
 
+One parent diff per parent per pass: `_getObjectTranslationWriter` asks `RunContext.parentDiffs` for the parent's outcome keyed by the parent path, so every child of a parent joins the same `MetadataDiff.run` instead of re-reading and re-diffing the parent per child, and all children share the one writer that `IOExecutor` runs once.
+
 #### DecomposedHandler
 
 **Extends**: StandardHandler
@@ -376,7 +378,7 @@ Handles metadata stored as individual files in sub-folders of a parent type. Ele
 **Extends**: DecomposedHandler
 **Used by**: CustomField
 
-Like DecomposedHandler but the parent copy is conditional: only copies the parent `CustomObject` when the field contains `<type>MasterDetail</type>`, because Master Detail fields require the parent object in the same deployment.
+Like DecomposedHandler but the parent copy is conditional: only copies the parent `CustomObject` when the field contains `<type>MasterDetail</type>`, because Master Detail fields require the parent object in the same deployment. That content check is one `grepUnderPaths` call on the field's own file, an exact hit in the sorted path index.
 
 #### ContainedDecomposedHandler
 
@@ -397,7 +399,7 @@ Accepts the definition (`<Name>.externalServiceRegistration-meta.xml`) and the d
 **Extends**: StandardHandler
 **Used by**: CustomObject, Territory2Model
 
-On addition, scans the object's `fields/` subfolder for Master Detail fields and includes them in the copy set — Master Detail fields cannot be deployed in a subsequent step.
+On addition, scans the object's `fields/` subfolder for Master Detail fields and includes them in the copy set — Master Detail fields cannot be deployed in a subsequent step. The scan is one `grepUnderPaths` call on the `fields/` directory, a binary-searched range in the sorted path index.
 
 #### CustomObjectChildHandler
 
@@ -572,6 +574,8 @@ Logger.debug(lazy`result: ${() => JSON.stringify(largeObject)}`)
 
 **Blob reads**: `indexRevision(revision)` — shared by `buildTreeIndex`, blob reads, archive streaming, and grep — flattens the full, unscoped tree at a revision once via `repo.primitives.flattenTree` and memoizes the *pending build* of the `path -> blob ObjectId` map on `blobIdIndex` before its first `await`, so a caller arriving while the walk is in flight awaits it instead of starting another; a build that rejects is evicted, so the next caller retries rather than inheriting the failure (the tsgit counterpart of `git cat-file --batch` oid:path resolution). Unlike the tree index, this memo carries no caller-supplied scope and is deterministic per revision, so it is safe to keep on the repo-bound `GitAdapter` instance and share across every run against that repository. `getBufferContent`, `getBufferContentOrEscalate`, `streamContent`, `streamArchive`, and both grep surfaces (`grepUnderPaths`, `grepMatchingPathspecs`) all resolve paths through it before calling `repo.primitives.readBlob`/`streamBlob` directly. There is no batch process, no stdin/stdout protocol, and no FIFO queue to maintain — each read is a direct object-store lookup.
 
+Literal grep surface: `grepUnderPaths` resolves its specs through a sorted path index (`SortedPathIndex`, `src/adapter/sortedPathIndex.ts`) — an exact hit or a binary-searched directory range, with no per-call scan of the revision. The index is memoised per blob-id map in a `WeakMap` on the adapter, so it is built once per flattened revision and released with that map. The pattern surface (`grepMatchingPathspecs`) keeps its walk over every path with the wildmatch matcher.
+
 Lifecycle: `GitAdapter.closeAll()` is `async` and awaits `repo.dispose()` on every open `Repository` handle before clearing the singleton instances map. It is called in a `finally` block in `src/main.ts` on both success and error paths, giving deterministic pack-handle close instead of relying on process exit or GC.
 
 **Streaming and memory bound**: `getBufferContentOrEscalate` accumulates `streamBlob` chunks and watches the running total; crossing `SIZE_THRESHOLD` (1 MB) throws `EscalateToStreamingSignal` instead of continuing to materialize the buffer. The caller (`IOExecutor`) then falls back to `streamContent`, which pipes the same pull-based `streamBlob` async iterator straight to the destination — peak memory is bounded by the stream's high-water mark, not the blob size. `streamContent` also peeks the first `LFS_MAGIC.length` bytes off that iterator before forwarding anything: a match hands off to the resolved LFS object file on disk, a miss forwards the peeked head plus every remaining chunk unmodified.
@@ -582,7 +586,7 @@ Lifecycle: `GitAdapter.closeAll()` is `async` and awaits `repo.dispose()` on eve
 
 `peelToCommit(oid, label)` — reached through the private `peelRevision(revision)` helper (`getRepo` -> `revParse` -> single-revision check -> `peelToCommit`) that `resolveCommit` (validation), `flattenRevision` (the `indexRevision` walk), and `getMergeBase` share — follows a resolved oid down through any tag chain to the commit it ultimately points at. tsgit's `revParse` answers every line `git rev-parse` would print, so the check enforces `rev-parse --verify` semantics: exactly one non-negated object entry — a range, an exclusion (`^A`) or a working-tree path is refused before any object read. `revParse` returns the tag **object** oid for an annotated tag rather than auto-peeling, and tsgit's `mergeBase` primitive does not peel either; without this step, `--from v1.0.0 --merge-base` would compare the tag object against a commit and falsely report no merge base. A chain ending in a tree or blob raises a typed `NotACommitError` carrying the object kind, which `ConfigValidator` renders as `error.ParameterIsNotCommit`.
 
-**Fidelity notes**: `grepBlobs` — the private tree-walk shared by `grepUnderPaths` and `grepMatchingPathspecs` — matches content with JS `RegExp` semantics, not POSIX basic regex; callers only ever pass metacharacter-free literals (guarded by `gitGrepPatternInventory.test.ts`), so the two semantics agree in practice. A second fidelity axis follows from the path-matching split between the two surfaces: path matching is literal-prefix on `grepUnderPaths`' concrete-path surface and wildmatch on `grepMatchingPathspecs`' pattern surface — only sgd-constructed values, already validated to carry no wildcard metacharacters, reach the latter.
+**Fidelity notes**: result order of `grepUnderPaths` is spec order, code-unit sorted inside a directory, with first-seen dedupe; consumers must not depend on it. `grepBlobs` — the private content matcher shared by `grepUnderPaths` and `grepMatchingPathspecs` — matches content with JS `RegExp` semantics, not POSIX basic regex; callers only ever pass metacharacter-free literals (guarded by `gitGrepPatternInventory.test.ts`), so the two semantics agree in practice. A second fidelity axis follows from the path-matching split between the two surfaces: path matching is literal-prefix on `grepUnderPaths`' concrete-path surface and wildmatch on `grepMatchingPathspecs`' pattern surface — only sgd-constructed values, already validated to carry no wildcard metacharacters, reach the latter.
 
 ### XML Reading & Writing
 
@@ -599,10 +603,12 @@ Element text is written **verbatim by default** — the metadata-diff and flow-t
 
 ### Lookup Caches
 
-Two memoization caches sit on the lookup hot path; both have lifetime scoped to the surrounding instance and need no eviction:
+Four memoization caches sit on the lookup hot path. The first two have a lifetime scoped to the surrounding instance and need no eviction; the last two are described after them:
 
 - **`MetadataRepositoryImpl.pathCache`** memoizes `get(path)` results (including negative lookups) on a `Map<string, Metadata|undefined>`. `get()` strips the diff-status prefix (`GIT_DIFF_TYPE_REGEX`, e.g. `A\t`) before resolving and caching; `TypeHandlerFactory.getTypeHandler` strips that same prefix itself before calling in. The two therefore land on the same cache entry per file, so `has(line)`, `getFullyQualifiedName(line)`, and `TypeHandlerFactory.getTypeHandler` share one search chain per line rather than each paying their own. Stripping first also lets a repository whose package directory is the repository root resolve at all — the raw prefix used to corrupt the path's first segment for every directory-resolved type. The lookup chain itself is `searchByExtension` + `searchByDirectory`, deterministic in the stripped path; direct lookup by XML name (`getByXmlName`) is a separate index and plays no part in path resolution. A suffix declared by more than one type (`unsafeExtensions`) is tracked per registry instance, so a custom `--additional-metadata-registry` cannot make a suffix ambiguous for every registry built after it.
 - **`TypeHandlerFactory.handlerCache`** memoizes `resolveHandler(metadata)` → handler-class on a `Map<Metadata, typeof Standard>`. Dispatch involves five branches plus a `getByXmlName` lookup, all deterministic in the metadata reference — and the registry returns the same instance for a given type. Reference-keyed (not xmlName-keyed) to skip the string hash on every call.
+- **`GitAdapter` sorted path index** (`src/adapter/sortedPathIndex.ts`) backs `grepUnderPaths`. Pool-scoped: one per blob-id map, held in a `WeakMap` keyed by that map, so it lives as long as the adapter's revision index and is dropped with it.
+- **`RunContext.parentDiffs`** (`src/utils/metadataDiff/parentDiffMemo.ts`) memoizes the parent `objectTranslation` diff outcome. Per run and per revision pair, keyed by parent path; a rejected diff is evicted so the next caller retries, and `withRevisions` installs a fresh one for the include passes.
 
 ---
 
@@ -649,7 +655,7 @@ All user inputs flowing through the pipeline:
 
 ### RunContext (`src/types/runContext.ts`)
 
-Read-only context handed to every reader of a run: `config`, `metadata`, `trees` (the revision tree readers) and `unions`. `unions` is a `UnionOutcomes` (`ReadonlyMap<path, DiffOutcome>`) computed by `PureMoveResolver`; `NO_UNIONS` is the empty map, and `withRevisions` resets it for the include passes since they do not run on the diff the outcomes were computed on.
+Read-only context handed to every reader of a run: `config`, `metadata`, `trees` (the revision tree readers), `unions` and `parentDiffs`. `unions` is a `UnionOutcomes` (`ReadonlyMap<path, DiffOutcome>`) computed by `PureMoveResolver`; `NO_UNIONS` is the empty map, and `withRevisions` resets it for the include passes since they do not run on the diff the outcomes were computed on. `parentDiffs` is replaced by `withRevisions` alongside `unions`, for the same reason, and is the one internally mutable collaborator of the context: its memo fills as handlers ask, while the field itself is never reassigned.
 
 ### MoveResolution (`src/utils/pureMoveResolver.ts`)
 
