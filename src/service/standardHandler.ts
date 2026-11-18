@@ -153,6 +153,15 @@ export default class StandardHandler {
     })
   }
 
+  protected _collectComponentCopy(copies: CopyOperation[], path: string): void {
+    if (!this._shouldCollectCopies()) return
+    copies.push({
+      kind: CopyOperationKind.GitComponentCopy,
+      path,
+      revision: this.config.to,
+    })
+  }
+
   protected _shouldCollectCopies(): boolean {
     return this.config.generateDelta
   }
