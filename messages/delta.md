@@ -198,3 +198,7 @@ Could not build the file tree index for '%s', so components that still exist the
 # warning.UndeletableComponentsOmitted
 
 The Metadata API cannot delete '%s' components, so destructiveChanges.xml omits '%s'. Remove them from the target org manually in Setup.
+
+# warning.OutputWriteFailed
+
+Unable to write '%s' in the output directory. Caused by: %s

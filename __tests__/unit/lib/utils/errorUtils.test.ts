@@ -6,6 +6,7 @@ import {
   getErrorMessage,
   MetadataRegistryError,
   NotACommitError,
+  OutputWriteError,
   SgdError,
   wrapError,
 } from '../../../../src/utils/errorUtils'
@@ -166,5 +167,22 @@ describe('wrapError', () => {
         'root cause'
       )
     })
+  })
+})
+
+describe('Given an OutputWriteError', () => {
+  it('When built with a message, a path and a cause, Then it is an SgdError named OutputWriteError carrying the path and the cause', () => {
+    // Arrange
+    const cause = new Error('EISDIR')
+
+    // Act
+    const sut = new OutputWriteError('cannot write', 'out/file.xml', cause)
+
+    // Assert
+    expect(sut).toBeInstanceOf(SgdError)
+    expect(sut.name).toBe('OutputWriteError')
+    expect(sut.message).toBe('cannot write')
+    expect(sut.path).toBe('out/file.xml')
+    expect(sut.cause).toBe(cause)
   })
 })

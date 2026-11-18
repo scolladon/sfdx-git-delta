@@ -43,6 +43,17 @@ export class NotACommitError extends SgdError {
   }
 }
 
+export class OutputWriteError extends SgdError {
+  constructor(
+    message: string,
+    readonly path: string,
+    cause: unknown
+  ) {
+    super(message, { cause })
+    this.name = 'OutputWriteError'
+  }
+}
+
 export const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message
