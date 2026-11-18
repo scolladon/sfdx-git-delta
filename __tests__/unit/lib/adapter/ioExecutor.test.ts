@@ -1428,7 +1428,7 @@ describe('IOExecutor', () => {
     })
   })
 
-  describe('Given _executeGitDirCopyViaArchive path guards (kills L174/L178/L182/L191 ConditionalExpression false)', () => {
+  describe('Given _executeGitDirCopyViaArchive path guards', () => {
     const makeArchiveSut = (
       filePaths: string[],
       entries: Array<{ path: string; makeStream?: () => Readable }>
@@ -1474,7 +1474,7 @@ describe('IOExecutor', () => {
     const makeFilePaths = (n: number, prefix = 'bundle') =>
       Array.from({ length: n }, (_, i) => `${prefix}/f${i}.xml`)
 
-    it('When archive yields entry not in wanted set, Then it is skipped and its stream is destroyed (L174 kills false guard, kills L173 destroy() call)', async () => {
+    it('When archive yields entry not in wanted set, Then it is skipped and its stream is destroyed', async () => {
       // Arrange — 26 known files but archive yields an extra unknown entry
       const knownPaths = makeFilePaths(26)
       const { sut, resumeSpies, destroySpies } = makeArchiveSut(knownPaths, [
@@ -1501,7 +1501,7 @@ describe('IOExecutor', () => {
       expect(resumeSpies.get('bundle/unknown-extra.xml')).not.toHaveBeenCalled()
     })
 
-    it('When archive yields already-processed entry, Then it is skipped and its stream is destroyed (L178 kills false guard, kills L177 destroy() call)', async () => {
+    it('When archive yields already-processed entry, Then it is skipped and its stream is destroyed', async () => {
       // Arrange — 26 files; first entry processed, then same path appears again
       const knownPaths = makeFilePaths(26)
       const firstPath = knownPaths[0]!
@@ -1527,7 +1527,7 @@ describe('IOExecutor', () => {
       expect(resumeSpies.get(firstPath)).not.toHaveBeenCalled()
     })
 
-    it('When archive yields ignored entry, Then it is skipped and its stream is destroyed (L182 kills false guard, kills L181 destroy() call)', async () => {
+    it('When archive yields ignored entry, Then it is skipped and its stream is destroyed', async () => {
       // Arrange
       const knownPaths = makeFilePaths(26)
       mockBuildIgnoreHelper.mockResolvedValue({
@@ -1559,7 +1559,7 @@ describe('IOExecutor', () => {
       expect(resumeSpies.get(knownPaths[0]!)).not.toHaveBeenCalled()
     })
 
-    it('When archive entry dst escapes outputPrefix (zip-slip), Then it is skipped and its stream is destroyed (L191 kills false guard, kills L186 destroy() call)', async () => {
+    it('When archive entry dst escapes outputPrefix (zip-slip), Then it is skipped and its stream is destroyed', async () => {
       // Arrange — output without trailing slash is 'output'
       // A path like '../escape/evil.xml' would resolve to outside output/
       const knownPaths = [...makeFilePaths(25), '../escape/evil.xml']

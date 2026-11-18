@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { afterAll, afterEach, describe, expect, it } from 'vitest'
 
 import GitAdapter from '../../src/adapter/GitAdapter'
+import { GIT_ARCHIVE_DIR_THRESHOLD } from '../../src/adapter/gitBlobReader'
 import sgd from '../../src/main'
 import type { ConfigInput } from '../../src/types/config'
 import { IgnoreHelper } from '../../src/utils/ignoreHelper'
@@ -20,10 +21,11 @@ import { createTempDir, runGitText } from '../__utils__/gitTestHarness.ts'
 
 // Pinning apiVersion keeps the run offline.
 const API_VERSION = 60
-// The dir copy goes through the archive only above 25 files; the PS meta file
-// counts, so 25 children is the first archive case and 24 the last per-file one.
-const ARCHIVE_CHILD_COUNT = 25
-const PER_FILE_CHILD_COUNT = 24
+// The dir copy goes through the archive only above the threshold; the PS meta
+// file counts, so threshold children is the first archive case and one fewer
+// the last per-file one.
+const ARCHIVE_CHILD_COUNT = GIT_ARCHIVE_DIR_THRESHOLD
+const PER_FILE_CHILD_COUNT = GIT_ARCHIVE_DIR_THRESHOLD - 1
 const LFS_POINTER_MARKER = 'version https://git-lfs'
 const TMP_SUFFIX = '.tmp'
 
