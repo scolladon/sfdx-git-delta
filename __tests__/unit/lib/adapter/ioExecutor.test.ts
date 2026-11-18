@@ -107,6 +107,7 @@ beforeEach(() => {
   mockMkdir.mockResolvedValue()
   mockRename.mockResolvedValue()
   mockUnlink.mockResolvedValue()
+  vi.mocked(outputFile).mockResolvedValue(undefined)
   mockCreateWriteStream.mockImplementation(() => createFakeWriteStream())
 })
 
@@ -627,6 +628,161 @@ describe('IOExecutor', () => {
 
       expect(mockGetBufferContentOrEscalate).toHaveBeenCalled()
       expect(outputFile).not.toHaveBeenCalled()
+      expect(executor.warnings()).toEqual([])
+    })
+  })
+
+  describe('Given an output write failure on a plain copy', () => {
+    const EISDIR = Object.assign(new Error('EISDIR'), { code: 'EISDIR' })
+    const makeSut = () => {
+      const work = getWork()
+      work.config.to = 'abc123'
+      work.config.output = 'output'
+      return new IOExecutor(
+        getContext({ config: work.config, trees: treeReader })
+      )
+    }
+
+    it('When a GitCopy destination cannot be written, Then execute resolves with one OutputWriteError naming the destination', async () => {
+      // Arrange
+      const sut = makeSut()
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('x'))
+      vi.mocked(outputFile).mockRejectedValueOnce(EISDIR)
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: 'classes/Bad.cls',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      const result = sut.warnings()
+      expect(result).toHaveLength(1)
+      expect(result[0]).toBeInstanceOf(OutputWriteError)
+      expect((result[0] as OutputWriteError).path).toBe(
+        'output/classes/Bad.cls'
+      )
+      expect(loggedMessages()).toContain(result[0]?.message)
+    })
+
+    it('When the first of three GitDirCopy files cannot be written, Then the other two are still written and one OutputWriteError names the first', async () => {
+      // Arrange
+      const sut = makeSut()
+      mockFilesUnder.mockReturnValue(['d/f1.xml', 'd/f2.xml', 'd/f3.xml'])
+      mockGetBufferContent.mockResolvedValue(Buffer.from('c'))
+      vi.mocked(outputFile).mockRejectedValueOnce(EISDIR)
+
+      // Act
+      await sut.execute([
+        { kind: CopyOperationKind.GitDirCopy, path: 'd', revision: 'abc123' },
+      ])
+
+      // Assert
+      expect(outputFile).toHaveBeenCalledTimes(3)
+      const result = sut.warnings()
+      expect(result).toHaveLength(1)
+      expect((result[0] as OutputWriteError).path).toBe('output/d/f1.xml')
+    })
+
+    it('When a later GitCopy targets the GitDirCopy file that failed to write, Then it is deduped and no second warning is raised', async () => {
+      // Arrange
+      const sut = makeSut()
+      mockFilesUnder.mockReturnValue(['d/f1.xml'])
+      mockGetBufferContent.mockResolvedValue(Buffer.from('c'))
+      vi.mocked(outputFile).mockRejectedValueOnce(EISDIR)
+
+      // Act
+      await sut.execute([
+        { kind: CopyOperationKind.GitDirCopy, path: 'd', revision: 'abc123' },
+      ])
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: 'd/f1.xml',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      expect(mockGetBufferContentOrEscalate).not.toHaveBeenCalled()
+      expect(sut.warnings()).toHaveLength(1)
+    })
+
+    it('When a GitCopy and a StreamedContent both fail to write, Then warnings() holds both', async () => {
+      // Arrange
+      const sut = makeSut()
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('x'))
+      vi.mocked(outputFile).mockRejectedValueOnce(EISDIR)
+      mockCreateWriteStream.mockReturnValueOnce(failingOpenStream('EISDIR'))
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: 'classes/Bad.cls',
+          revision: 'abc123',
+        },
+        labelsOperation(),
+      ])
+
+      // Assert
+      const result = sut.warnings()
+      expect(result).toHaveLength(2)
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ path: 'output/classes/Bad.cls' }),
+          expect.objectContaining({ path: LABELS_TMP }),
+        ])
+      )
+    })
+
+    it('When the base write of its path failed on the output side, Then the augment writer is never invoked and one warning is raised', async () => {
+      // Arrange
+      const sut = makeSut()
+      const writer = vi.fn(async () => undefined)
+      mockCreateWriteStream.mockReturnValueOnce(failingOpenStream('EISDIR'))
+
+      // Act
+      await sut.execute([
+        labelsOperation(),
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: LABELS_PATH,
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(writer).not.toHaveBeenCalled()
+      expect(sut.warnings()).toHaveLength(1)
+    })
+
+    it('When a GitCopy of its path failed to write, Then the augment writer is never invoked', async () => {
+      // Arrange
+      const sut = makeSut()
+      const writer = vi.fn(async () => undefined)
+      mockGetBufferContentOrEscalate.mockResolvedValue(Buffer.from('x'))
+      vi.mocked(outputFile).mockRejectedValueOnce(EISDIR)
+
+      // Act
+      await sut.execute([
+        {
+          kind: CopyOperationKind.GitCopy,
+          path: 'classes/Bad.cls',
+          revision: 'abc123',
+        },
+        {
+          kind: CopyOperationKind.AugmentedContent,
+          path: 'classes/Bad.cls',
+          writer,
+        },
+      ])
+
+      // Assert
+      expect(writer).not.toHaveBeenCalled()
     })
   })
 
@@ -814,6 +970,7 @@ describe('IOExecutor', () => {
 
       expect(mockFilesUnder).toHaveBeenCalled()
       expect(outputFile).not.toHaveBeenCalled()
+      expect(executor.warnings()).toEqual([])
     })
   })
 
@@ -1267,6 +1424,7 @@ describe('IOExecutor', () => {
       // Assert
       expect(readFile).not.toHaveBeenCalled()
       expect(writer).toHaveBeenCalledWith(expect.anything(), undefined)
+      expect(sut.warnings()).toEqual([])
     })
 
     it('When no op of this run wrote its path, Then a file left in the output directory is never read', async () => {

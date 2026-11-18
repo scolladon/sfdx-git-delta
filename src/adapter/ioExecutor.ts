@@ -61,8 +61,10 @@ const partitionAugments = (
 export default class IOExecutor {
   protected readonly processedPaths: Set<string> = new Set()
   // processedPaths records what an operation claimed; a claimed write can
-  // still fail. Only destinations whose write completed land here.
+  // still fail. Only destinations whose write completed land here; those
+  // whose output write failed land in failedDestinations.
   protected readonly writtenDestinations: Set<string> = new Set()
+  private readonly failedDestinations: Set<string> = new Set()
   private readonly outputWarnings: OutputWriteError[] = []
   protected ignoreHelper!: IgnoreHelper
 
@@ -107,6 +109,11 @@ export default class IOExecutor {
       return
     }
     const dst = join(this.config.output, op.path)
+    // A base whose output write failed must not be replaced by a file holding
+    // only the augmented content: the warning says that path was not written.
+    if (this.failedDestinations.has(dst)) {
+      return
+    }
     await this._executeStreamedContent({
       path: op.path,
       writer: async out => op.writer(out, await this._readWrittenThisRun(dst)),
@@ -125,8 +132,12 @@ export default class IOExecutor {
   }
 
   protected async _outputFile(dst: string, content: Buffer): Promise<void> {
-    await outputFile(dst, content)
-    this.writtenDestinations.add(dst)
+    try {
+      await asOutputWrite(dst, () => outputFile(dst, content))
+      this.writtenDestinations.add(dst)
+    } catch (error) {
+      this._onCopyFailure(dst, error)
+    }
   }
 
   protected async _executeOperation(op: BaseCopyOperation): Promise<void> {
@@ -285,14 +296,15 @@ export default class IOExecutor {
     await this._writeAtomicallyViaTmp(dst, op.writer)
   }
 
-  private _warnWriteFailure(failure: OutputWriteError): void {
+  private _warnWriteFailure(dst: string, failure: OutputWriteError): void {
     Logger.warn(lazy`${failure.message}`)
+    this.failedDestinations.add(dst)
     this.outputWarnings.push(failure)
   }
 
   private _onCopyFailure(dst: string, error: unknown): void {
     if (error instanceof OutputWriteError) {
-      this._warnWriteFailure(error)
+      this._warnWriteFailure(dst, error)
       return
     }
     Logger.debug(
