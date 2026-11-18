@@ -1431,7 +1431,7 @@ describe('IOExecutor', () => {
   describe('Given _executeGitDirCopyViaArchive path guards (kills L174/L178/L182/L191 ConditionalExpression false)', () => {
     const makeArchiveSut = (
       filePaths: string[],
-      entries: Array<{ path: string }>
+      entries: Array<{ path: string; makeStream?: () => Readable }>
     ) => {
       const work = getWork()
       work.config.to = 'abc123'
@@ -1439,15 +1439,17 @@ describe('IOExecutor', () => {
       // >25 to trigger archive path
       mockFilesUnder.mockReturnValue(filePaths)
       // Every branch that `continue`s past an entry without piping it must
-      // still drain the stream via .resume() (the streamArchive contract:
-      // "Callers must consume every yielded stream ... to avoid leaving the
-      // underlying blob stream unread"). Spy per-entry so each skip test can
-      // assert its own entry was drained.
+      // destroy the stream and never resume() it: resume() would read the
+      // entry, and an unhandled read error would crash the process. Spy
+      // per-entry so each skip test can assert its own entry was destroyed.
       const resumeSpies = new Map<string, ReturnType<typeof vi.fn>>()
+      const destroySpies = new Map<string, ReturnType<typeof vi.fn>>()
       const streamArchiveSpy = vi.fn(async function* () {
         for (const entry of entries) {
-          const stream = Readable.from([Buffer.from('x')])
+          const stream =
+            entry.makeStream?.() ?? Readable.from([Buffer.from('x')])
           resumeSpies.set(entry.path, vi.spyOn(stream, 'resume'))
+          destroySpies.set(entry.path, vi.spyOn(stream, 'destroy'))
           yield { path: entry.path, stream }
         }
       })
@@ -1464,6 +1466,7 @@ describe('IOExecutor', () => {
         ),
         streamArchiveSpy,
         resumeSpies,
+        destroySpies,
         work,
       }
     }
@@ -1471,10 +1474,10 @@ describe('IOExecutor', () => {
     const makeFilePaths = (n: number, prefix = 'bundle') =>
       Array.from({ length: n }, (_, i) => `${prefix}/f${i}.xml`)
 
-    it('When archive yields entry not in wanted set, Then it is skipped and its stream is drained (L174 kills false guard, kills L173 resume() call)', async () => {
+    it('When archive yields entry not in wanted set, Then it is skipped and its stream is destroyed (L174 kills false guard, kills L173 destroy() call)', async () => {
       // Arrange — 26 known files but archive yields an extra unknown entry
       const knownPaths = makeFilePaths(26)
-      const { sut, resumeSpies } = makeArchiveSut(knownPaths, [
+      const { sut, resumeSpies, destroySpies } = makeArchiveSut(knownPaths, [
         { path: 'bundle/unknown-extra.xml' }, // not in wanted
         { path: knownPaths[0]! },
       ])
@@ -1494,14 +1497,15 @@ describe('IOExecutor', () => {
         expect.stringContaining(knownPaths[0]!),
         expect.any(String)
       )
-      expect(resumeSpies.get('bundle/unknown-extra.xml')).toHaveBeenCalled()
+      expect(destroySpies.get('bundle/unknown-extra.xml')).toHaveBeenCalled()
+      expect(resumeSpies.get('bundle/unknown-extra.xml')).not.toHaveBeenCalled()
     })
 
-    it('When archive yields already-processed entry, Then it is skipped and its stream is drained (L178 kills false guard, kills L177 resume() call)', async () => {
+    it('When archive yields already-processed entry, Then it is skipped and its stream is destroyed (L178 kills false guard, kills L177 destroy() call)', async () => {
       // Arrange — 26 files; first entry processed, then same path appears again
       const knownPaths = makeFilePaths(26)
       const firstPath = knownPaths[0]!
-      const { sut, resumeSpies } = makeArchiveSut(knownPaths, [
+      const { sut, resumeSpies, destroySpies } = makeArchiveSut(knownPaths, [
         { path: firstPath },
         { path: firstPath }, // duplicate
       ])
@@ -1519,10 +1523,11 @@ describe('IOExecutor', () => {
       // duplicate (second, skipped) occurrence's stream is the one left in
       // resumeSpies since the map key is overwritten per entry.
       expect(mockRename).toHaveBeenCalledTimes(1)
-      expect(resumeSpies.get(firstPath)).toHaveBeenCalled()
+      expect(destroySpies.get(firstPath)).toHaveBeenCalled()
+      expect(resumeSpies.get(firstPath)).not.toHaveBeenCalled()
     })
 
-    it('When archive yields ignored entry, Then it is skipped and its stream is drained (L182 kills false guard, kills L181 resume() call)', async () => {
+    it('When archive yields ignored entry, Then it is skipped and its stream is destroyed (L182 kills false guard, kills L181 destroy() call)', async () => {
       // Arrange
       const knownPaths = makeFilePaths(26)
       mockBuildIgnoreHelper.mockResolvedValue({
@@ -1530,7 +1535,7 @@ describe('IOExecutor', () => {
           ignores: (p: string) => p.includes('f0.xml'),
         } as unknown as Ignore,
       } as unknown as IgnoreHelper)
-      const { sut, resumeSpies } = makeArchiveSut(knownPaths, [
+      const { sut, resumeSpies, destroySpies } = makeArchiveSut(knownPaths, [
         { path: knownPaths[0]! }, // ignored
         { path: knownPaths[1]! }, // not ignored
       ])
@@ -1550,17 +1555,18 @@ describe('IOExecutor', () => {
         expect.stringContaining('f1.xml'),
         expect.any(String)
       )
-      expect(resumeSpies.get(knownPaths[0]!)).toHaveBeenCalled()
+      expect(destroySpies.get(knownPaths[0]!)).toHaveBeenCalled()
+      expect(resumeSpies.get(knownPaths[0]!)).not.toHaveBeenCalled()
     })
 
-    it('When archive entry dst escapes outputPrefix (zip-slip), Then it is skipped and its stream is drained (L191 kills false guard, kills L186 resume() call)', async () => {
+    it('When archive entry dst escapes outputPrefix (zip-slip), Then it is skipped and its stream is destroyed (L191 kills false guard, kills L186 destroy() call)', async () => {
       // Arrange — output without trailing slash is 'output'
       // A path like '../escape/evil.xml' would resolve to outside output/
       const knownPaths = [...makeFilePaths(25), '../escape/evil.xml']
-      const { sut, work, resumeSpies } = makeArchiveSut(knownPaths, [
-        { path: '../escape/evil.xml' },
-        { path: knownPaths[0]! },
-      ])
+      const { sut, work, resumeSpies, destroySpies } = makeArchiveSut(
+        knownPaths,
+        [{ path: '../escape/evil.xml' }, { path: knownPaths[0]! }]
+      )
       // Ensure output has no trailing slash
       work.config.output = 'output'
 
@@ -1579,7 +1585,42 @@ describe('IOExecutor', () => {
         expect.stringContaining('evil.xml'),
         expect.any(String)
       )
-      expect(resumeSpies.get('../escape/evil.xml')).toHaveBeenCalled()
+      expect(destroySpies.get('../escape/evil.xml')).toHaveBeenCalled()
+      expect(resumeSpies.get('../escape/evil.xml')).not.toHaveBeenCalled()
+    })
+
+    it('When a skipped entry stream would error on read, Then execute resolves and the wanted entries are written', async () => {
+      // Arrange
+      const knownPaths = makeFilePaths(26)
+      const { sut } = makeArchiveSut(knownPaths, [
+        {
+          path: 'bundle/unreadable.xml',
+          makeStream: () =>
+            new Readable({
+              read() {
+                this.destroy(new Error('unreadable'))
+              },
+            }),
+        },
+        { path: knownPaths[0]! },
+      ])
+
+      // Act
+      const result = sut.execute([
+        {
+          kind: CopyOperationKind.GitDirCopy,
+          path: 'bundle',
+          revision: 'abc123',
+        },
+      ])
+
+      // Assert
+      await expect(result).resolves.toBeUndefined()
+      expect(mockRename).toHaveBeenCalledTimes(1)
+      expect(mockRename).toHaveBeenCalledWith(
+        `output/${knownPaths[0]}.tmp`,
+        `output/${knownPaths[0]}`
+      )
     })
 
     it('When archive entry is valid, Then _writeAtomicallyViaTmp is called and rename occurs (L196 kills BlockStatement {})', async () => {

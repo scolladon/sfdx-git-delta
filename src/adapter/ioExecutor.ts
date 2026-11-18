@@ -226,11 +226,12 @@ export default class IOExecutor {
   }
 
   /**
-   * Streams a directory via the adapter's per-blob `streamArchive`. One
-   * tree walk replaces N per-file `getBufferContent` round trips for large
-   * dirs (ExperienceBundle, static resource folders). Each entry pipes
-   * directly into a sibling .tmp + rename; a per-entry
-   * processedPaths.has check matches today's dedup contract.
+   * Streams a directory via the adapter's per-blob `streamArchive`. The
+   * emitter is `ContainedDecomposedHandler` (PermissionSet decomposed
+   * dirs). Each entry pipes directly into a sibling .tmp + rename; a
+   * per-entry processedPaths.has check matches today's dedup contract. A
+   * skipped entry is `destroy()`ed, not read, so it costs no read and
+   * cannot error.
    */
   private async _executeGitDirCopyViaArchive(
     gitAdapter: GitBlobReader,
@@ -239,21 +240,9 @@ export default class IOExecutor {
   ): Promise<void> {
     const wanted = new Set(filePaths)
     for await (const entry of gitAdapter.streamArchive(op.path, op.revision)) {
-      if (!wanted.has(entry.path)) {
-        entry.stream.resume()
-        continue
-      }
-      if (this.processedPaths.has(entry.path)) {
-        entry.stream.resume()
-        continue
-      }
-      if (this.ignoreHelper.globalIgnore.ignores(entry.path)) {
-        entry.stream.resume()
-        continue
-      }
-      const dst = join(this.config.output, entry.path)
-      if (!this._isWithinOutput(dst)) {
-        entry.stream.resume()
+      const dst = this._archiveEntryDestination(entry.path, wanted)
+      if (dst === undefined) {
+        entry.stream.destroy()
         continue
       }
       this.processedPaths.add(entry.path)
@@ -262,6 +251,17 @@ export default class IOExecutor {
         await pipeline(entry.stream, ws, { end: false })
       })
     }
+  }
+
+  private _archiveEntryDestination(
+    path: string,
+    wanted: ReadonlySet<string>
+  ): string | undefined {
+    if (!wanted.has(path)) return undefined
+    if (this.processedPaths.has(path)) return undefined
+    if (this.ignoreHelper.globalIgnore.ignores(path)) return undefined
+    const dst = join(this.config.output, path)
+    return this._isWithinOutput(dst) ? dst : undefined
   }
 
   protected async _executeStreamedContent(
