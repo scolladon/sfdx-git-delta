@@ -201,10 +201,7 @@ export class StreamingDiff {
     keyField: string
   ): void {
     const key = element[keyField] as string | undefined
-    /* v8 ignore start -- defensive: keyed subTypes always have the configured key in well-formed metadata */
-    // Stryker disable next-line ConditionalExpression
     if (key === undefined) return
-    /* v8 ignore stop */
     const fromMap = this.passOne.fromKeyed.get(subType)
     const fromElem = fromMap?.get(key)
     // Stryker disable next-line ConditionalExpression -- killable in principle: setting the guard to false makes fromMap.delete(key) throw on undefined fromMap (covered by the "no from-side" test). The mutant is reported survived likely due to a stryker/vitest perTest analysis quirk; the assertion that the test does NOT throw is observably stronger than what stryker considers.

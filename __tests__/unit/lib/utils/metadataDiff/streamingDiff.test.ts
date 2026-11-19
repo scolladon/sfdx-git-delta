@@ -892,4 +892,24 @@ describe('StreamingDiff', () => {
       hasPackageContent: false,
     })
   })
+
+  it('Given a to-side keyed element without its key field, When finalize runs, Then nothing is recorded and no writer is built', () => {
+    // Arrange
+    const { tag } = findPackageableKeyedSubType(inFileAttributes)
+    const sut = new StreamingDiff(inFileAttributes, true)
+    sut.onToElement(tag, { description: 'no key' })
+
+    // Act
+    const outcome = sut.finalize()
+    const writer = sut.buildWriter(buildRoot())
+
+    // Assert
+    expect(outcome).toEqual({
+      added: [],
+      modified: [],
+      deleted: [],
+      hasPackageContent: false,
+    })
+    expect(writer).toBeUndefined()
+  })
 })
