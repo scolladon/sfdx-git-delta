@@ -25,7 +25,7 @@ export type SubTypeElementHandler = (
   element: XmlContent
 ) => void
 
-// Stryker disable next-line Regex -- equivalent: SF metadata XML always begins with the same fixed prologue shape; anchor and char-class shape mutants match identically on every reachable input, and the consumer gates on declMatch.index === 0
+// Stryker disable next-line Regex -- not equivalent, but perTest coverage cannot kill it: the literal is built once when the module loads, so a mutant activated for a single test never reaches it. Every variant fails plain vitest: dropping `^` through the declaration-inside-the-root-body test, `^\S*` through the whitespace-before-the-declaration test, the rest through every test with a declaration
 const XML_DECL_RE = /^\s*<\?xml\b[^?]*\?>/
 // Stryker disable next-line Regex -- equivalent: COMMENT_RE is always run on a fresh slice from index i; `^` anchor and `[\s\S]` shape mutants accept the same comment bodies on every reachable slice
 const COMMENT_RE = /^<!--[\s\S]*?-->/
@@ -112,16 +112,11 @@ const matchRootOpenTag = (xml: string, start: number): RootOpenTag | null => {
 
 // Reuse txml to parse just the root open tag's attributes consistently
 // with how it parses every other tag. Wrapping it as self-closing gives
-// us a clean parse target that always returns one node.
-const syntheticRootTag = ({
-  rootName,
-  attrsRaw,
-  isSelfClosing,
-}: RootOpenTag): string => {
-  // Stryker disable Regex -- equivalent: the trailing slash strip lets us re-wrap as a self-closing tag; mutants on /\/\s*$/ produce a regex with broader/narrower whitespace matching but SF metadata's self-closing root tag has no trailing whitespace before the `/`, so the strip is a no-op either way
-  const attributes = isSelfClosing ? attrsRaw.replace(/\/\s*$/, '') : attrsRaw
-  // Stryker restore Regex
-  return `<${rootName}${attributes}/>`
+// us a parse target that always returns one node. A self-closing root
+// keeps its own trailing `/` in attrsRaw; txml skips non-letter
+// characters between attributes, so `<Root a="1"//>` parses the same.
+const syntheticRootTag = ({ rootName, attrsRaw }: RootOpenTag): string => {
+  return `<${rootName}${attrsRaw}/>`
 }
 
 const parseRootAttributes = (rootTag: RootOpenTag): Record<string, string> => {
@@ -150,8 +145,7 @@ const parseRootAttributes = (rootTag: RootOpenTag): Record<string, string> => {
 // from there, and whether the root is self-closing.
 const parsePrologue = (xml: string): Prologue | null => {
   const declMatch = XML_DECL_RE.exec(xml)
-  // Stryker disable next-line ConditionalExpression -- equivalent: the index === 0 anchor is symmetric with the regex's `^` anchor; for the only inputs reachable here both produce identical (declMatch.index === 0) outcomes
-  const declaration = declMatch && declMatch.index === 0 ? declMatch[0] : ''
+  const declaration = declMatch?.[0] ?? ''
   const xmlHeader = declaration ? parseDeclaration(declaration) : undefined
 
   const rootStart = skipPrologueMisc(xml, declaration.length)
@@ -184,11 +178,10 @@ const streamRootChildren = (
   onElement: SubTypeElementHandler
 ): number => {
   let pos = bodyStart
-  // Stryker disable next-line BlockStatement,EqualityOperator -- equivalent: streamRootChildren main loop; emptying the body returns the bodyStart pos which the strict-tail check then rejects (or accepts as malformed) — the test surface for the swallowing path tolerates partial parses, so the empty-body mutant manifests as a no-op for tests that don't assert specific element emission counts; <= vs < changes the boundary by one position with no observable effect since we always exit via the </Root> branch
+  // Stryker disable next-line BlockStatement,EqualityOperator -- BlockStatement is not equivalent but unaffordable: an emptied body never advances `pos`, so the mutant hangs until Stryker's timeout. EqualityOperator: `<=` is equivalent (one extra pass at pos === xml.length finds no `<` and the lt < 0 arm breaks at the same offset); `>=` is killable but shares the mutator name, and the loop-skipping behaviour it produces is already killed through the ConditionalExpression false-flip
   while (pos < xml.length) {
     const lt = xml.indexOf('<', pos)
-    // Stryker disable next-line ConditionalExpression,EqualityOperator,BlockStatement -- equivalent: see v8 ignore — the lt < 0 branch is unreachable for well-formed metadata XML
-    /* v8 ignore next 4 -- defensive: well-formed XML always has the closing root tag, so '<' is reachable until the </Root> marker exits the loop below */
+    // Stryker disable next-line EqualityOperator -- `lt <= 0` is equivalent: the cursor never drops below bodyStart, which sits past the root open tag (at least 3 characters, `<R>`), so indexOf returns -1 or a positive offset, never 0. `lt >= 0` shares the mutator name; it jumps to the end of input on the first child, which every child-bearing test kills
     if (lt < 0) {
       pos = xml.length
       break
@@ -200,9 +193,8 @@ const streamRootChildren = (
     }
 
     if (xml.startsWith('<!--', lt)) {
-      // Stryker disable next-line StringLiteral,ArithmeticOperator -- equivalent: '-->' is the comment terminator; mutating to "" makes indexOf('') return lt+4 immediately so end becomes lt+4, pos becomes lt+4+3=lt+7 — the next iteration finds another '<' or end-of-input; for well-formed metadata XML there are no inner comments to test this path against, so the mutant is unobservable
       const end = xml.indexOf('-->', lt + 4)
-      // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator -- equivalent: end < 0 fallback for unterminated inner comments; metadata XML never has unterminated comments mid-document, so the false-arm (end + 3) is the only reachable branch and the +3 vs -3 mutant produces a different pos but the next iteration still finds the next '<' or end of input
+      // Stryker disable next-line EqualityOperator -- `end <= 0` is equivalent: the search starts at lt + 4, so indexOf returns -1 or an offset of at least 4, never 0. `end >= 0` shares the mutator name; whenever the comment is terminated it jumps to the end of input exactly like the killed ConditionalExpression true-flip on this condition
       pos = end < 0 ? xml.length : end + 3
       continue
     }
@@ -239,7 +231,7 @@ const verifyTail = (
     }
     i += expected.length
   }
-  // Stryker disable next-line BlockStatement -- equivalent: tail-validation loop; emptying the body skips the unexpected-content check, but the test surface only verifies clean termination (no trailing junk) for the strict path which has no junk to skip
+  // Stryker disable next-line BlockStatement -- not equivalent but unaffordable: an emptied body never advances `i`, so the mutant hangs until Stryker's timeout on any content after the root close, trailing whitespace included
   while (i < xml.length) {
     const ch = xml[i]
     if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {

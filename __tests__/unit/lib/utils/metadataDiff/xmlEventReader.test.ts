@@ -1,6 +1,7 @@
 'use strict'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { Logger } from '../../../../../src/utils/LoggingService'
 import {
   parseFromSideSwallowing,
   parseToSidePropagating,
@@ -188,6 +189,60 @@ describe('xmlEventReader', () => {
       await expect(parseToSidePropagating(source, onElement)).rejects.toThrow()
     })
 
+    it('Given a body ending in text without the root close, When parseToSidePropagating runs, Then the scan stops at the end of input and rejects naming that offset', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source = '<Root><a>1</a>text'
+
+      // Act
+      const sut = parseToSidePropagating(source, onElement)
+
+      // Assert
+      await expect(sut).rejects.toThrow(
+        'unclosed or mismatched root <Root> at offset 18'
+      )
+      expect(onElement.mock.calls).toEqual([['a', '1']])
+    })
+
+    it('Given an inner comment opened by `<!-->`, When parseToSidePropagating runs, Then the opener dashes do not close it and the elements inside it are skipped', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source = '<Root><!--> <a/> --><b/></Root>'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('Root')
+      expect(onElement.mock.calls).toEqual([['b', {}]])
+    })
+
+    it('Given an inner comment holding a tag, When parseToSidePropagating runs, Then the tag inside the comment is not emitted and the following element is', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source = '<Root><!-- xx <b> --><a>1</a></Root>'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('Root')
+      expect(onElement.mock.calls).toEqual([['a', '1']])
+    })
+
+    it('Given an inner comment whose body holds a `<` right before its terminator, When parseToSidePropagating runs, Then the element after the comment is emitted and the parse resolves', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source = '<Root><!--ab<c--><a>1</a></Root>'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('Root')
+      expect(onElement.mock.calls).toEqual([['a', '1']])
+    })
+
     it('Given empty XML, When parseToSidePropagating runs, Then the rejection propagates', async () => {
       // Arrange
       const source = ''
@@ -277,7 +332,7 @@ describe('xmlEventReader', () => {
       expect(tags).toEqual(['a'])
     })
 
-    it('Given input that throws inside driveParse, When parseFromSideSwallowing runs, Then its catch resolves null', async () => {
+    it('Given input that throws inside driveParse, When parseFromSideSwallowing runs, Then its catch logs the failure and resolves null', async () => {
       // Arrange — Buffer-like source whose toString throws so the catch
       // arm in parseFromSideSwallowing fires.
       const onElement = vi.fn()
@@ -297,6 +352,7 @@ describe('xmlEventReader', () => {
 
       // Assert
       expect(sut).toBeNull()
+      expect(Logger.debug).toHaveBeenCalled()
     })
 
     it('Given malformed XML, When parseFromSideSwallowing runs, Then it tolerates the partial tree (no balance check on the swallowing path)', async () => {
@@ -376,6 +432,20 @@ describe('xmlEventReader', () => {
       expect(sut?.xmlHeader).toBeUndefined()
     })
 
+    it('Given an xml declaration inside the root body, When parseFromSideSwallowing runs, Then it is not taken as the document header', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source = '<Root><?xml version="1.0"?></Root>'
+
+      // Act
+      const sut = await parseFromSideSwallowing(source, onElement)
+
+      // Assert
+      expect(sut?.rootKey).toBe('Root')
+      expect(sut?.xmlHeader).toBeUndefined()
+      expect(onElement.mock.calls).toEqual([['?xml', { '@_version': '1.0' }]])
+    })
+
     it('Given a Buffer source with non-ASCII content, When parseFromSideSwallowing runs, Then it decodes correctly via toString utf8', async () => {
       // driveParse must decode a Buffer as utf8 rather than use it as a string.
       const onElement = vi.fn()
@@ -396,6 +466,19 @@ describe('xmlEventReader', () => {
       const source = `<?xml version="1.0" encoding="UTF-8"?>\n<Profile xmlns="http://soap.sforce.com/2006/04/metadata"></Profile>`
       const sut = await parseToSidePropagating(source, onElement)
       expect(sut.xmlHeader).toBeDefined()
+    })
+
+    it('Given whitespace before the xml declaration, When parseToSidePropagating runs, Then the declaration is still captured as the header', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source = '\n<?xml version="1.0"?><Root/>'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('Root')
+      expect(sut.xmlHeader).toEqual({ '?xml': { '@_version': '1.0' } })
     })
 
     it('Given a document without root element (only declaration), When parseToSidePropagating runs, Then it rejects with "no root element"', async () => {
@@ -440,9 +523,8 @@ describe('xmlEventReader', () => {
       expect(Object.values(declAttrs)).toContain(true)
     })
 
-    it('Given a self-closing root element, When parseToSidePropagating runs, Then syntheticRootTag strips the slash and the attributes are captured', async () => {
-      // Arrange — `<Root attr="x"/>` exercises the self-closing branch of
-      // syntheticRootTag.
+    it('Given a self-closing root element, When parseToSidePropagating runs, Then the attributes are captured', async () => {
+      // Arrange — `<Root attr="x"/>` has no body, so no child is streamed.
       const onElement = vi.fn()
       const source = '<Root attr="x"/>'
 
@@ -453,6 +535,22 @@ describe('xmlEventReader', () => {
       expect(sut.rootKey).toBe('Root')
       expect(sut.rootAttributes).toEqual({ '@_attr': 'x' })
       expect(onElement).not.toHaveBeenCalled()
+    })
+
+    it('Given a self-closing root whose attribute value holds slashes, When parseToSidePropagating runs, Then the attribute value is captured intact', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source =
+        '<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata"/>'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('CustomLabels')
+      expect(sut.rootAttributes).toEqual({
+        '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+      })
     })
 
     it('Given a root with a no-value (boolean) attribute, When parseToSidePropagating runs, Then parseRootAttributes renders the attribute as the string "true"', async () => {
