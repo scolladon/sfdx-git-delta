@@ -874,4 +874,22 @@ describe('StreamingDiff', () => {
       { type: packageableSubType.xmlName, member: 'BrandNew.Key' },
     ])
   })
+
+  it('Given a from-side keyed element without its key field, When finalize runs, Then no deletion is recorded', () => {
+    // Arrange
+    const { tag } = findPackageableKeyedSubType(inFileAttributes)
+    const sut = new StreamingDiff(inFileAttributes, true)
+    sut.onFromElement(tag, { description: 'no key' })
+
+    // Act
+    const outcome = sut.finalize()
+
+    // Assert
+    expect(outcome).toEqual({
+      added: [],
+      modified: [],
+      deleted: [],
+      hasPackageContent: false,
+    })
+  })
 })

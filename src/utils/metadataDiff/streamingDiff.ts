@@ -119,10 +119,7 @@ export class StreamingDiff {
       return
     }
     const key = element[keyField] as string | undefined
-    /* v8 ignore start -- defensive: keyed subTypes always have the configured key in well-formed metadata */
-    // Stryker disable next-line ConditionalExpression
     if (key === undefined) return
-    /* v8 ignore stop */
     const map = this.passOne.fromKeyed.get(subType) ?? new Map()
     map.set(key, element)
     this.passOne.fromKeyed.set(subType, map)
