@@ -165,6 +165,26 @@ describe('Given an entry with its own comment above it', () => {
         label: 'as many lines as the header',
         comment: ['  // why First exists', '  // and more'],
       },
+      {
+        label: 'the header plus an own line',
+        comment: [...GAP_FILLER_SECTION_HEADER, '  // why First exists'],
+      },
+      {
+        label: 'an own line plus the header',
+        comment: ['  // why First exists', ...GAP_FILLER_SECTION_HEADER],
+      },
+      {
+        label: 'the first header line only',
+        comment: GAP_FILLER_SECTION_HEADER.slice(0, 1),
+      },
+      {
+        label: 'the header with an edited second line',
+        comment: [...GAP_FILLER_SECTION_HEADER.slice(0, 1), '  // edited'],
+      },
+      {
+        label: 'the header re-indented',
+        comment: GAP_FILLER_SECTION_HEADER.map(line => ` ${line}`),
+      },
     ])('Then it throws naming the entry ($label)', ({ comment }) => {
       // Arrange
       const sut = removeEntries
