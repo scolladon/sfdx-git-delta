@@ -229,6 +229,19 @@ describe('xmlEventReader', () => {
       expect(onElement.mock.calls).toEqual([['a', '1']])
     })
 
+    it('Given an inner comment whose body holds a `<` right before its terminator, When parseToSidePropagating runs, Then the cursor lands past the terminator', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source = '<Root><!--ab<c--><a>1</a></Root>'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('Root')
+      expect(onElement.mock.calls).toEqual([['a', '1']])
+    })
+
     it('Given empty XML, When parseToSidePropagating runs, Then the rejection propagates', async () => {
       // Arrange
       const source = ''

@@ -200,7 +200,7 @@ const streamRootChildren = (
 
     if (xml.startsWith('<!--', lt)) {
       const end = xml.indexOf('-->', lt + 4)
-      // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator -- equivalent: end < 0 fallback for unterminated inner comments; metadata XML never has unterminated comments mid-document, so the false-arm (end + 3) is the only reachable branch and the +3 vs -3 mutant produces a different pos but the next iteration still finds the next '<' or end of input
+      // Stryker disable next-line EqualityOperator -- `end <= 0` is equivalent: the search starts at lt + 4, so indexOf returns -1 or an offset of at least 4, never 0. `end >= 0` shares the mutator name; whenever the comment is terminated it jumps to the end of input exactly like the killed ConditionalExpression true-flip on this condition
       pos = end < 0 ? xml.length : end + 3
       continue
     }
