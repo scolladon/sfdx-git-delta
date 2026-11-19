@@ -82,7 +82,7 @@ export class StreamingDiff {
   // Tracks first-seen-in-to order across all subTypes (keyed + deferred)
   // so buildWriter emits root children in the same order legacy's
   // JsonTransformer produced (document order from to-side).
-  // Stryker disable next-line ArrayDeclaration -- equivalent: an injected initial element is filtered by collectRootChildren via the prunedBySubType.get + length===0 guard
+  // Stryker disable next-line ArrayDeclaration -- equivalent: an injected initial element has no prunedBySubType entry, so collectRootChildren skips it via the prunedBySubType.get guard
   private readonly toSubTypeOrder: string[] = []
   private readonly seenSubTypes = new Set<string>()
   private readonly added: CompareEntry[] = []
@@ -119,10 +119,7 @@ export class StreamingDiff {
       return
     }
     const key = element[keyField] as string | undefined
-    /* v8 ignore start -- defensive: keyed subTypes always have the configured key in well-formed metadata */
-    // Stryker disable next-line ConditionalExpression
     if (key === undefined) return
-    /* v8 ignore stop */
     const map = this.passOne.fromKeyed.get(subType) ?? new Map()
     map.set(key, element)
     this.passOne.fromKeyed.set(subType, map)
@@ -189,14 +186,10 @@ export class StreamingDiff {
   }
 
   private collectRootChildren(_rootCapture: RootCapture) {
-    // Stryker disable next-line ArrayDeclaration -- equivalent: a non-empty initial array is harmless because the next consumer (writeXmlDocument iteration) destructures each entry as [subType, elements] where the injected garbage triggers no observable test signal that isn't already covered
     const entries: [string, unknown][] = []
     for (const subType of this.toSubTypeOrder) {
       const elements = this.prunedBySubType.get(subType)
-      /* v8 ignore start -- defensive: trackToOrder is paired with retainSubTypeElement, so prunedBySubType is always populated for tracked subTypes */
-      // Stryker disable next-line ConditionalExpression,LogicalOperator
-      if (!elements || elements.length === 0) continue
-      /* v8 ignore stop */
+      if (!elements) continue
       entries.push([subType, elements])
     }
     return entries
@@ -208,10 +201,7 @@ export class StreamingDiff {
     keyField: string
   ): void {
     const key = element[keyField] as string | undefined
-    /* v8 ignore start -- defensive: keyed subTypes always have the configured key in well-formed metadata */
-    // Stryker disable next-line ConditionalExpression
     if (key === undefined) return
-    /* v8 ignore stop */
     const fromMap = this.passOne.fromKeyed.get(subType)
     const fromElem = fromMap?.get(key)
     // Stryker disable next-line ConditionalExpression -- killable in principle: setting the guard to false makes fromMap.delete(key) throw on undefined fromMap (covered by the "no from-side" test). The mutant is reported survived likely due to a stryker/vitest perTest analysis quirk; the assertion that the test does NOT throw is observably stronger than what stryker considers.
@@ -244,8 +234,8 @@ export class StreamingDiff {
   }
 
   private xmlNameOf(subType: string): string {
-    // Stryker disable next-line OptionalChaining,LogicalOperator,StringLiteral -- defensive: every tracked subType has an xmlName in the registry; the optional chain + nullish-coalesce + fallback string are unreachable in practice
-    /* v8 ignore next */
+    // Stryker disable next-line OptionalChaining,StringLiteral -- the fallback is unreachable: every built-in in-file registry entry carries xmlName and StrictMetadataSchema rejects an additional-registry entry without one
+    /* v8 ignore next -- the fallback is unreachable: every built-in in-file registry entry carries xmlName and StrictMetadataSchema rejects an additional-registry entry without one */
     return this.attributes.get(subType)?.xmlName ?? ''
   }
 
