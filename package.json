@@ -70,7 +70,7 @@
     "@types/node": "26.6.6",
     "@vitest/coverage-v8": "5.1.1",
     "husky": "9.1.7",
-    "knip": "6.46.0",
+    "knip": "6.46.1",
     "lint-staged": "17.6.1",
     "ls-engines": "0.10.1",
     "oclif": "6.0.15",

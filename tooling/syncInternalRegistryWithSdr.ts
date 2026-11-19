@@ -1,18 +1,18 @@
 #!/usr/bin/env node
-// Compares internal registry against SDR and removes auto-removable
-// gap-filler types that SDR now covers natively.
-// If nothing to remove, the registry file is left untouched.
+// Compares the internal registry with SDR and deletes, in place, the
+// gap-filler entries SDR now covers. Every other byte of the file (comments,
+// field order, other entries) is left as written. Refuses (throws, writes
+// nothing) when the file text cannot be matched to the module's entries.
 
-import { writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { registry } from '@salesforce/source-deploy-retrieve'
 import internalRegistry from '../src/metadata/internalRegistry.ts'
 import {
-  categorize,
-  isSimpleGapFiller,
-  type RegistryCategory,
-  serializeEntry,
+  selectRemovableEntries,
+  selectRetainedOverrides,
 } from './internalRegistryEntries.ts'
+import { removeEntries } from './internalRegistrySource.ts'
 
 // Collect all xmlNames from SDR
 const sdrXmlNames = new Set<string>()
@@ -35,92 +35,30 @@ for (const sdrType of Object.values(registry.types)) {
   }
 }
 
-// Find auto-removable redundant types (simple gap-fillers now covered by SDR)
-const toRemove = new Set(
-  internalRegistry
-    .filter(
-      entry =>
-        entry.xmlName &&
-        sdrXmlNames.has(entry.xmlName) &&
-        isSimpleGapFiller(entry)
-    )
-    .map(entry => entry.xmlName!)
-)
-
-if (toRemove.size === 0) {
-  console.log('No auto-removable redundant types found. Registry is clean.')
-  process.exit(0)
-}
-
-console.log(`\nRemoving ${toRemove.size} auto-removable gap-filler(s):`)
-for (const name of toRemove) {
-  console.log(`  - ${name}`)
-}
-
-// Filter out removable entries
-const remaining = internalRegistry.filter(
-  entry => !entry.xmlName || !toRemove.has(entry.xmlName)
-)
-
-// Group by category for organized output
-const groups: Partial<Record<RegistryCategory, typeof internalRegistry>> = {}
-for (const entry of remaining) {
-  const cat = categorize(entry)
-  if (!groups[cat]) {
-    groups[cat] = []
-  }
-  groups[cat].push(entry)
-}
-
-// Generate output
-const sections: string[] = []
-
-// Key order is the generated file's section order. Typing the map by
-// RegistryCategory makes a category without a section a compile error instead
-// of silently dropping its entries from the file.
-const SECTION_COMMENTS: Readonly<Record<RegistryCategory, string>> = {
-  specialHandling: '// Special handling overrides',
-  pruneOnly:
-    '// pruneOnly types - only handled for deletions (destructiveChanges)',
-  profileChildren:
-    "// Profile children - SDR doesn't define these, needed for granular diff",
-  translationsChildren:
-    "// Translations children - SDR doesn't define these, needed for granular diff",
-  marketingAppExt:
-    '// MarketingAppExtActivity - child type with special handling',
-  valueTranslation: '',
-  virtual: '',
-  gapFiller: `// SDR gap-fillers: types not yet in SDR registry.\n  // Automatically removed by tooling/syncInternalRegistryWithSdr.ts when SDR adds them.`,
-}
-
-for (const [key, comment] of Object.entries(SECTION_COMMENTS) as [
-  RegistryCategory,
-  string,
-][]) {
-  const entries = groups[key]
-  if (!entries?.length) continue
-  const block: string[] = []
-  if (comment) block.push(`  ${comment}`)
-  for (const entry of entries) {
-    block.push(serializeEntry(entry))
-  }
-  sections.push(block.join('\n'))
-}
-
-const output = `import type { Metadata } from '../types/metadata.js'
-
-// Internal registry for metadata definitions not present in SDR
-// or that need special handling different from SDR's structure
-// Priority: internalRegistry > SDR > additionalMetadataRegistry
-
-export default [
-${sections.join('\n\n')}
-] as Metadata[]
-`
-
 const registryPath = resolve(
   import.meta.dirname ?? '.',
   '../src/metadata/internalRegistry.ts'
 )
-writeFileSync(registryPath, output)
-console.log(`\nUpdated ${registryPath}`)
+const removable = selectRemovableEntries(internalRegistry, sdrXmlNames)
+const source = readFileSync(registryPath, 'utf8')
+// Runs even when nothing is removable so CI validates the source mapping on every build.
+const next = removeEntries(source, internalRegistry, removable)
+
+const retained = selectRetainedOverrides(internalRegistry, sdrXmlNames)
+if (retained.length > 0) {
+  console.log(`\nKeeping ${retained.length} SDR-known override(s):`)
+  for (const name of retained) {
+    console.log(`  - ${name}`)
+  }
+}
+
+if (next === source) {
+  console.log('No auto-removable redundant types found. Registry is clean.')
+} else {
+  console.log(`\nRemoving ${removable.size} auto-removable gap-filler(s):`)
+  for (const entry of internalRegistry.filter((_, i) => removable.has(i))) {
+    console.log(`  - ${entry.xmlName}`)
+  }
+  writeFileSync(registryPath, next)
+  console.log(`\nUpdated ${registryPath}`)
+}

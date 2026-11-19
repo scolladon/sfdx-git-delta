@@ -476,7 +476,7 @@ SGD uses a layered metadata registry system to know which Salesforce metadata ty
 
 ### SDR gap-fillers
 
-Some metadata types exist in Salesforce but are not yet covered by SDR. These are added to the internal registry as "gap-fillers" with `directoryName` and `suffix` fields but no special handling fields (`xmlTag`, `key`, `content`, etc.).
+Some metadata types exist in Salesforce but are not yet covered by SDR. These are added to the internal registry as "gap-fillers". A gap-filler carries only `xmlName`, `directoryName`, `suffix`, `inFolder` and `metaFile`. Any other field (`adapter`, `decomposition`, `xmlTag`, `key`, `content`, etc.) makes the entry an override that the sync never removes, even when the field is present with an `undefined`, empty or `false` value.
 
 Gap-fillers are automatically removable: when SDR adds native support for a type, tooling detects the overlap and removes the gap-filler entry.
 
@@ -489,8 +489,19 @@ A script in `tooling/` keeps the internal registry clean:
 npm run sync:registry
 ```
 
+The sync edits `internalRegistry.ts` in place: it deletes only the lines of the
+removed entries and keeps comments, field order and every other entry as
+written. It lists the SDR-known overrides it keeps (`Keeping N SDR-known
+override(s):`). When it cannot match the file to the module's entries, it exits
+non-zero and writes nothing, so keep every entry expanded on its own lines
+(`  {` ... `  },`) as Biome formats it. It also refuses to remove an entry
+that has its own comment directly above it, so that comment never ends up above
+the next entry: move or delete the comment, then re-run the sync. The gap-filler
+section header is the only comment allowed there.
+
 The sync runs on every pull request in the `quality` CI job, which fails if the
-script cannot run or if it leaves `internalRegistry.ts` modified. It also runs
+script cannot run or if it leaves `internalRegistry.ts` modified. The CI step therefore
+also validates the file mapping on every pull request. It also runs
 unattended when dependabot upgrades the SDR dependency, where it gates the
 `feat(metadata)` retitle. `dependabot-auto-merge.yml` then builds the bumped
 commit with the pull-request build (quality and every platform leg, e2e
