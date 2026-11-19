@@ -25,6 +25,7 @@ export type SubTypeElementHandler = (
   element: XmlContent
 ) => void
 
+// Stryker disable next-line Regex -- not equivalent, but perTest coverage cannot kill it: the literal is built once when the module loads, so a mutant activated for a single test never reaches it. Every variant fails plain vitest: dropping `^` through the declaration-inside-the-root-body test, `^\S*` through the whitespace-before-the-declaration test, the rest through every test with a declaration
 const XML_DECL_RE = /^\s*<\?xml\b[^?]*\?>/
 // Stryker disable next-line Regex -- equivalent: COMMENT_RE is always run on a fresh slice from index i; `^` anchor and `[\s\S]` shape mutants accept the same comment bodies on every reachable slice
 const COMMENT_RE = /^<!--[\s\S]*?-->/
