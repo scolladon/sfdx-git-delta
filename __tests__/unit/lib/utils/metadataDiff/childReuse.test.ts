@@ -415,7 +415,8 @@ describe('Given a ReusingChildParser after an unterminated from-side script', ()
   it('When the to side starts like that script, Then the parse rejects with the plain parse error', async () => {
     // Arrange
     const from = '<R><script>stale<a>1</a></R>'
-    const to = '<R><scri<a>2</a></R>'
+    const recordedFragment = '<script'.slice(0, 5)
+    const to = `<R>${recordedFragment}<a>2</a></R>`
     const recorded = new RecordedChildren()
     await parseFromSideSwallowing(
       from,
