@@ -1,7 +1,15 @@
 'use strict'
 import { PassThrough } from 'node:stream'
 
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 
 import {
   getDefinition,
@@ -290,5 +298,89 @@ describe('MetadataDiff.run', () => {
     expect(outcome.writer).toBeUndefined()
     expect(outcome.manifests.added).toHaveLength(0)
     expect(outcome.manifests.modified).toHaveLength(0)
+  })
+
+  it('Given a from Profile cut inside its last element and a to Profile completing it, When run runs, Then hasPackageContent is false and no entries are produced', async () => {
+    // Arrange
+    const fromXml = `${XML_HEADER}\n<Profile ${NAMESPACE}>\n    <userLicense>Salesforce`
+    const toXml = `${fromXml}</userLicense>\n</Profile>\n`
+    serveXml(fromXml, toXml)
+    const sut = new MetadataDiff(work.config, inFileAttributes)
+
+    // Act
+    const outcome = await sut.run('file/path')
+
+    // Assert
+    expect(outcome.hasPackageContent).toBe(false)
+    expect(outcome.manifests.added).toHaveLength(0)
+    expect(outcome.manifests.modified).toHaveLength(0)
+    expect(outcome.manifests.deleted).toHaveLength(0)
+  })
+})
+
+describe('MetadataDiff.run with deep-frozen parsed content', () => {
+  afterEach(() => {
+    vi.doUnmock('../../../../../src/utils/txmlAdapter')
+    vi.resetModules()
+  })
+
+  const deepFreeze = <T>(value: T): T => {
+    if (value !== null && typeof value === 'object') {
+      Object.values(value).forEach(deepFreeze)
+      Object.freeze(value)
+    }
+    return value
+  }
+
+  const permission = (field: string, editable: string) =>
+    `    <fieldPermissions>\n        <editable>${editable}</editable>\n        <field>${field}</field>\n        <readable>true</readable>\n    </fieldPermissions>\n`
+
+  const profile = (editableOfLast: string) =>
+    `${XML_HEADER}\n<Profile ${NAMESPACE}>\n` +
+    permission('Account.A', 'true') +
+    permission('Account.B', 'true') +
+    permission('Account.C', editableOfLast) +
+    `</Profile>\n`
+
+  it('Given every parsed content deep-frozen, When run runs and its writer renders, Then nothing throws', async () => {
+    // Arrange
+    vi.resetModules()
+    const frozen: unknown[] = []
+    vi.doMock('../../../../../src/utils/txmlAdapter', async () => {
+      const actual: typeof import('../../../../../src/utils/txmlAdapter') =
+        await vi.importActual('../../../../../src/utils/txmlAdapter')
+      return {
+        ...actual,
+        tNodeToXmlContent: vi.fn(node => {
+          const content = deepFreeze(actual.tNodeToXmlContent(node))
+          frozen.push(content)
+          return content
+        }),
+      }
+    })
+    const { default: FrozenDiff } = await import(
+      '../../../../../src/utils/metadataDiff/index.js'
+    )
+    const fsHelper = await import('../../../../../src/utils/fsHelper')
+    const work = getWork()
+    work.config.to = 'to-ref'
+    work.config.from = 'from-ref'
+    work.config.generateDelta = true
+    vi.mocked(fsHelper.readPathFromGit).mockImplementation(async ref =>
+      ref.oid === work.config.to ? profile('false') : profile('true')
+    )
+    const metadata = await getDefinition({})
+    const sut = new FrozenDiff(work.config, getInFileAttributes(metadata))
+
+    // Act
+    const outcome = await sut.run('file/path')
+    const out = new PassThrough()
+    out.resume()
+    const render = outcome.writer!(out)
+
+    // Assert
+    await expect(render).resolves.toBeUndefined()
+    expect(outcome.hasPackageContent).toBe(true)
+    expect(frozen.some(content => Object.isFrozen(content))).toBe(true)
   })
 })
