@@ -234,8 +234,8 @@ export class StreamingDiff {
   }
 
   private xmlNameOf(subType: string): string {
-    // Stryker disable next-line OptionalChaining,LogicalOperator,StringLiteral -- defensive: every tracked subType has an xmlName in the registry; the optional chain + nullish-coalesce + fallback string are unreachable in practice
-    /* v8 ignore next */
+    // Stryker disable next-line OptionalChaining,StringLiteral -- the fallback is unreachable: every built-in in-file registry entry carries xmlName and StrictMetadataSchema rejects an additional-registry entry without one
+    /* v8 ignore next -- the fallback is unreachable: every built-in in-file registry entry carries xmlName and StrictMetadataSchema rejects an additional-registry entry without one */
     return this.attributes.get(subType)?.xmlName ?? ''
   }
 
