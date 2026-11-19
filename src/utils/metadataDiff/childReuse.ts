@@ -11,11 +11,11 @@ const REUSE_WINDOW = 4
 // One miss is usually an in-place edit (the next child realigns); two in a
 // row signal an insert/delete run.
 const RESYNC_AFTER_MISSES = 2
-// Forward full-text search bound: recovers deletion runs of up to 252
-// children and caps the per-miss cost.
+// Forward full-text search bound: scans 252 entries per miss, which recovers
+// deletion runs of up to 254 children and caps the per-miss cost.
 const RESYNC_LOOKAHEAD = 256
-// Reorder-heavy files stop paying lookups: worst case is about 131k entry
-// reads per file.
+// Reorder-heavy files stop paying lookups: a miss reads at most about 256
+// entries, and after this many consecutive misses no entry is read again.
 const GIVE_UP_AFTER_MISSES = 512
 
 export type RecordedChild = ParsedChild & Readonly<{ text: string }>
@@ -33,7 +33,7 @@ export class RecordedChildren implements RecordedChildrenView {
   }
 
   at(index: number): RecordedChild {
-    return this.entries[index] as RecordedChild
+    return this.entries[index]
   }
 
   record(entry: RecordedChild): void {
@@ -55,11 +55,19 @@ const recordOf = (
   }
 }
 
+const TAG_CLOSE = '>'
+
+// A complete child ends on a tag close strictly inside the document. txml can
+// report a positive length for an unterminated <script> or <style>, whose text
+// is then a fragment that must never be matched as a prefix.
 const endsInsideDocument = (
   xml: string,
   lt: number,
   child: ParsedChild
-): boolean => child.length > 0 && lt + child.length < xml.length
+): boolean => {
+  const end = lt + child.length
+  return child.length > 0 && end < xml.length && xml[end - 1] === TAG_CLOSE
+}
 
 export class RecordingChildParser implements ChildParser {
   constructor(private readonly recorded: RecordedChildren) {}
@@ -94,7 +102,10 @@ export class ReusingChildParser implements ChildParser {
 
   parseAt(xml: string, lt: number): ParsedChild {
     const hit = this.reusableAt(xml, lt)
-    if (hit !== NO_HIT) return this.reuse(hit)
+    if (hit !== NO_HIT) {
+      this.advancePast(hit)
+      return this.recorded.at(hit)
+    }
     const child = PLAIN_CHILD_PARSER.parseAt(xml, lt)
     this.noteMiss(xml.slice(lt, lt + child.length))
     return child
@@ -113,10 +124,9 @@ export class ReusingChildParser implements ChildParser {
     return NO_HIT
   }
 
-  private reuse(index: number): RecordedChild {
+  private advancePast(index: number): void {
     this.cursor = index + 1
     this.misses = 0
-    return this.recorded.at(index)
   }
 
   private noteMiss(text: string): void {

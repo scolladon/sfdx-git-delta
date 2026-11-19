@@ -381,6 +381,13 @@ describe('MetadataDiff.run with deep-frozen parsed content', () => {
     // Assert
     await expect(render).resolves.toBeUndefined()
     expect(outcome.hasPackageContent).toBe(true)
-    expect(frozen.some(content => Object.isFrozen(content))).toBe(true)
+    expect(
+      frozen.some(
+        content =>
+          typeof content === 'object' &&
+          content !== null &&
+          Object.isFrozen(content)
+      )
+    ).toBe(true)
   })
 })

@@ -222,6 +222,30 @@ describe('Given a ReusingChildParser resynchronising after misses', () => {
     expect(elementAt(result.to, 3)).toBe(elementAt(result.from, 257))
   })
 
+  it('When a resync lands on an entry, Then the cursor moves past it so the entry four further on is reused', async () => {
+    // Arrange
+    const from = entries(0, 12)
+    const to = [entry(0), fresh(0), entry(5), entry(9)]
+
+    // Act
+    const result = await replayDocs(from, to)
+
+    // Assert
+    expect(elementAt(result.to, 3)).toBe(elementAt(result.from, 9))
+  })
+
+  it('When a hit falls between two misses, Then the miss count restarts and the second miss does not resync', async () => {
+    // Arrange
+    const from = entries(0, 10)
+    const to = [fresh(0), entry(0), entry(6), entry(7)]
+
+    // Act
+    const result = await replayDocs(from, to)
+
+    // Assert
+    expect(elementAt(result.to, 3)).not.toBe(elementAt(result.from, 7))
+  })
+
   it('When the second consecutive miss equals the entry at cursor+256, Then the next child is parsed', async () => {
     // Arrange
     const from = entries(0, 261)
@@ -270,6 +294,7 @@ describe('Given a ReusingChildParser giving up after consecutive misses', () => 
       new RecordingChildParser(recorded)
     )
     counting.wrap(recorded)
+    const sut = new ReusingChildParser(counting)
     let readsAtGiveUp = -1
     let received = 0
     const onElement = () => {
@@ -278,11 +303,7 @@ describe('Given a ReusingChildParser giving up after consecutive misses', () => 
     }
 
     // Act
-    await parseToSidePropagating(
-      doc(misses(700)),
-      onElement,
-      new ReusingChildParser(counting)
-    )
+    await parseToSidePropagating(doc(misses(700)), onElement, sut)
 
     // Assert
     expect(readsAtGiveUp).toBeGreaterThan(0)
@@ -293,14 +314,11 @@ describe('Given a ReusingChildParser giving up after consecutive misses', () => 
     // Arrange
     const counting = new CountingView()
     counting.wrap(new RecordedChildren())
+    const sut = new ReusingChildParser(counting)
     const toSide = collector()
 
     // Act
-    await parseToSidePropagating(
-      doc(entries(0, 3)),
-      toSide.handler,
-      new ReusingChildParser(counting)
-    )
+    await parseToSidePropagating(doc(entries(0, 3)), toSide.handler, sut)
 
     // Assert
     expect(toSide.seen).toHaveLength(3)
@@ -312,7 +330,7 @@ describe('Given a ReusingChildParser comparing near-identical children', () => {
   it.each([
     ['same length, last and middle character', '<v>AmB</v>', '<v>CmD</v>'],
     ['a different last character', '<v a="1"/>', '<v a="1">z</v>'],
-    ['a different middle character', '<v a="1"/>', '<v b="1"/>'],
+    ['a different middle character', '<v>AmB</v>', '<v>AxB</v>'],
   ])(
     'When a to child has %s but different text, Then it is not reused',
     async (_, fromChild, toChild) => {
@@ -378,5 +396,36 @@ describe('Given a RecordingChildParser', () => {
 
     // Assert
     expect(recorded.size).toBe(0)
+  })
+
+  it('When a root child is an unterminated script, Then its partial text is not recorded', () => {
+    // Arrange
+    const recorded = new RecordedChildren()
+    const sut = new RecordingChildParser(recorded)
+
+    // Act
+    sut.parseAt('<R><script>x<a/></R>', 3)
+
+    // Assert
+    expect(recorded.size).toBe(0)
+  })
+
+  it('When the to side starts like an unterminated from-side script, Then the reusing parse rejects it as the plain parse does', async () => {
+    // Arrange
+    const from = '<R><script>stale<a>1</a></R>'
+    const to = '<R><scri<a>2</a></R>'
+    const recorded = new RecordedChildren()
+    await parseFromSideSwallowing(
+      from,
+      collector().handler,
+      new RecordingChildParser(recorded)
+    )
+    const sut = new ReusingChildParser(recorded)
+
+    // Act
+    const reusing = parseToSidePropagating(to, collector().handler, sut)
+
+    // Assert
+    await expect(reusing).rejects.toThrow()
   })
 })
