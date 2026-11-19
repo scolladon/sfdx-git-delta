@@ -490,3 +490,85 @@ describe('Given a source and a module that disagree on an xmlName', () => {
     })
   })
 })
+
+describe('Given an xmlName line sitting right above the opener of an entry without xmlName', () => {
+  const source = sourceOf(
+    ["    xmlName: 'Outside',"],
+    ['  {', "    directoryName: 'widgets',", '  },']
+  )
+  const entries = [{ directoryName: 'widgets' }] as Metadata[]
+
+  describe('When the entries are checked against the source', () => {
+    it('Then the line outside the span is not read as the entry xmlName', () => {
+      // Arrange
+      const sut = removeEntries
+
+      // Act
+      const result = sut(source, entries, new Set())
+
+      // Assert
+      expect(result).toBe(source)
+    })
+  })
+})
+
+describe('Given an entry whose xmlName is empty', () => {
+  const source = sourceOf(spanLines(''), spanLines('Second'))
+
+  describe('When the entries are checked against the source', () => {
+    it('Then the empty xmlName is read from its line', () => {
+      // Arrange
+      const sut = removeEntries
+
+      // Act
+      const result = sut(source, entriesOf('', 'Second'), new Set([1]))
+
+      // Assert
+      expect(result).toBe(sourceOf(spanLines('')))
+    })
+  })
+})
+
+describe('Given a code line with a trailing comment right above a removable entry', () => {
+  const source = [
+    'export default [ // registry',
+    ...spanLines('First'),
+    ...FOOTER,
+  ].join('\n')
+
+  describe('When that entry is removed', () => {
+    it('Then the trailing comment is not taken for an own comment', () => {
+      // Arrange
+      const sut = removeEntries
+
+      // Act
+      const result = sut(source, entriesOf('First'), new Set([0]))
+
+      // Assert
+      expect(result).toBe(
+        ['export default [ // registry', ...FOOTER].join('\n')
+      )
+    })
+  })
+})
+
+describe('Given an xmlName line with trailing characters', () => {
+  const source = sourceOf([
+    '  {',
+    "    directoryName: 'widgets',",
+    "    xmlName: 'First', // note",
+    '  },',
+  ])
+
+  describe('When the entries are checked against the source', () => {
+    it('Then the line is not read as the entry xmlName', () => {
+      // Arrange
+      const sut = removeEntries
+
+      // Act & Assert
+      expect(() => sut(source, entriesOf('First'), new Set())).toThrow(
+        /found 'undefined'/
+      )
+    })
+  })
+})
