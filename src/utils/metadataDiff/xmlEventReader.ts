@@ -25,7 +25,6 @@ export type SubTypeElementHandler = (
   element: XmlContent
 ) => void
 
-// Stryker disable next-line Regex -- equivalent: SF metadata XML always begins with the same fixed prologue shape; anchor and char-class shape mutants match identically on every reachable input, and the consumer gates on declMatch.index === 0
 const XML_DECL_RE = /^\s*<\?xml\b[^?]*\?>/
 // Stryker disable next-line Regex -- equivalent: COMMENT_RE is always run on a fresh slice from index i; `^` anchor and `[\s\S]` shape mutants accept the same comment bodies on every reachable slice
 const COMMENT_RE = /^<!--[\s\S]*?-->/

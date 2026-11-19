@@ -430,6 +430,20 @@ describe('xmlEventReader', () => {
       expect(sut?.xmlHeader).toBeUndefined()
     })
 
+    it('Given an xml declaration inside the root body, When parseFromSideSwallowing runs, Then it is not taken as the document header', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source = '<Root><?xml version="1.0"?></Root>'
+
+      // Act
+      const sut = await parseFromSideSwallowing(source, onElement)
+
+      // Assert
+      expect(sut?.rootKey).toBe('Root')
+      expect(sut?.xmlHeader).toBeUndefined()
+      expect(onElement.mock.calls).toEqual([['?xml', { '@_version': '1.0' }]])
+    })
+
     it('Given a Buffer source with non-ASCII content, When parseFromSideSwallowing runs, Then it decodes correctly via toString utf8', async () => {
       // driveParse must decode a Buffer as utf8 rather than use it as a string.
       const onElement = vi.fn()
@@ -450,6 +464,19 @@ describe('xmlEventReader', () => {
       const source = `<?xml version="1.0" encoding="UTF-8"?>\n<Profile xmlns="http://soap.sforce.com/2006/04/metadata"></Profile>`
       const sut = await parseToSidePropagating(source, onElement)
       expect(sut.xmlHeader).toBeDefined()
+    })
+
+    it('Given whitespace before the xml declaration, When parseToSidePropagating runs, Then the declaration is still captured as the header', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source = '\n<?xml version="1.0"?><Root/>'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('Root')
+      expect(sut.xmlHeader).toEqual({ '?xml': { '@_version': '1.0' } })
     })
 
     it('Given a document without root element (only declaration), When parseToSidePropagating runs, Then it rejects with "no root element"', async () => {
