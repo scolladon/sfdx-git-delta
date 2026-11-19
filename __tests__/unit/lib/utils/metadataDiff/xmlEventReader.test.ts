@@ -1,6 +1,7 @@
 'use strict'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { Logger } from '../../../../../src/utils/LoggingService'
 import {
   parseFromSideSwallowing,
   parseToSidePropagating,
@@ -331,7 +332,7 @@ describe('xmlEventReader', () => {
       expect(tags).toEqual(['a'])
     })
 
-    it('Given input that throws inside driveParse, When parseFromSideSwallowing runs, Then its catch resolves null', async () => {
+    it('Given input that throws inside driveParse, When parseFromSideSwallowing runs, Then its catch logs the failure and resolves null', async () => {
       // Arrange — Buffer-like source whose toString throws so the catch
       // arm in parseFromSideSwallowing fires.
       const onElement = vi.fn()
@@ -351,6 +352,7 @@ describe('xmlEventReader', () => {
 
       // Assert
       expect(sut).toBeNull()
+      expect(Logger.debug).toHaveBeenCalled()
     })
 
     it('Given malformed XML, When parseFromSideSwallowing runs, Then it tolerates the partial tree (no balance check on the swallowing path)', async () => {
