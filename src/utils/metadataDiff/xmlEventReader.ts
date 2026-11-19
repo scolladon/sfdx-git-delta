@@ -113,14 +113,8 @@ const matchRootOpenTag = (xml: string, start: number): RootOpenTag | null => {
 // Reuse txml to parse just the root open tag's attributes consistently
 // with how it parses every other tag. Wrapping it as self-closing gives
 // us a clean parse target that always returns one node.
-const syntheticRootTag = ({
-  rootName,
-  attrsRaw,
-  isSelfClosing,
-}: RootOpenTag): string => {
-  const attributes = isSelfClosing ? attrsRaw.replace(/\/\s*$/, '') : attrsRaw
-  return `<${rootName}${attributes}/>`
-}
+const syntheticRootTag = ({ rootName, attrsRaw }: RootOpenTag): string =>
+  `<${rootName}${attrsRaw}/>`
 
 const parseRootAttributes = (rootTag: RootOpenTag): Record<string, string> => {
   const syntheticTree = txmlParse(syntheticRootTag(rootTag)) as TxmlChild[]

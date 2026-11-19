@@ -494,9 +494,8 @@ describe('xmlEventReader', () => {
       expect(Object.values(declAttrs)).toContain(true)
     })
 
-    it('Given a self-closing root element, When parseToSidePropagating runs, Then syntheticRootTag strips the slash and the attributes are captured', async () => {
-      // Arrange — `<Root attr="x"/>` exercises the self-closing branch of
-      // syntheticRootTag.
+    it('Given a self-closing root element, When parseToSidePropagating runs, Then the attributes are captured', async () => {
+      // Arrange — `<Root attr="x"/>` has no body, so no child is streamed.
       const onElement = vi.fn()
       const source = '<Root attr="x"/>'
 
