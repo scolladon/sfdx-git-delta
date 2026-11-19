@@ -142,8 +142,7 @@ const parseRootAttributes = (rootTag: RootOpenTag): Record<string, string> => {
 // from there, and whether the root is self-closing.
 const parsePrologue = (xml: string): Prologue | null => {
   const declMatch = XML_DECL_RE.exec(xml)
-  // Stryker disable next-line ConditionalExpression -- equivalent: the index === 0 anchor is symmetric with the regex's `^` anchor; for the only inputs reachable here both produce identical (declMatch.index === 0) outcomes
-  const declaration = declMatch && declMatch.index === 0 ? declMatch[0] : ''
+  const declaration = declMatch?.[0] ?? ''
   const xmlHeader = declaration ? parseDeclaration(declaration) : undefined
 
   const rootStart = skipPrologueMisc(xml, declaration.length)
