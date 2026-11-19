@@ -174,7 +174,7 @@ const streamRootChildren = (
   onElement: SubTypeElementHandler
 ): number => {
   let pos = bodyStart
-  // Stryker disable next-line BlockStatement,EqualityOperator -- equivalent: streamRootChildren main loop; emptying the body returns the bodyStart pos which the strict-tail check then rejects (or accepts as malformed) — the test surface for the swallowing path tolerates partial parses, so the empty-body mutant manifests as a no-op for tests that don't assert specific element emission counts; <= vs < changes the boundary by one position with no observable effect since we always exit via the </Root> branch
+  // Stryker disable next-line BlockStatement,EqualityOperator -- BlockStatement is not equivalent but unaffordable: an emptied body never advances `pos`, so the mutant hangs until Stryker's timeout. EqualityOperator: `<=` is equivalent (one extra pass at pos === xml.length finds no `<` and the lt < 0 arm breaks at the same offset); `>=` is killable but shares the mutator name, and the loop-skipping behaviour it produces is already killed through the ConditionalExpression false-flip
   while (pos < xml.length) {
     const lt = xml.indexOf('<', pos)
     // Stryker disable next-line EqualityOperator -- `lt <= 0` is equivalent: the cursor never drops below bodyStart, which sits past the root open tag (at least 3 characters, `<R>`), so indexOf returns -1 or a positive offset, never 0. `lt >= 0` shares the mutator name; it jumps to the end of input on the first child, which every child-bearing test kills
@@ -227,7 +227,7 @@ const verifyTail = (
     }
     i += expected.length
   }
-  // Stryker disable next-line BlockStatement -- equivalent: tail-validation loop; emptying the body skips the unexpected-content check, but the test surface only verifies clean termination (no trailing junk) for the strict path which has no junk to skip
+  // Stryker disable next-line BlockStatement -- not equivalent but unaffordable: an emptied body never advances `i`, so the mutant hangs until Stryker's timeout on any content after the root close, trailing whitespace included
   while (i < xml.length) {
     const ch = xml[i]
     if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {
