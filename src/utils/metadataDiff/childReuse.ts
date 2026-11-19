@@ -66,7 +66,9 @@ const endsInsideDocument = (
   child: ParsedChild
 ): boolean => {
   const end = lt + child.length
-  return child.length > 0 && end < xml.length && xml[end - 1] === TAG_CLOSE
+  if (xml[end - 1] !== TAG_CLOSE) return false
+  // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator -- equivalent once the tag-close test above passed: txml's no-progress result (-1) and a cut child (one past the end) both fail that test, so the length is already positive; a child ending exactly at the end of input ends on '>' and is complete, and reusing it yields what txml parses
+  return child.length > 0 && end < xml.length
 }
 
 export class RecordingChildParser implements ChildParser {
@@ -85,13 +87,15 @@ const NO_HIT = -1
 
 // Cheap single-character probes reject most non-matching entries before the
 // full prefix comparison.
-const startsWithEntry = (xml: string, lt: number, text: string): boolean => {
+const probesMatch = (xml: string, lt: number, text: string): boolean => {
   const last = text.length - 1
-  return (
-    xml[lt + last] === text[last] &&
-    xml[lt + (last >> 1)] === text[last >> 1] &&
-    xml.startsWith(text, lt)
-  )
+  const middle = last >> 1
+  // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator -- equivalent: the probes only reject early and startsWithEntry still requires xml.startsWith, so any mutant that lets more entries through changes no result; the false-flip shares the mutator name and is killed by every reuse test
+  return xml[lt + last] === text[last] && xml[lt + middle] === text[middle]
+}
+
+const startsWithEntry = (xml: string, lt: number, text: string): boolean => {
+  return probesMatch(xml, lt, text) && xml.startsWith(text, lt)
 }
 
 export class ReusingChildParser implements ChildParser {

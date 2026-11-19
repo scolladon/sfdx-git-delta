@@ -46,8 +46,9 @@ type ReaderPort = Pick<GitAdapter, 'getStringContent'>
 
 type RecordedElement = readonly [string, XmlContent]
 
-const entryKey = (entry: CompareEntry): string =>
-  `${entry.type}${TAB}${entry.member}`
+const entryKey = (entry: CompareEntry): string => {
+  return `${entry.type}${TAB}${entry.member}`
+}
 
 const replay = (
   engine: StreamingDiff,

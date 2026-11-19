@@ -193,6 +193,7 @@ const parseChildAt = (xml: string, lt: number): ParsedChild => {
   }
 }
 
+// Stryker disable next-line ObjectLiteral -- not equivalent, but a load-time mutant perTest coverage cannot kill: the emptied object makes every child parse throw, which 16 xmlEventReader tests catch under plain vitest
 export const PLAIN_CHILD_PARSER: ChildParser = { parseAt: parseChildAt }
 
 // Returns the offset after the child, or the end of input when the parser made
