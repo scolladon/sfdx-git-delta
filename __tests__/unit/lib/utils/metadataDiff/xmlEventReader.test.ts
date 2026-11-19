@@ -509,6 +509,22 @@ describe('xmlEventReader', () => {
       expect(onElement).not.toHaveBeenCalled()
     })
 
+    it('Given a self-closing root whose attribute value holds slashes, When parseToSidePropagating runs, Then the attribute value is captured intact', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source =
+        '<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata"/>'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('CustomLabels')
+      expect(sut.rootAttributes).toEqual({
+        '@_xmlns': 'http://soap.sforce.com/2006/04/metadata',
+      })
+    })
+
     it('Given a root with a no-value (boolean) attribute, When parseToSidePropagating runs, Then parseRootAttributes renders the attribute as the string "true"', async () => {
       // Arrange — `<Root flag>x</Root>` round-trips the boolean attribute as
       // 'true'. The writer renders `attr="value"`, so the value must be a

@@ -118,9 +118,7 @@ const syntheticRootTag = ({
   attrsRaw,
   isSelfClosing,
 }: RootOpenTag): string => {
-  // Stryker disable Regex -- equivalent: the trailing slash strip lets us re-wrap as a self-closing tag; mutants on /\/\s*$/ produce a regex with broader/narrower whitespace matching but SF metadata's self-closing root tag has no trailing whitespace before the `/`, so the strip is a no-op either way
   const attributes = isSelfClosing ? attrsRaw.replace(/\/\s*$/, '') : attrsRaw
-  // Stryker restore Regex
   return `<${rootName}${attributes}/>`
 }
 
