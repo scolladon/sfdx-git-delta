@@ -912,4 +912,42 @@ describe('StreamingDiff', () => {
     })
     expect(writer).toBeUndefined()
   })
+
+  it('Given CARDINALITY_SAFETY_LIMIT + 1 distinct from-side <object>-keyed elements, When onFromElement runs, Then it throws', () => {
+    // Arrange
+    const sut = new StreamingDiff(inFileAttributes, true)
+
+    // Act & Assert
+    expect(() => {
+      for (let i = 0; i <= CARDINALITY_SAFETY_LIMIT; i++) {
+        sut.onFromElement('layoutAssignments', { layout: `layout-${i}` })
+      }
+    }).toThrow('cardinality safety limit exceeded for layoutAssignments')
+  })
+
+  it('Given CARDINALITY_SAFETY_LIMIT + 1 distinct from-side keyed elements, When onFromElement runs, Then it throws', () => {
+    // Arrange
+    const { tag } = findPackageableKeyedSubType(inFileAttributes)
+    const keyField = inFileAttributes.get(tag)!.key!
+    const sut = new StreamingDiff(inFileAttributes, true)
+
+    // Act & Assert
+    expect(() => {
+      for (let i = 0; i <= CARDINALITY_SAFETY_LIMIT; i++) {
+        sut.onFromElement(tag, { [keyField]: `key-${i}` })
+      }
+    }).toThrow(`cardinality safety limit exceeded for ${tag}`)
+  })
+
+  it('Given CARDINALITY_SAFETY_LIMIT + 1 to-side <object>-keyed elements, When onToElement runs, Then it throws', () => {
+    // Arrange
+    const sut = new StreamingDiff(inFileAttributes, true)
+
+    // Act & Assert
+    expect(() => {
+      for (let i = 0; i <= CARDINALITY_SAFETY_LIMIT; i++) {
+        sut.onToElement('layoutAssignments', { layout: `layout-${i}` })
+      }
+    }).toThrow('cardinality safety limit exceeded for layoutAssignments')
+  })
 })
