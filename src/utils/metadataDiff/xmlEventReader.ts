@@ -199,7 +199,6 @@ const streamRootChildren = (
     }
 
     if (xml.startsWith('<!--', lt)) {
-      // Stryker disable next-line StringLiteral,ArithmeticOperator -- equivalent: '-->' is the comment terminator; mutating to "" makes indexOf('') return lt+4 immediately so end becomes lt+4, pos becomes lt+4+3=lt+7 — the next iteration finds another '<' or end-of-input; for well-formed metadata XML there are no inner comments to test this path against, so the mutant is unobservable
       const end = xml.indexOf('-->', lt + 4)
       // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator -- equivalent: end < 0 fallback for unterminated inner comments; metadata XML never has unterminated comments mid-document, so the false-arm (end + 3) is the only reachable branch and the +3 vs -3 mutant produces a different pos but the next iteration still finds the next '<' or end of input
       pos = end < 0 ? xml.length : end + 3

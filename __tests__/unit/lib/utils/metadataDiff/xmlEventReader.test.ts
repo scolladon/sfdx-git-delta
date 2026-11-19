@@ -203,6 +203,32 @@ describe('xmlEventReader', () => {
       expect(onElement.mock.calls).toEqual([['a', '1']])
     })
 
+    it('Given an inner comment opened by `<!-->`, When parseToSidePropagating runs, Then the opener dashes do not close it and the elements inside it are skipped', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source = '<Root><!--> <a/> --><b/></Root>'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('Root')
+      expect(onElement.mock.calls).toEqual([['b', {}]])
+    })
+
+    it('Given an inner comment holding a tag, When parseToSidePropagating runs, Then the scan resumes after the comment terminator', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source = '<Root><!-- xx <b> --><a>1</a></Root>'
+
+      // Act
+      const sut = await parseToSidePropagating(source, onElement)
+
+      // Assert
+      expect(sut.rootKey).toBe('Root')
+      expect(onElement.mock.calls).toEqual([['a', '1']])
+    })
+
     it('Given empty XML, When parseToSidePropagating runs, Then the rejection propagates', async () => {
       // Arrange
       const source = ''
