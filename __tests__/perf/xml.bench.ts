@@ -1,14 +1,24 @@
 import { describe } from 'vitest'
 import {
+  RecordedChildren,
+  RecordingChildParser,
+  ReusingChildParser,
+} from '../../lib/utils/metadataDiff/childReuse.js'
+import {
   parseFromSideSwallowing,
   parseToSidePropagating,
 } from '../../lib/utils/metadataDiff/xmlEventReader.js'
 import { parseXml } from '../../lib/utils/txmlAdapter.js'
-import { perfBench } from './harness/perfBench.ts'
+import {
+  assertScalesLinearly,
+  perfBench,
+  type SampledRow,
+} from './harness/perfBench.ts'
 
 // Salesforce-shaped XML payloads at three rough sizes. The fixtures are
 // generated in-memory rather than read from disk so the benchmark
-// measures parse time only, not fs IO.
+// measures parse time only, not fs IO. The reuse rows record then reuse a
+// reversed Profile (every child a miss) and must stay linear in its size.
 const buildLabels = (count: number): string => {
   const labels = Array.from(
     { length: count },
@@ -57,3 +67,66 @@ for (const [size, payload] of Object.entries(FIXTURES) as Array<
     })
   })
 }
+
+const REUSE_7K = 7_000
+const REUSE_14K = 14_000
+
+const fieldPermission = (i: number): string =>
+  `    <fieldPermissions>\n      <editable>true</editable>\n      <field>Account.Field_${i}__c</field>\n      <readable>true</readable>\n    </fieldPermissions>`
+
+const profileOf = (children: readonly string[]): string =>
+  `<?xml version="1.0" encoding="UTF-8"?>\n<Profile xmlns="http://soap.sforce.com/2006/04/metadata">\n${children.join('\n')}\n</Profile>\n`
+
+const reversedProfilePair = (count: number) => {
+  const children = Array.from({ length: count }, (_, i) => fieldPermission(i))
+  return {
+    from: profileOf(children),
+    to: profileOf([...children].reverse()),
+  }
+}
+
+const reuseRow = (
+  name: string,
+  pair: { from: string; to: string },
+  check: (name: string, elapsedMs: readonly number[]) => void
+): SampledRow => {
+  const elapsedMs: number[] = []
+  describe(name, () => {
+    perfBench(
+      name,
+      async () => {
+        const start = performance.now()
+        const recorded = new RecordedChildren()
+        await parseFromSideSwallowing(
+          pair.from,
+          noopElement,
+          new RecordingChildParser(recorded)
+        )
+        await parseToSidePropagating(
+          pair.to,
+          noopElement,
+          new ReusingChildParser(recorded)
+        )
+        elapsedMs.push(performance.now() - start)
+      },
+      { afterRun: () => check(name, elapsedMs) }
+    )
+  })
+  return { label: name, samplesMs: elapsedMs }
+}
+
+const reversed7k = reuseRow(
+  'metadata-diff-reuse-reversed-7k',
+  reversedProfilePair(REUSE_7K),
+  () => undefined
+)
+reuseRow(
+  'metadata-diff-reuse-reversed-14k',
+  reversedProfilePair(REUSE_14K),
+  (name, elapsedMs) =>
+    assertScalesLinearly(
+      reversed7k,
+      { label: name, samplesMs: elapsedMs },
+      REUSE_14K / REUSE_7K
+    )
+)

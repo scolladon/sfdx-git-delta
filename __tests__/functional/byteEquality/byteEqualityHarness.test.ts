@@ -1,6 +1,5 @@
 'use strict'
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { writeFileSync } from 'node:fs'
 import { PassThrough } from 'node:stream'
 
 import { beforeAll, describe, expect, it, vi } from 'vitest'
@@ -15,6 +14,7 @@ import type { Work } from '../../../src/types/work'
 import { readPathFromGit } from '../../../src/utils/fsHelper'
 import MetadataDiff from '../../../src/utils/metadataDiff/index.js'
 import { getWork } from '../../__utils__/testWork'
+import { type Fixture, listFixtures } from './byteEqualityFixtures'
 
 vi.mock('../../../src/utils/fsHelper', async () => {
   const actual: typeof import('../../../src/utils/fsHelper') =
@@ -27,53 +27,7 @@ vi.mock('../../../src/utils/fsHelper', async () => {
 
 const mockedReadPathFromGit = vi.mocked(readPathFromGit)
 
-const FIXTURES_DIR = resolve(__dirname, 'fixtures')
 const UPDATE_SNAPSHOTS = process.env['UPDATE_BYTE_EQUALITY_SNAPSHOTS'] === '1'
-
-type Fixture = {
-  name: string
-  fromXml: string
-  toXml: string
-  expectedPath: string
-  expected: string | null
-  expectationPath: string
-  expectationSource: string | null
-}
-
-// Absence is the only legitimate read failure: a sidecar or snapshot that
-// exists but cannot be read must surface, not masquerade as missing.
-const readOrNull = (path: string): string | null => {
-  try {
-    return readFileSync(path, 'utf8')
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return null
-    }
-    throw error
-  }
-}
-
-// Every directory under fixtures/ is a fixture: a missing from.xml or
-// to.xml throws at collection instead of silently dropping the fixture,
-// matching the sidecar's hard-fail contract.
-const listFixtures = (): Fixture[] =>
-  readdirSync(FIXTURES_DIR, { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .map(entry => entry.name)
-    .sort()
-    .map(name => {
-      const expectedPath = join(FIXTURES_DIR, name, 'expected.xml')
-      const expectationPath = join(FIXTURES_DIR, name, 'expected.json')
-      return {
-        name,
-        fromXml: readFileSync(join(FIXTURES_DIR, name, 'from.xml'), 'utf8'),
-        toXml: readFileSync(join(FIXTURES_DIR, name, 'to.xml'), 'utf8'),
-        expectedPath,
-        expected: readOrNull(expectedPath),
-        expectationPath,
-        expectationSource: readOrNull(expectationPath),
-      }
-    })
 
 // The sidecar is a trust boundary: validate its shape rather than cast the
 // parsed JSON onto it, so a malformed file fails its own fixture with a
