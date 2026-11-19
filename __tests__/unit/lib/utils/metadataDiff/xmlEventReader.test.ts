@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { Logger } from '../../../../../src/utils/LoggingService'
 import {
+  type ChildParser,
   parseFromSideSwallowing,
   parseToSidePropagating,
 } from '../../../../../src/utils/metadataDiff/xmlEventReader'
@@ -605,6 +606,50 @@ describe('xmlEventReader', () => {
         'unclosed or mismatched root <R> at offset 18'
       )
       expect(handler.mock.calls).toEqual([['a', '1']])
+    })
+  })
+
+  describe('Given a custom ChildParser', () => {
+    const INPUT = '<R><x/><y/></R>'
+    const CHILD_LENGTH = 4
+
+    it('When parseToSidePropagating runs with it, Then each child comes from it and the cursor advances by its length', async () => {
+      // Arrange
+      const childParser: ChildParser = {
+        parseAt: (_xml, lt) => ({
+          tagName: `t${lt}`,
+          content: { at: String(lt) },
+          length: CHILD_LENGTH,
+        }),
+      }
+      const handler = vi.fn()
+
+      // Act
+      const sut = await parseToSidePropagating(INPUT, handler, childParser)
+
+      // Assert
+      expect(sut.rootKey).toBe('R')
+      expect(handler.mock.calls).toEqual([
+        ['t3', { at: '3' }],
+        ['t7', { at: '7' }],
+      ])
+    })
+
+    it('When the parser returns a length of 0, Then parseToSidePropagating rejects and the handler never receives that child', async () => {
+      // Arrange
+      const childParser: ChildParser = {
+        parseAt: () => ({ tagName: 'x', content: {}, length: 0 }),
+      }
+      const handler = vi.fn()
+
+      // Act
+      const result = parseToSidePropagating(INPUT, handler, childParser)
+
+      // Assert
+      await expect(result).rejects.toThrow(
+        'unclosed or mismatched root <R> at offset 15'
+      )
+      expect(handler).not.toHaveBeenCalled()
     })
   })
 

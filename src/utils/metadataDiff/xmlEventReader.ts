@@ -169,38 +169,63 @@ const commentEndAfter = (xml: string, lt: number): number => {
   return end < 0 ? xml.length : end + 3
 }
 
-// Returns the offset after the child, or the end of input when txml could not
-// close it (a close tag missing its '>' yields -1), so the scan stops there.
-const emitChildAt = (
-  xml: string,
-  lt: number,
-  onElement: SubTypeElementHandler
-): number => {
-  const res = txmlParse(xml, {
+export type ParsedChild = Readonly<{
+  tagName: string
+  content: XmlContent
+  length: number
+}>
+
+export type ChildParser = Readonly<{
+  parseAt(xml: string, lt: number): ParsedChild
+}>
+
+const parseChildAt = (xml: string, lt: number): ParsedChild => {
+  const node = txmlParse(xml, {
     pos: lt,
     parseNode: true,
     setPos: true,
     keepComments: true,
   }) as unknown as TxmlNode & { pos: number }
-  // Stryker disable next-line ConditionalExpression -- not equivalent but unaffordable: the false-flip emits the child and returns txml's -1, so the next indexOf('<', -1) restarts at offset 0 and the mutant hangs until Stryker's timeout. The true-flip is suppressed as a side effect; it emits no child at all, which every child-bearing test would kill
-  if (res.pos <= lt) return xml.length
-  onElement(res.tagName, tNodeToXmlContent(res) as XmlContent)
-  return res.pos
+  return {
+    tagName: node.tagName,
+    content: tNodeToXmlContent(node) as XmlContent,
+    length: node.pos - lt,
+  }
 }
 
-// One-shot per-element parse via txml's parseNode primitive. We loop
-// from bodyStart to the closing root tag, parsing exactly one direct
-// child per iteration and emitting it through onElement before advancing
-// the cursor. txml returns the parsed subtree fully built — but we drop
-// our reference after onElement, so peak resident memory stays bounded
-// by the largest single child rather than the full document.
+export const PLAIN_CHILD_PARSER: ChildParser = { parseAt: parseChildAt }
+
+// Returns the offset after the child, or the end of input when the parser made
+// no progress (txml yields -1 for a close tag missing its '>'), so the scan
+// stops there.
+const emitChildAt = (
+  xml: string,
+  lt: number,
+  onElement: SubTypeElementHandler,
+  childParser: ChildParser
+): number => {
+  const child = childParser.parseAt(xml, lt)
+  // Stryker disable next-line ConditionalExpression -- not equivalent but unaffordable: the false-flip emits the child and advances by a non-positive length, so the cursor moves back (to -1 for txml's no-progress result, or stays put for a zero length) and the mutant hangs until Stryker's timeout. The true-flip is suppressed as a side effect; it emits no child at all, which every child-bearing test would kill
+  if (child.length <= 0) return xml.length
+  onElement(child.tagName, child.content)
+  return lt + child.length
+}
+
+// Each direct child is parsed through the supplied ChildParser
+// (PLAIN_CHILD_PARSER is one txml parseNode call), emitted through onElement,
+// and the cursor advances by the parsed length. The reader drops its own
+// reference after onElement, so with the default parser peak resident memory
+// stays bounded by the largest single child rather than the full document;
+// a parser that keeps what it parses holds those children for its own
+// lifetime. A child parsed with no progress ends the scan.
 //
 // Returns the cursor position where the loop exited so the strict-mode
 // caller can verify the root close tag and reject trailing content.
 const streamRootChildren = (
   xml: string,
   bodyStart: number,
-  onElement: SubTypeElementHandler
+  onElement: SubTypeElementHandler,
+  childParser: ChildParser
 ): number => {
   let pos = bodyStart
   // Stryker disable next-line BlockStatement,EqualityOperator -- BlockStatement is not equivalent but unaffordable: an emptied body never advances `pos`, so the mutant hangs until Stryker's timeout. EqualityOperator: `<=` is equivalent (one extra pass at pos === xml.length finds no `<` and the lt < 0 arm returns the same offset); `>=` is killable but shares the mutator name, and the loop-skipping behaviour it produces is already killed through the ConditionalExpression false-flip
@@ -211,7 +236,7 @@ const streamRootChildren = (
     if (xml.startsWith('</', lt)) return lt
     pos = xml.startsWith('<!--', lt)
       ? commentEndAfter(xml, lt)
-      : emitChildAt(xml, lt, onElement)
+      : emitChildAt(xml, lt, onElement, childParser)
   }
   return pos
 }
@@ -258,10 +283,16 @@ const verifyTail = (
 }
 // Stryker restore MethodExpression,ArithmeticOperator
 
+// Strict mode (to-side): confirm the input closes cleanly so the
+// MalformedXML warning path in the diff caller fires. Inner mismatches
+// already throw via txml's per-child parseNode. The swallowing path
+// skips this — its caller already discards errors and falls back to
+// "no prior content", so a partial parse is acceptable there.
 const driveParse = (
   source: Buffer | string,
   onElement: SubTypeElementHandler,
-  options: { strict: boolean }
+  options: { strict: boolean },
+  childParser: ChildParser
 ): RootCapture | null => {
   // Stryker disable next-line ConditionalExpression,StringLiteral -- equivalent: source string-vs-buffer dispatch; flipping to false (Buffer path) on a string source returns the same string (Buffer.from then toString roundtrips for ASCII), and tests pass both string and Buffer sources separately to verify each path
   const payload = typeof source === 'string' ? source : source.toString('utf8')
@@ -269,12 +300,7 @@ const driveParse = (
   if (prologue === null) return null
   const endPos = prologue.isSelfClosing
     ? prologue.bodyStart
-    : streamRootChildren(payload, prologue.bodyStart, onElement)
-  // Strict mode (to-side): confirm the input closes cleanly so the
-  // MalformedXML warning path in the diff caller fires. Inner mismatches
-  // already throw via txml's per-child parseNode. The swallowing path
-  // skips this — its caller already discards errors and falls back to
-  // "no prior content", so a partial parse is acceptable there.
+    : streamRootChildren(payload, prologue.bodyStart, onElement, childParser)
   if (options.strict) {
     verifyTail(payload, endPos, prologue.rootName, prologue.isSelfClosing)
   }
@@ -292,20 +318,22 @@ const driveParse = (
  * failure.
  *
  * Emits `onElement(subType, element)` per direct-child element of the
- * document root, parsed one at a time via txml's parseNode primitive.
- * Peak resident memory stays bounded by the largest single child rather
- * than the full document because each parsed subtree is released as soon
- * as onElement returns and the cursor advances.
+ * document root, parsed one at a time through the ChildParser (txml's
+ * parseNode primitive by default). The reader releases each parsed subtree
+ * as soon as onElement returns, so with the default parser peak resident
+ * memory stays bounded by the largest single child; a parser that keeps
+ * what it parses holds those children for its own lifetime.
  */
 export const parseFromSideSwallowing = async (
   source: Buffer | string | null | undefined,
-  onElement: SubTypeElementHandler
+  onElement: SubTypeElementHandler,
+  childParser: ChildParser = PLAIN_CHILD_PARSER
 ): Promise<RootCapture | null> => {
   // Stryker disable next-line ConditionalExpression -- equivalent: empty-source fast path; flipping to false runs driveParse on undefined which throws, the catch returns null — observably equivalent to the early null return
   if (!source) return null
   try {
     // Stryker disable next-line ObjectLiteral -- equivalent: { strict: false } toggles tail validation in driveParse; an empty literal {} has strict undefined which is falsy in the boolean check, observably the same as { strict: false }
-    return driveParse(source, onElement, { strict: false })
+    return driveParse(source, onElement, { strict: false }, childParser)
   } catch (error) {
     Logger.debug(
       // Stryker disable next-line StringLiteral,ArrowFunction -- equivalent: lazy log content is observability only; tests assert on the null return
@@ -324,9 +352,10 @@ export const parseFromSideSwallowing = async (
  */
 export const parseToSidePropagating = async (
   source: Buffer | string,
-  onElement: SubTypeElementHandler
+  onElement: SubTypeElementHandler,
+  childParser: ChildParser = PLAIN_CHILD_PARSER
 ): Promise<RootCapture> => {
-  const capture = driveParse(source, onElement, { strict: true })
+  const capture = driveParse(source, onElement, { strict: true }, childParser)
   if (capture === null) {
     throw new Error('to-side document has no root element')
   }
