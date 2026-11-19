@@ -494,24 +494,30 @@ describe('StreamingDiff', () => {
     expect(sut.buildWriter(null)).toBeUndefined()
   })
 
-  it('Given collectRootChildren has subType with elements=[] (empty array via reference), When buildWriter runs, Then empty subType is skipped', async () => {
-    // Kills collectRootChildren's `!elements || elements.length === 0` LogicalOperator (→ &&)
-    // When elements is an empty array, !elements is false but elements.length===0 is true
-    // The || version correctly skips it; the && mutant would include empty arrays
-    const packageableSubType = findPackageableKeyedSubType(inFileAttributes)
+  it('Given an unchanged keyed subType beside a changed one in to, When the writer renders, Then only the changed subType is emitted', async () => {
+    // Arrange
     const sut = new StreamingDiff(inFileAttributes, true)
-    const keyField = inFileAttributes.get(packageableSubType.tag)!.key!
-    // Add one subType to force hasPackageContent and create writer
-    sut.onToElement(packageableSubType.tag, { [keyField]: 'Key.A' })
-    // Also emit a second subType to to-order but give it no to-elements
-    // (will not appear in prunedBySubType since no retain was called)
-    sut.onFromElement('description', { text: 'only-from' })
-    const outcome = sut.finalize()
-    const out = await drainWriter(sut.buildWriter(buildRoot()))
-    expect(outcome.hasPackageContent).toBe(true)
-    // 'description' had no to-elements so must not appear in output
-    expect(out).not.toContain('<description>')
-    expect(out).toContain(`<${packageableSubType.tag}>`)
+    const fieldPermission = {
+      field: 'Account.Name',
+      editable: 'true',
+      readable: 'true',
+    }
+    sut.onFromElement('fieldPermissions', fieldPermission)
+    sut.onFromElement('userPermissions', {
+      enabled: 'true',
+      name: 'ApiEnabled',
+    })
+    sut.onToElement('fieldPermissions', fieldPermission)
+    sut.onToElement('userPermissions', { enabled: 'false', name: 'ApiEnabled' })
+
+    // Act
+    sut.finalize()
+    const produced = await drainWriter(sut.buildWriter(buildRoot()))
+
+    // Assert
+    expect(produced).toBe(
+      '<Profile>\n    <userPermissions>\n        <enabled>false</enabled>\n        <name>ApiEnabled</name>\n    </userPermissions>\n</Profile>\n'
+    )
   })
 
   it('Given a delete-only diff, When finalize runs, Then the deletion is recorded, hasPackageContent stays false, and no writer is produced', () => {

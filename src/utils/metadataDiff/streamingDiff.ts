@@ -189,14 +189,10 @@ export class StreamingDiff {
   }
 
   private collectRootChildren(_rootCapture: RootCapture) {
-    // Stryker disable next-line ArrayDeclaration -- equivalent: a non-empty initial array is harmless because the next consumer (writeXmlDocument iteration) destructures each entry as [subType, elements] where the injected garbage triggers no observable test signal that isn't already covered
     const entries: [string, unknown][] = []
     for (const subType of this.toSubTypeOrder) {
       const elements = this.prunedBySubType.get(subType)
-      /* v8 ignore start -- defensive: trackToOrder is paired with retainSubTypeElement, so prunedBySubType is always populated for tracked subTypes */
-      // Stryker disable next-line ConditionalExpression,LogicalOperator
       if (!elements || elements.length === 0) continue
-      /* v8 ignore stop */
       entries.push([subType, elements])
     }
     return entries
