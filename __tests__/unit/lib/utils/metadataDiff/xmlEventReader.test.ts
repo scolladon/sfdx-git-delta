@@ -568,6 +568,46 @@ describe('xmlEventReader', () => {
     })
   })
 
+  describe("Given a child whose close tag has no '>'", () => {
+    const INPUT = '<R><a>1</a><b>x</b'
+    const EMIT_CAP = 8
+
+    const cappedHandler = () => {
+      const handler = vi.fn((_subType: string, _element: unknown) => {
+        if (handler.mock.calls.length > EMIT_CAP) {
+          throw new Error('handler re-entered past the input')
+        }
+      })
+      return handler
+    }
+
+    it('When parseFromSideSwallowing runs, Then it resolves the root capture and the handler received only the children before it', async () => {
+      // Arrange
+      const handler = cappedHandler()
+
+      // Act
+      const sut = await parseFromSideSwallowing(INPUT, handler)
+
+      // Assert
+      expect(sut?.rootKey).toBe('R')
+      expect(handler.mock.calls).toEqual([['a', '1']])
+    })
+
+    it('When parseToSidePropagating runs, Then it rejects with the unclosed-root error at end of input', async () => {
+      // Arrange
+      const handler = cappedHandler()
+
+      // Act
+      const result = parseToSidePropagating(INPUT, handler)
+
+      // Assert
+      await expect(result).rejects.toThrow(
+        'unclosed or mismatched root <R> at offset 18'
+      )
+      expect(handler.mock.calls).toEqual([['a', '1']])
+    })
+  })
+
   describe('parseDeclaration defensive guard', () => {
     // The txml mock must not outlive this test even when an assertion fails.
     afterEach(() => {

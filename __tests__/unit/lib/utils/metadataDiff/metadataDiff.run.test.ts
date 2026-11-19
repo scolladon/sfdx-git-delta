@@ -208,6 +208,19 @@ describe('MetadataDiff.run', () => {
     )
   })
 
+  it("Given a to Profile with a child close tag missing its '>', When run runs, Then it rejects", async () => {
+    // Arrange
+    const from = `${XML_HEADER}\n<Profile ${NAMESPACE}>\n    <custom>true</custom>\n</Profile>\n`
+    const to = `${XML_HEADER}\n<Profile ${NAMESPACE}>\n    <custom>true</custom>\n    <userLicense>Salesforce</userLicense`
+    serveXml(from, to)
+    const sut = new MetadataDiff(work.config, inFileAttributes)
+
+    // Act & Assert
+    await expect(sut.run('file/path')).rejects.toThrow(
+      /unclosed or mismatched root/
+    )
+  })
+
   it('Given the from-side file is missing, When run runs, Then it treats it as an addition', async () => {
     // Arrange
     mockedReadPathFromGit.mockImplementation(async ref =>

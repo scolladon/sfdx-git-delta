@@ -163,6 +163,31 @@ const parsePrologue = (xml: string): Prologue | null => {
   }
 }
 
+const commentEndAfter = (xml: string, lt: number): number => {
+  const end = xml.indexOf('-->', lt + 4)
+  // Stryker disable next-line EqualityOperator -- `end <= 0` is equivalent: the search starts at lt + 4, so indexOf returns -1 or an offset of at least 4, never 0. `end >= 0` shares the mutator name; whenever the comment is terminated it jumps to the end of input exactly like the killed ConditionalExpression true-flip on this condition
+  return end < 0 ? xml.length : end + 3
+}
+
+// Returns the offset after the child, or the end of input when txml could not
+// close it (a close tag missing its '>' yields -1), so the scan stops there.
+const emitChildAt = (
+  xml: string,
+  lt: number,
+  onElement: SubTypeElementHandler
+): number => {
+  const res = txmlParse(xml, {
+    pos: lt,
+    parseNode: true,
+    setPos: true,
+    keepComments: true,
+  }) as unknown as TxmlNode & { pos: number }
+  // Stryker disable next-line ConditionalExpression -- not equivalent but unaffordable: the false-flip emits the child and returns txml's -1, so the next indexOf('<', -1) restarts at offset 0 and the mutant hangs until Stryker's timeout. The true-flip is suppressed as a side effect; it emits no child at all, which every child-bearing test would kill
+  if (res.pos <= lt) return xml.length
+  onElement(res.tagName, tNodeToXmlContent(res) as XmlContent)
+  return res.pos
+}
+
 // One-shot per-element parse via txml's parseNode primitive. We loop
 // from bodyStart to the closing root tag, parsing exactly one direct
 // child per iteration and emitting it through onElement before advancing
@@ -178,35 +203,15 @@ const streamRootChildren = (
   onElement: SubTypeElementHandler
 ): number => {
   let pos = bodyStart
-  // Stryker disable next-line BlockStatement,EqualityOperator -- BlockStatement is not equivalent but unaffordable: an emptied body never advances `pos`, so the mutant hangs until Stryker's timeout. EqualityOperator: `<=` is equivalent (one extra pass at pos === xml.length finds no `<` and the lt < 0 arm breaks at the same offset); `>=` is killable but shares the mutator name, and the loop-skipping behaviour it produces is already killed through the ConditionalExpression false-flip
+  // Stryker disable next-line BlockStatement,EqualityOperator -- BlockStatement is not equivalent but unaffordable: an emptied body never advances `pos`, so the mutant hangs until Stryker's timeout. EqualityOperator: `<=` is equivalent (one extra pass at pos === xml.length finds no `<` and the lt < 0 arm returns the same offset); `>=` is killable but shares the mutator name, and the loop-skipping behaviour it produces is already killed through the ConditionalExpression false-flip
   while (pos < xml.length) {
     const lt = xml.indexOf('<', pos)
     // Stryker disable next-line EqualityOperator -- `lt <= 0` is equivalent: the cursor never drops below bodyStart, which sits past the root open tag (at least 3 characters, `<R>`), so indexOf returns -1 or a positive offset, never 0. `lt >= 0` shares the mutator name; it jumps to the end of input on the first child, which every child-bearing test kills
-    if (lt < 0) {
-      pos = xml.length
-      break
-    }
-
-    if (xml.startsWith('</', lt)) {
-      pos = lt
-      break
-    }
-
-    if (xml.startsWith('<!--', lt)) {
-      const end = xml.indexOf('-->', lt + 4)
-      // Stryker disable next-line EqualityOperator -- `end <= 0` is equivalent: the search starts at lt + 4, so indexOf returns -1 or an offset of at least 4, never 0. `end >= 0` shares the mutator name; whenever the comment is terminated it jumps to the end of input exactly like the killed ConditionalExpression true-flip on this condition
-      pos = end < 0 ? xml.length : end + 3
-      continue
-    }
-
-    const res = txmlParse(xml, {
-      pos: lt,
-      parseNode: true,
-      setPos: true,
-      keepComments: true,
-    }) as unknown as TxmlNode & { pos: number }
-    onElement(res.tagName, tNodeToXmlContent(res) as XmlContent)
-    pos = res.pos
+    if (lt < 0) return xml.length
+    if (xml.startsWith('</', lt)) return lt
+    pos = xml.startsWith('<!--', lt)
+      ? commentEndAfter(xml, lt)
+      : emitChildAt(xml, lt, onElement)
   }
   return pos
 }
