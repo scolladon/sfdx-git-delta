@@ -111,7 +111,9 @@ const matchRootOpenTag = (xml: string, start: number): RootOpenTag | null => {
 
 // Reuse txml to parse just the root open tag's attributes consistently
 // with how it parses every other tag. Wrapping it as self-closing gives
-// us a clean parse target that always returns one node.
+// us a parse target that always returns one node. A self-closing root
+// keeps its own trailing `/` in attrsRaw; txml skips non-letter
+// characters between attributes, so `<Root a="1"//>` parses the same.
 const syntheticRootTag = ({ rootName, attrsRaw }: RootOpenTag): string =>
   `<${rootName}${attrsRaw}/>`
 
