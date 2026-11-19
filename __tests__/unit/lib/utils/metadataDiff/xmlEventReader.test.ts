@@ -188,6 +188,21 @@ describe('xmlEventReader', () => {
       await expect(parseToSidePropagating(source, onElement)).rejects.toThrow()
     })
 
+    it('Given a body ending in text without the root close, When parseToSidePropagating runs, Then the scan stops at the end of input and rejects naming that offset', async () => {
+      // Arrange
+      const onElement = vi.fn()
+      const source = '<Root><a>1</a>text'
+
+      // Act
+      const sut = parseToSidePropagating(source, onElement)
+
+      // Assert
+      await expect(sut).rejects.toThrow(
+        'unclosed or mismatched root <Root> at offset 18'
+      )
+      expect(onElement.mock.calls).toEqual([['a', '1']])
+    })
+
     it('Given empty XML, When parseToSidePropagating runs, Then the rejection propagates', async () => {
       // Arrange
       const source = ''
