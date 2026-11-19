@@ -409,8 +409,10 @@ describe('Given a RecordingChildParser', () => {
     // Assert
     expect(recorded.size).toBe(0)
   })
+})
 
-  it('When the to side starts like an unterminated from-side script, Then the reusing parse rejects it as the plain parse does', async () => {
+describe('Given a ReusingChildParser after an unterminated from-side script', () => {
+  it('When the to side starts like that script, Then the parse rejects with the plain parse error', async () => {
     // Arrange
     const from = '<R><script>stale<a>1</a></R>'
     const to = '<R><scri<a>2</a></R>'
@@ -420,12 +422,22 @@ describe('Given a RecordingChildParser', () => {
       collector().handler,
       new RecordingChildParser(recorded)
     )
+    const messageOf = (error: Error) => error.message
+    const plainError = await parseToSidePropagating(
+      to,
+      collector().handler
+    ).catch(messageOf)
     const sut = new ReusingChildParser(recorded)
 
     // Act
-    const reusing = parseToSidePropagating(to, collector().handler, sut)
+    const result = await parseToSidePropagating(
+      to,
+      collector().handler,
+      sut
+    ).catch(messageOf)
 
     // Assert
-    await expect(reusing).rejects.toThrow()
+    expect(plainError).toMatch(/^Unexpected close tag/)
+    expect(result).toBe(plainError)
   })
 })
