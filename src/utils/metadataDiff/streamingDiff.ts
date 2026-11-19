@@ -82,7 +82,7 @@ export class StreamingDiff {
   // Tracks first-seen-in-to order across all subTypes (keyed + deferred)
   // so buildWriter emits root children in the same order legacy's
   // JsonTransformer produced (document order from to-side).
-  // Stryker disable next-line ArrayDeclaration -- equivalent: an injected initial element is filtered by collectRootChildren via the prunedBySubType.get + length===0 guard
+  // Stryker disable next-line ArrayDeclaration -- equivalent: an injected initial element has no prunedBySubType entry, so collectRootChildren skips it via the prunedBySubType.get guard
   private readonly toSubTypeOrder: string[] = []
   private readonly seenSubTypes = new Set<string>()
   private readonly added: CompareEntry[] = []
@@ -192,7 +192,7 @@ export class StreamingDiff {
     const entries: [string, unknown][] = []
     for (const subType of this.toSubTypeOrder) {
       const elements = this.prunedBySubType.get(subType)
-      if (!elements || elements.length === 0) continue
+      if (!elements) continue
       entries.push([subType, elements])
     }
     return entries
