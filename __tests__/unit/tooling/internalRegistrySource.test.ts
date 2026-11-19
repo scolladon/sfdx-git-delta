@@ -5,7 +5,10 @@ import { describe, expect, it } from 'vitest'
 import internalRegistry from '../../../src/metadata/internalRegistry.ts'
 import type { Metadata } from '../../../src/types/metadata.ts'
 import { isSimpleGapFiller } from '../../../tooling/internalRegistryEntries.ts'
-import { removeEntries } from '../../../tooling/internalRegistrySource.ts'
+import {
+  GAP_FILLER_SECTION_HEADER,
+  removeEntries,
+} from '../../../tooling/internalRegistrySource.ts'
 
 const REGISTRY_PATH = fileURLToPath(
   new URL('../../../src/metadata/internalRegistry.ts', import.meta.url)
@@ -58,8 +61,17 @@ const subsetsOf = (indices: readonly number[]) =>
 const commentsOf = (lines: readonly string[]) =>
   lines.filter(line => COMMENT_LINE.test(line))
 
-const expectRemovalInvariants = (
+// Real-file lens stays linear in the gap-filler count; the exhaustive subset
+// sweep runs on the fixed synthetic source below.
+const linearSelectionsOf = (indices: readonly number[]) => [
+  [],
+  ...indices.map(index => [index]),
+  indices,
+]
+
+const assertRemovalInvariants = (
   source: string,
+  result: string,
   entries: readonly Metadata[],
   removedIndices: readonly number[]
 ) => {
@@ -68,9 +80,6 @@ const expectRemovalInvariants = (
   const removedLength = removedNames
     .map(name => spanLength(sourceLines, name))
     .reduce((sum, length) => sum + length, 0)
-
-  const result = removeEntries(source, entries, new Set(removedIndices))
-
   const resultLines = result.split('\n')
   expect(resultLines).toHaveLength(sourceLines.length - removedLength)
   expect(commentsOf(resultLines)).toEqual(commentsOf(sourceLines))
@@ -82,286 +91,382 @@ const expectRemovalInvariants = (
   }
 }
 
-describe('removeEntries', () => {
-  describe('Given the committed internal registry source and its module', () => {
-    const source = readFileSync(REGISTRY_PATH, 'utf8')
+describe('Given the committed internal registry source and its module', () => {
+  const source = readFileSync(REGISTRY_PATH, 'utf8')
 
-    describe('When no entry is removable', () => {
-      it('Then the output is byte-identical to the source', () => {
+  describe('When no entry is removable', () => {
+    it('Then the output is byte-identical to the source', () => {
+      // Arrange
+      const sut = removeEntries
+
+      // Act
+      const result = sut(source, internalRegistry, new Set())
+
+      // Assert
+      expect(result).toBe(source)
+    })
+  })
+
+  describe('When none, each one, or all of the allow-list-simple entries are removed', () => {
+    const simpleIndices = internalRegistry.flatMap((entry, index) =>
+      isSimpleGapFiller(entry) ? [index] : []
+    )
+
+    it.each(
+      linearSelectionsOf(simpleIndices).map(selection => ({
+        label: selection.join(',') || 'none',
+        selection,
+      }))
+    )(
+      'Then only those spans go and comments stay ($label)',
+      ({ selection }) => {
         // Arrange
         const sut = removeEntries
 
         // Act
-        const result = sut(source, internalRegistry, new Set())
+        const result = sut(source, internalRegistry, new Set(selection))
 
         // Assert
-        expect(result).toBe(source)
-      })
-    })
+        assertRemovalInvariants(source, result, internalRegistry, selection)
+      }
+    )
+  })
+})
 
-    describe('When any subset of the allow-list-simple entries is removed', () => {
-      const simpleIndices = internalRegistry.flatMap((entry, index) =>
-        isSimpleGapFiller(entry) ? [index] : []
+describe('Given the gap-filler section header above the first entry', () => {
+  const source = sourceOf(
+    GAP_FILLER_SECTION_HEADER,
+    spanLines('First'),
+    spanLines('Second')
+  )
+  const entries = entriesOf('First', 'Second')
+
+  describe('When that first entry is removed', () => {
+    it("Then the header stays and the entry's lines are gone", () => {
+      // Arrange
+      const sut = removeEntries
+
+      // Act
+      const result = sut(source, entries, new Set([0]))
+
+      // Assert
+      expect(result).toBe(
+        sourceOf(GAP_FILLER_SECTION_HEADER, spanLines('Second'))
       )
+    })
+  })
+})
 
-      it.each(
-        subsetsOf(simpleIndices).map(subset => ({
-          label: subset.join(',') || 'none',
-          subset,
-        }))
-      )('Then only those spans go and comments stay ($label)', ({ subset }) => {
-        // Arrange
-        const sut = expectRemovalInvariants
+describe('Given an entry with its own comment above it', () => {
+  describe('When that entry is removable', () => {
+    it.each([
+      { label: 'one line', comment: ['  // why First exists'] },
+      {
+        label: 'as many lines as the header',
+        comment: ['  // why First exists', '  // and more'],
+      },
+    ])('Then it throws naming the entry ($label)', ({ comment }) => {
+      // Arrange
+      const sut = removeEntries
+      const source = sourceOf(comment, spanLines('First'))
 
-        // Act & Assert
-        sut(source, internalRegistry, subset)
-      })
+      // Act & Assert
+      expect(() => sut(source, entriesOf('First'), new Set([0]))).toThrow(
+        /entry 0 \('First'\) is removable but has its own comment above it/
+      )
     })
   })
 
-  describe('Given a source with a section header comment above the first entry', () => {
-    const source = sourceOf(
-      ['  // section header'],
-      spanLines('First'),
-      spanLines('Second')
-    )
-    const entries = entriesOf('First', 'Second')
+  describe('When another entry is removed', () => {
+    it('Then the commented entry and its comment stay', () => {
+      // Arrange
+      const sut = removeEntries
+      const commented = [['  // why First exists'], spanLines('First')]
+      const source = sourceOf(...commented, spanLines('Second'))
 
-    describe('When that first entry is removed', () => {
-      it("Then the header comment stays and the entry's lines are gone", () => {
-        // Arrange
-        const sut = removeEntries
+      // Act
+      const result = sut(source, entriesOf('First', 'Second'), new Set([1]))
 
-        // Act
-        const result = sut(source, entries, new Set([0]))
+      // Assert
+      expect(result).toBe(sourceOf(...commented))
+    })
+  })
+})
 
-        // Assert
-        expect(result).toBe(
-          sourceOf(['  // section header'], spanLines('Second'))
-        )
-      })
+describe('Given a stray opener before a complete entry', () => {
+  const source = sourceOf(['  {'], spanLines('First'))
+
+  describe('When the entry is removed', () => {
+    it('Then the span starts at the last opener and the stray line stays', () => {
+      // Arrange
+      const sut = removeEntries
+
+      // Act
+      const result = sut(source, entriesOf('First'), new Set([0]))
+
+      // Assert
+      expect(result).toBe(sourceOf(['  {']))
+    })
+  })
+})
+
+describe('Given a source whose last entry precedes the footer', () => {
+  const source = sourceOf(spanLines('First'), spanLines('Last'))
+
+  describe('When the last entry is removed', () => {
+    it('Then the footer is kept', () => {
+      // Arrange
+      const sut = removeEntries
+
+      // Act
+      const result = sut(source, entriesOf('First', 'Last'), new Set([1]))
+
+      // Assert
+      expect(result).toBe(sourceOf(spanLines('First')))
+    })
+  })
+})
+
+describe('Given entries carrying adapter and decomposition next to a simple one', () => {
+  const adapterSpan = spanLines('WithAdapter', "    adapter: 'bundle',")
+  const decompositionSpan = spanLines(
+    'WithDecomposition',
+    "    decomposition: 'probeOverride',"
+  )
+  const source = sourceOf(adapterSpan, spanLines('Simple'), decompositionSpan)
+  const entries = entriesOf('WithAdapter', 'Simple', 'WithDecomposition')
+
+  describe('When only the simple entry is removed', () => {
+    it('Then the other two entries survive verbatim', () => {
+      // Arrange
+      const sut = removeEntries
+
+      // Act
+      const result = sut(source, entries, new Set([1]))
+
+      // Assert
+      expect(result).toBe(sourceOf(adapterSpan, decompositionSpan))
+    })
+  })
+})
+
+describe('Given two entries sharing the same xmlName', () => {
+  const source = sourceOf(spanLines('Widget'), spanLines('Widget'))
+  const entries = entriesOf('Widget', 'Widget')
+
+  describe('When the second one is removable', () => {
+    it('Then only the second span goes', () => {
+      // Arrange
+      const sut = removeEntries
+
+      // Act
+      const result = sut(source, entries, new Set([1]))
+
+      // Assert
+      expect(result).toBe(sourceOf(spanLines('Widget')))
+    })
+  })
+})
+
+describe('Given three synthetic gap-fillers between a comment and an adapter entry', () => {
+  const body = [
+    GAP_FILLER_SECTION_HEADER,
+    spanLines('GapA'),
+    spanLines('GapB'),
+    spanLines('GapC'),
+    spanLines('Adapted', "    adapter: 'bundle',"),
+  ]
+  const source = sourceOf(...body)
+  const entries = [
+    ...entriesOf('GapA', 'GapB', 'GapC'),
+    buildEntry('Adapted', { adapter: 'bundle' }),
+  ]
+
+  describe('When any subset of the gap-fillers is removed', () => {
+    it.each(
+      subsetsOf([0, 1, 2]).map(subset => ({
+        label: subset.join(',') || 'none',
+        subset,
+      }))
+    )('Then the invariants hold ($label)', ({ subset }) => {
+      // Arrange
+      const sut = removeEntries
+
+      // Act
+      const result = sut(source, entries, new Set(subset))
+
+      // Assert
+      assertRemovalInvariants(source, result, entries, subset)
+    })
+  })
+})
+
+describe('Given an entry without xmlName in source and module', () => {
+  const noName = ['  {', "    directoryName: 'widgets',", '  },']
+  const source = sourceOf(noName, spanLines('Named'))
+  const entries = [
+    { directoryName: 'widgets' } as Metadata,
+    buildEntry('Named'),
+  ]
+
+  describe('When it is removed', () => {
+    it('Then it maps and can be removed', () => {
+      // Arrange
+      const sut = removeEntries
+
+      // Act
+      const result = sut(source, entries, new Set([0]))
+
+      // Assert
+      expect(result).toBe(sourceOf(spanLines('Named')))
+    })
+  })
+})
+
+describe('Given an entry holding a nested content list', () => {
+  const nested = [
+    '  {',
+    '    content: [',
+    '      {',
+    "        xmlName: 'Child',",
+    '      },',
+    '    ],',
+    "    xmlName: 'Parent',",
+    '  },',
+  ]
+  const source = sourceOf(nested, spanLines('After'))
+  const entries = entriesOf('Parent', 'After')
+
+  describe('When it is removed', () => {
+    it('Then the nested objects are not counted and the whole block goes', () => {
+      // Arrange
+      const sut = removeEntries
+
+      // Act
+      const result = sut(source, entries, new Set([0]))
+
+      // Assert
+      expect(result).toBe(sourceOf(spanLines('After')))
+    })
+  })
+})
+
+describe('Given a source whose entry spans do not match the module', () => {
+  const inline =
+    "  { directoryName: 'x', inFolder: false, metaFile: false, xmlName: 'Inline' },"
+
+  describe('When an entry is written inline', () => {
+    it('Then it throws naming both counts', () => {
+      // Arrange
+      const sut = removeEntries
+      const source = sourceOf(spanLines('First'), [inline])
+
+      // Act & Assert
+      expect(() =>
+        sut(source, entriesOf('First', 'Inline'), new Set())
+      ).toThrow(/1 entry spans but exports 2 entries/)
     })
   })
 
-  describe('Given a source whose last entry precedes the footer', () => {
-    const source = sourceOf(spanLines('First'), spanLines('Last'))
+  describe('When a span is unterminated', () => {
+    it('Then it throws naming both counts', () => {
+      // Arrange
+      const sut = removeEntries
+      const source = sourceOf(spanLines('First'), ['  {'])
 
-    describe('When the last entry is removed', () => {
-      it('Then the footer is kept', () => {
-        // Arrange
-        const sut = removeEntries
-
-        // Act
-        const result = sut(source, entriesOf('First', 'Last'), new Set([1]))
-
-        // Assert
-        expect(result).toBe(sourceOf(spanLines('First')))
-      })
+      // Act & Assert
+      expect(() => sut(source, entriesOf('First', 'Open'), new Set())).toThrow(
+        /1 entry spans but exports 2 entries/
+      )
     })
   })
 
-  describe('Given entries carrying adapter and decomposition next to a simple one', () => {
-    const adapterSpan = spanLines('WithAdapter', "    adapter: 'bundle',")
-    const decompositionSpan = spanLines(
-      'WithDecomposition',
-      "    decomposition: 'probeOverride',"
-    )
-    const source = sourceOf(adapterSpan, spanLines('Simple'), decompositionSpan)
-    const entries = entriesOf('WithAdapter', 'Simple', 'WithDecomposition')
+  describe('When a closer has no opener', () => {
+    it('Then it throws naming both counts', () => {
+      // Arrange
+      const sut = removeEntries
+      const source = sourceOf(spanLines('First'), ['  },'])
 
-    describe('When only the simple entry is removed', () => {
-      it('Then the other two entries survive verbatim', () => {
-        // Arrange
-        const sut = removeEntries
-
-        // Act
-        const result = sut(source, entries, new Set([1]))
-
-        // Assert
-        expect(result).toBe(sourceOf(adapterSpan, decompositionSpan))
-      })
+      // Act & Assert
+      expect(() =>
+        sut(source, entriesOf('First', 'Missing'), new Set())
+      ).toThrow(/1 entry spans but exports 2 entries/)
     })
   })
 
-  describe('Given two entries sharing the same xmlName', () => {
-    const source = sourceOf(spanLines('Widget'), spanLines('Widget'))
-    const entries = entriesOf('Widget', 'Widget')
+  describe('When the source uses CRLF line endings', () => {
+    it('Then it throws naming the line endings', () => {
+      // Arrange
+      const sut = removeEntries
+      const source = sourceOf(spanLines('First')).split('\n').join('\r\n')
 
-    describe('When the second one is removable', () => {
-      it('Then only the second span goes', () => {
-        // Arrange
-        const sut = removeEntries
+      // Act & Assert
+      expect(() => sut(source, entriesOf('First'), new Set([0]))).toThrow(
+        /uses CRLF line endings/
+      )
+    })
+  })
+})
 
-        // Act
-        const result = sut(source, entries, new Set([1]))
+describe('Given xmlName present on only one side', () => {
+  const unnamed = ['  {', "    directoryName: 'widgets',", '  },']
 
-        // Assert
-        expect(result).toBe(sourceOf(spanLines('Widget')))
-      })
+  describe('When the source span has no xmlName line but the entry has one', () => {
+    it('Then it throws pointing at the formatting', () => {
+      // Arrange
+      const sut = removeEntries
+      const source = sourceOf(spanLines('First'), unnamed)
+
+      // Act & Assert
+      expect(() =>
+        sut(source, entriesOf('First', 'Expected'), new Set())
+      ).toThrow(
+        /entry 1: expected xmlName 'Expected', found 'undefined'; keep entries Biome-formatted/
+      )
     })
   })
 
-  describe('Given three synthetic gap-fillers between a comment and an adapter entry', () => {
-    const body = [
-      ['  // gap fillers'],
-      spanLines('GapA'),
-      spanLines('GapB'),
-      spanLines('GapC'),
-      spanLines('Adapted', "    adapter: 'bundle',"),
-    ]
-    const source = sourceOf(...body)
-    const entries = [
-      ...entriesOf('GapA', 'GapB', 'GapC'),
-      buildEntry('Adapted', { adapter: 'bundle' }),
-    ]
+  describe('When the source span has an xmlName but the entry has none', () => {
+    it('Then it throws naming the found xmlName', () => {
+      // Arrange
+      const sut = removeEntries
+      const source = sourceOf(spanLines('First'), spanLines('Found'))
+      const entries = [
+        buildEntry('First'),
+        { directoryName: 'widgets' } as Metadata,
+      ]
 
-    describe('When any subset of the gap-fillers is removed', () => {
-      it.each(
-        subsetsOf([0, 1, 2]).map(subset => ({
-          label: subset.join(',') || 'none',
-          subset,
-        }))
-      )('Then the invariants hold ($label)', ({ subset }) => {
-        // Arrange
-        const sut = expectRemovalInvariants
+      // Act & Assert
+      expect(() => sut(source, entries, new Set())).toThrow(
+        /entry 1: expected xmlName 'undefined', found 'Found'/
+      )
+    })
+  })
+})
 
-        // Act & Assert
-        sut(source, entries, subset)
-      })
+describe('Given a source and a module that disagree on an xmlName', () => {
+  const source = sourceOf(spanLines('First'), spanLines('Found'))
+  const entries = entriesOf('First', 'Expected')
+
+  describe('When the xmlName at index 1 differs', () => {
+    it('Then it throws naming the index, the expected and the found xmlName', () => {
+      // Arrange
+      const sut = removeEntries
+
+      // Act & Assert
+      expect(() => sut(source, entries, new Set([0]))).toThrow(
+        /entry 1: expected xmlName 'Expected', found 'Found'/
+      )
     })
   })
 
-  describe('Given an entry without xmlName in source and module', () => {
-    const noName = ['  {', "    directoryName: 'widgets',", '  },']
-    const source = sourceOf(noName, spanLines('Named'))
-    const entries = [
-      { directoryName: 'widgets' } as Metadata,
-      buildEntry('Named'),
-    ]
+  describe('When nothing is removable', () => {
+    it('Then it still throws', () => {
+      // Arrange
+      const sut = removeEntries
 
-    describe('When it is removed', () => {
-      it('Then it maps and can be removed', () => {
-        // Arrange
-        const sut = removeEntries
-
-        // Act
-        const result = sut(source, entries, new Set([0]))
-
-        // Assert
-        expect(result).toBe(sourceOf(spanLines('Named')))
-      })
-    })
-  })
-
-  describe('Given an entry holding a nested content list', () => {
-    const nested = [
-      '  {',
-      '    content: [',
-      '      {',
-      "        xmlName: 'Child',",
-      '      },',
-      '    ],',
-      "    xmlName: 'Parent',",
-      '  },',
-    ]
-    const source = sourceOf(nested, spanLines('After'))
-    const entries = entriesOf('Parent', 'After')
-
-    describe('When it is removed', () => {
-      it('Then the nested objects are not counted and the whole block goes', () => {
-        // Arrange
-        const sut = removeEntries
-
-        // Act
-        const result = sut(source, entries, new Set([0]))
-
-        // Assert
-        expect(result).toBe(sourceOf(spanLines('After')))
-      })
-    })
-  })
-
-  describe('Given a source whose entry spans do not match the module', () => {
-    const inline =
-      "  { directoryName: 'x', inFolder: false, metaFile: false, xmlName: 'Inline' },"
-
-    describe('When an entry is written inline', () => {
-      it('Then it throws naming both counts', () => {
-        // Arrange
-        const sut = removeEntries
-        const source = sourceOf(spanLines('First'), [inline])
-
-        // Act & Assert
-        expect(() =>
-          sut(source, entriesOf('First', 'Inline'), new Set())
-        ).toThrow(/1 entry spans but exports 2 entries/)
-      })
-    })
-
-    describe('When a span is unterminated', () => {
-      it('Then it throws naming both counts', () => {
-        // Arrange
-        const sut = removeEntries
-        const source = sourceOf(spanLines('First'), ['  {'])
-
-        // Act & Assert
-        expect(() =>
-          sut(source, entriesOf('First', 'Open'), new Set())
-        ).toThrow(/1 entry spans but exports 2 entries/)
-      })
-    })
-
-    describe('When a closer has no opener', () => {
-      it('Then it throws naming both counts', () => {
-        // Arrange
-        const sut = removeEntries
-        const source = sourceOf(spanLines('First'), ['  },'])
-
-        // Act & Assert
-        expect(() =>
-          sut(source, entriesOf('First', 'Missing'), new Set())
-        ).toThrow(/1 entry spans but exports 2 entries/)
-      })
-    })
-
-    describe('When the source uses CRLF line endings', () => {
-      it('Then it throws instead of editing', () => {
-        // Arrange
-        const sut = removeEntries
-        const source = sourceOf(spanLines('First')).split('\n').join('\r\n')
-
-        // Act & Assert
-        expect(() => sut(source, entriesOf('First'), new Set([0]))).toThrow(
-          /0 entry spans but exports 1 entries/
-        )
-      })
-    })
-  })
-
-  describe('Given a source and a module that disagree on an xmlName', () => {
-    const source = sourceOf(spanLines('First'), spanLines('Found'))
-    const entries = entriesOf('First', 'Expected')
-
-    describe('When the xmlName at index 1 differs', () => {
-      it('Then it throws naming the index, the expected and the found xmlName', () => {
-        // Arrange
-        const sut = removeEntries
-
-        // Act & Assert
-        expect(() => sut(source, entries, new Set([0]))).toThrow(
-          /entry 1: expected xmlName 'Expected', found 'Found'/
-        )
-      })
-    })
-
-    describe('When nothing is removable', () => {
-      it('Then it still throws', () => {
-        // Arrange
-        const sut = removeEntries
-
-        // Act & Assert
-        expect(() => sut(source, entries, new Set())).toThrow(/entry 1/)
-      })
+      // Act & Assert
+      expect(() => sut(source, entries, new Set())).toThrow(/entry 1/)
     })
   })
 })

@@ -9,6 +9,17 @@ import type { Metadata } from '../src/types/metadata.ts'
 const SPAN_OPENER = '  {'
 const SPAN_CLOSER = '  },'
 const XML_NAME_LINE = /^ {4}xmlName: '([^']*)',$/
+const COMMENT_LINE = /^\s*\/\//
+const CRLF = '\r\n'
+
+// Section headers and an entry's own comment both sit right after the previous
+// entry, so position cannot tell them apart. This header is the only block
+// allowed above a removable entry; it stays for the next gap-filler. Matching
+// it verbatim fails closed: an edited header makes the sync refuse.
+export const GAP_FILLER_SECTION_HEADER: readonly string[] = [
+  '  // SDR gap-fillers: types not yet in SDR registry.',
+  '  // Automatically removed by tooling/syncInternalRegistryWithSdr.ts when SDR adds them.',
+]
 
 type EntrySpan = {
   readonly start: number
@@ -43,6 +54,13 @@ const findSpans = (lines: readonly string[]): readonly EntrySpan[] => {
   return spans
 }
 
+const assertLineEndings = (source: string): void => {
+  if (!source.includes(CRLF)) return
+  throw new Error(
+    'internalRegistry.ts uses CRLF line endings; check it out with LF line endings'
+  )
+}
+
 const assertSpansMatch = (
   spans: readonly EntrySpan[],
   entries: readonly Metadata[]
@@ -57,7 +75,32 @@ const assertSpansMatch = (
   )
   if (index === -1) return
   throw new Error(
-    `internalRegistry.ts entry ${index}: expected xmlName '${entries[index]!.xmlName}', found '${spans[index]!.xmlName}'`
+    `internalRegistry.ts entry ${index}: expected xmlName '${entries[index]!.xmlName}', found '${spans[index]!.xmlName}'; keep entries Biome-formatted (npm run lint:fix) with xmlName on its own single-quoted line`
+  )
+}
+
+const leadingComment = (
+  lines: readonly string[],
+  start: number
+): readonly string[] => {
+  const above = lines.slice(0, start)
+  const lastCode = above.findLastIndex(line => !COMMENT_LINE.test(line))
+  return above.slice(lastCode + 1)
+}
+
+const isGapFillerSectionHeader = (comment: readonly string[]): boolean =>
+  comment.length === GAP_FILLER_SECTION_HEADER.length &&
+  comment.every((line, index) => line === GAP_FILLER_SECTION_HEADER[index])
+
+const assertNoOwnComment = (
+  lines: readonly string[],
+  span: EntrySpan,
+  position: number
+): void => {
+  const comment = leadingComment(lines, span.start)
+  if (comment.length === 0 || isGapFillerSectionHeader(comment)) return
+  throw new Error(
+    `internalRegistry.ts entry ${position} ('${span.xmlName}') is removable but has its own comment above it; move or delete that comment, then re-run the sync`
   )
 }
 
@@ -66,13 +109,19 @@ export function removeEntries(
   entries: readonly Metadata[],
   removable: ReadonlySet<number>
 ): string {
+  assertLineEndings(source)
   const lines = source.split('\n')
   const spans = findSpans(lines)
   assertSpansMatch(spans, entries)
+  const removed = spans.flatMap((span, position) =>
+    removable.has(position) ? [{ span, position }] : []
+  )
+  for (const { span, position } of removed) {
+    assertNoOwnComment(lines, span, position)
+  }
   const dropped = new Set<number>()
-  spans.forEach((span, position) => {
-    if (!removable.has(position)) return
+  for (const { span } of removed) {
     for (let index = span.start; index <= span.end; index++) dropped.add(index)
-  })
+  }
   return lines.filter((_, index) => !dropped.has(index)).join('\n')
 }

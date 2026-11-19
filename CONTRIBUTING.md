@@ -494,7 +494,10 @@ removed entries and keeps comments, field order and every other entry as
 written. It lists the SDR-known overrides it keeps (`Keeping N SDR-known
 override(s):`). When it cannot match the file to the module's entries, it exits
 non-zero and writes nothing, so keep every entry expanded on its own lines
-(`  {` ... `  },`) as Biome formats it.
+(`  {` ... `  },`) as Biome formats it. It also refuses to remove an entry
+that has its own comment directly above it, so that comment never ends up above
+the next entry: move or delete the comment, then re-run the sync. The gap-filler
+section header is the only comment allowed there.
 
 The sync runs on every pull request in the `quality` CI job, which fails if the
 script cannot run or if it leaves `internalRegistry.ts` modified. The CI step therefore
