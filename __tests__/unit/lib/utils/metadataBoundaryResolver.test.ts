@@ -1055,4 +1055,124 @@ describe('MetadataBoundaryResolver', () => {
       expect(element.pathAfterType[0]).toBe('MyResource')
     })
   })
+
+  describe('componentNamesUnder memoization', () => {
+    const typeDir = 'force-app/main/default/staticresources'
+    const nested = (dir: string, name: string, file: string) =>
+      `${dir}/${name}/sub/${file}`
+
+    it('Given two paths nested under the same type directory at the same revision, When both are resolved, Then trees.filesUnder is called once and both resolve their component', async () => {
+      // Arrange
+      mockFilesUnder.mockReturnValue([
+        `${typeDir}/A.resource-meta.xml`,
+        `${typeDir}/B.resource-meta.xml`,
+      ])
+
+      // Act
+      const first = await sut.createElement(
+        nested(typeDir, 'A', 'f1.js'),
+        staticResourceType,
+        'HEAD'
+      )
+      const second = await sut.createElement(
+        nested(typeDir, 'B', 'f2.js'),
+        staticResourceType,
+        'HEAD'
+      )
+
+      // Assert
+      expect(mockFilesUnder).toHaveBeenCalledTimes(1)
+      expect(first.componentPath).toBe(`${typeDir}/A`)
+      expect(second.componentPath).toBe(`${typeDir}/B`)
+    })
+
+    it('Given two nested paths at each of two revisions, When all are resolved, Then the type directory is listed once per revision', async () => {
+      // Arrange
+      mockFilesUnder.mockReturnValue([
+        `${typeDir}/A.resource-meta.xml`,
+        `${typeDir}/B.resource-meta.xml`,
+      ])
+
+      // Act
+      for (const revision of [
+        'HEAD',
+        'HEAD',
+        'feature-branch',
+        'feature-branch',
+      ]) {
+        await sut.createElement(
+          nested(typeDir, 'A', 'f1.js'),
+          staticResourceType,
+          revision
+        )
+      }
+
+      // Assert
+      expect(mockFilesUnder).toHaveBeenCalledTimes(2)
+      expect(mockFilesUnder).toHaveBeenNthCalledWith(1, 'HEAD', typeDir)
+      expect(mockFilesUnder).toHaveBeenNthCalledWith(
+        2,
+        'feature-branch',
+        typeDir
+      )
+    })
+
+    it('Given two nested paths under each of two type directories, When all are resolved, Then each type directory is listed once', async () => {
+      // Arrange
+      const otherTypeDir = 'other/main/default/staticresources'
+      mockFilesUnder.mockImplementation((_revision, dir) => [
+        `${dir}/A.resource-meta.xml`,
+      ])
+
+      // Act
+      for (const dir of [typeDir, typeDir, otherTypeDir, otherTypeDir]) {
+        await sut.createElement(
+          nested(dir, 'A', 'f1.js'),
+          staticResourceType,
+          'HEAD'
+        )
+      }
+
+      // Assert
+      expect(mockFilesUnder).toHaveBeenCalledTimes(2)
+      expect(mockFilesUnder).toHaveBeenNthCalledWith(1, 'HEAD', typeDir)
+      expect(mockFilesUnder).toHaveBeenNthCalledWith(2, 'HEAD', otherTypeDir)
+    })
+
+    it('Given the same type directory resolved with two suffixes, When two nested paths are resolved per suffix, Then it is listed once per suffix and each suffix keeps its own names', async () => {
+      // Arrange
+      const otherResourceType: Metadata = {
+        ...staticResourceType,
+        suffix: 'other',
+        xmlName: 'OtherResource',
+      }
+      mockFilesUnder.mockReturnValue([
+        `${typeDir}/A.resource-meta.xml`,
+        `${typeDir}/B.other-meta.xml`,
+      ])
+      const pathA = nested(typeDir, 'A', 'f1.js')
+      const pathB = nested(typeDir, 'B', 'f2.js')
+
+      // Act
+      const resourceA = await sut.createElement(
+        pathA,
+        staticResourceType,
+        'HEAD'
+      )
+      const resourceB = await sut.createElement(
+        pathB,
+        staticResourceType,
+        'HEAD'
+      )
+      const otherA = await sut.createElement(pathA, otherResourceType, 'HEAD')
+      const otherB = await sut.createElement(pathB, otherResourceType, 'HEAD')
+
+      // Assert
+      expect(mockFilesUnder).toHaveBeenCalledTimes(2)
+      expect(resourceA.componentPath).toBe(`${typeDir}/A`)
+      expect(resourceB.componentPath).toBe(pathB)
+      expect(otherA.componentPath).toBe(pathA)
+      expect(otherB.componentPath).toBe(`${typeDir}/B`)
+    })
+  })
 })

@@ -23,7 +23,8 @@ import { sourceDirs } from './harness/sourceDirs.ts'
 
 // Cost rows of the resource delta copies: one component with many changed
 // files (expanded once), many components in one type directory (listed
-// once), and one changed bundle among many sibling bundles (the per-sibling
+// once), many components nested below one type directory (the directory
+// scanned once), and one changed bundle among many sibling bundles (the per-sibling
 // bundle test of the type-directory companions), and many changed documents
 // in one folder (the folder listed once).
 
@@ -224,4 +225,38 @@ runRow(
   'infolder-copies-4k-documents',
   documentsInOneFolder(DOCUMENTS_4K),
   linearFrom(documents2k, DOCUMENTS_4K / DOCUMENTS_2K)
+)
+
+const NESTED_250 = 250
+const NESTED_500 = 500
+
+// One changed file three segments under the type directory per component, so
+// every line scans the type directory for meta files.
+const nestedComponentFiles = (i: number): string[] => [
+  `${RESOURCES}/C${i}/sub/a.js`,
+  `${RESOURCES}/C${i}.resource-meta.xml`,
+]
+const nestedComponents = (componentCount: number): Fixture => ({
+  trees: readerOf(
+    Array.from({ length: componentCount }, (_, i) =>
+      nestedComponentFiles(i)
+    ).flat()
+  ),
+  buildLines: () =>
+    linesOf(
+      Array.from(
+        { length: componentCount },
+        (_, i) => `${RESOURCES}/C${i}/sub/a.js`
+      )
+    ),
+})
+const nested250 = runRow(
+  'resource-copies-250-nested-components',
+  nestedComponents(NESTED_250),
+  BASELINE_ONLY
+)
+runRow(
+  'resource-copies-500-nested-components',
+  nestedComponents(NESTED_500),
+  linearFrom(nested250, NESTED_500 / NESTED_250)
 )
