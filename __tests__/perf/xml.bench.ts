@@ -28,12 +28,13 @@ const buildLabels = (count: number): string => {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">\n${labels}\n</CustomLabels>\n`
 }
 
+const fieldPermission = (i: number): string =>
+  `    <fieldPermissions>\n      <editable>true</editable>\n      <field>Account.Field_${i}__c</field>\n      <readable>true</readable>\n    </fieldPermissions>`
+
 const buildProfile = (count: number): string => {
-  const fps = Array.from(
-    { length: count },
-    (_, i) =>
-      `    <fieldPermissions>\n      <editable>true</editable>\n      <field>Account.Field_${i}__c</field>\n      <readable>true</readable>\n    </fieldPermissions>`
-  ).join('\n')
+  const fps = Array.from({ length: count }, (_, i) => fieldPermission(i)).join(
+    '\n'
+  )
   const ops = Array.from(
     { length: Math.floor(count / 2) },
     (_, i) =>
@@ -70,9 +71,6 @@ for (const [size, payload] of Object.entries(FIXTURES) as Array<
 
 const REUSE_7K = 7_000
 const REUSE_14K = 14_000
-
-const fieldPermission = (i: number): string =>
-  `    <fieldPermissions>\n      <editable>true</editable>\n      <field>Account.Field_${i}__c</field>\n      <readable>true</readable>\n    </fieldPermissions>`
 
 const profileOf = (children: readonly string[]): string =>
   `<?xml version="1.0" encoding="UTF-8"?>\n<Profile xmlns="http://soap.sforce.com/2006/04/metadata">\n${children.join('\n')}\n</Profile>\n`
