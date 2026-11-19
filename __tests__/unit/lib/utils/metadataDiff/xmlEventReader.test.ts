@@ -217,7 +217,7 @@ describe('xmlEventReader', () => {
       expect(onElement.mock.calls).toEqual([['b', {}]])
     })
 
-    it('Given an inner comment holding a tag, When parseToSidePropagating runs, Then the scan resumes after the comment terminator', async () => {
+    it('Given an inner comment holding a tag, When parseToSidePropagating runs, Then the tag inside the comment is not emitted and the following element is', async () => {
       // Arrange
       const onElement = vi.fn()
       const source = '<Root><!-- xx <b> --><a>1</a></Root>'
@@ -230,7 +230,7 @@ describe('xmlEventReader', () => {
       expect(onElement.mock.calls).toEqual([['a', '1']])
     })
 
-    it('Given an inner comment whose body holds a `<` right before its terminator, When parseToSidePropagating runs, Then the cursor lands past the terminator', async () => {
+    it('Given an inner comment whose body holds a `<` right before its terminator, When parseToSidePropagating runs, Then the element after the comment is emitted and the parse resolves', async () => {
       // Arrange
       const onElement = vi.fn()
       const source = '<Root><!--ab<c--><a>1</a></Root>'
