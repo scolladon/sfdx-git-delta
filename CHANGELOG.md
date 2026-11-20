@@ -4,6 +4,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.7.2](https://github.com/scolladon/sfdx-git-delta/compare/v7.7.1...v7.7.2) (2026-11-20)
+
+
+### Bug Fixes
+
+* copy an extensionless static resource content file when only its meta file changes ([c947c0c](https://github.com/scolladon/sfdx-git-delta/commit/c947c0c00acf999e3e340547839f033b09d534d2))
+* copy only the changed component's own files for in-folder types under --generate-delta ([c947c0c](https://github.com/scolladon/sfdx-git-delta/commit/c947c0c00acf999e3e340547839f033b09d534d2))
+* report output write failures as warnings instead of crashing ([#1564](https://github.com/scolladon/sfdx-git-delta/issues/1564)) ([78d5d9f](https://github.com/scolladon/sfdx-git-delta/commit/78d5d9f938f06f23d0eea80340d330f3bc79c98a))
+* resolve lfs pointers in permission set directory copies above 25 files ([#1563](https://github.com/scolladon/sfdx-git-delta/issues/1563)) ([01ff3a8](https://github.com/scolladon/sfdx-git-delta/commit/01ff3a86bcc03b585079b62dd2e90d4b0b774bb7))
+* **tooling:** keep adapter, decomposition and comments when syncing the internal registry ([#1565](https://github.com/scolladon/sfdx-git-delta/issues/1565)) ([594e09f](https://github.com/scolladon/sfdx-git-delta/commit/594e09f773140edd835fe6f07d2ca6235ec6feda))
+
+
+### Performance Improvements
+
+* index grep candidates and diff each object translation parent once ([#1559](https://github.com/scolladon/sfdx-git-delta/issues/1559)) ([23b3ac0](https://github.com/scolladon/sfdx-git-delta/commit/23b3ac0df9d343091717b3bbc018050b67b661ce))
+* list each in-folder directory once per run under --generate-delta ([c947c0c](https://github.com/scolladon/sfdx-git-delta/commit/c947c0c00acf999e3e340547839f033b09d534d2))
+* memoize the boundary resolver's type-directory scan and reuse from-side parsed children in in-file diffs ([#1568](https://github.com/scolladon/sfdx-git-delta/issues/1568)) ([276b9d7](https://github.com/scolladon/sfdx-git-delta/commit/276b9d7b15922dafce02ff7ce1d6f488e452fcdf))
+
 ## [7.7.1](https://github.com/scolladon/sfdx-git-delta/compare/v7.7.0...v7.7.1) (2026-11-10)
 
 
