@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795095713408,
+  "lastUpdate": 1795164054722,
   "repoUrl": "https://github.com/scolladon/sfdx-git-delta",
   "entries": {
     "Memory Benchmark": [
@@ -22039,6 +22039,498 @@ window.BENCHMARK_DATA = {
             "name": "writeXmlDocument-largeProfile",
             "value": 5.4251,
             "range": "±0.92%",
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "colladonsebastien@gmail.com",
+            "name": "Sebastien",
+            "username": "scolladon"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "276b9d7b15922dafce02ff7ce1d6f488e452fcdf",
+          "message": "perf: memoize the boundary resolver's type-directory scan and reuse from-side parsed children in in-file diffs (#1568)",
+          "timestamp": "2026-11-20T09:32:43+01:00",
+          "tree_id": "932bad2032b6c2e57a24f2c10ff3691697efa516",
+          "url": "https://github.com/scolladon/sfdx-git-delta/commit/276b9d7b15922dafce02ff7ce1d6f488e452fcdf"
+        },
+        "date": 1795164054689,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "cancellation-key-derivation-cold-plain-type",
+            "value": 3.4109,
+            "range": "±8.99%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-content-container",
+            "value": 5.1416,
+            "range": "±0.89%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-in-folder-type",
+            "value": 5.2017,
+            "range": "±0.97%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-nested-content-type",
+            "value": 5.195,
+            "range": "±13.49%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-composed-type",
+            "value": 4.9765,
+            "range": "±8.65%",
+            "unit": "ms"
+          },
+          {
+            "name": "cancellation-key-derivation-cold-holder-scoped-type",
+            "value": 4.9549,
+            "range": "±0.88%",
+            "unit": "ms"
+          },
+          {
+            "name": "shallow-equal",
+            "value": 0.0002,
+            "range": "±0.78%",
+            "unit": "ms"
+          },
+          {
+            "name": "shallow-different-last-field",
+            "value": 0.0002,
+            "range": "±0.28%",
+            "unit": "ms"
+          },
+          {
+            "name": "nested-equal",
+            "value": 0.0017,
+            "range": "±0.24%",
+            "unit": "ms"
+          },
+          {
+            "name": "nested-different-array-length",
+            "value": 0.0008,
+            "range": "±0.28%",
+            "unit": "ms"
+          },
+          {
+            "name": "array-of-100-elements-equal",
+            "value": 0.0179,
+            "range": "±0.30%",
+            "unit": "ms"
+          },
+          {
+            "name": "array-of-100-elements-last-differs",
+            "value": 0.001,
+            "range": "±0.28%",
+            "unit": "ms"
+          },
+          {
+            "name": "same-reference-short-circuit",
+            "value": 0,
+            "range": "±0.07%",
+            "unit": "ms"
+          },
+          {
+            "name": "resolveCommit-fixture-HEAD~20-and-HEAD",
+            "value": 0.7118,
+            "range": "±4.57%",
+            "unit": "ms"
+          },
+          {
+            "name": "streamDiffLines-fixture-HEAD~20..HEAD",
+            "value": 2.455,
+            "range": "±1.06%",
+            "unit": "ms"
+          },
+          {
+            "name": "getBufferContent-fixture-HEAD~20-and-HEAD",
+            "value": 2.9604,
+            "range": "±2.49%",
+            "unit": "ms"
+          },
+          {
+            "name": "buildTreeIndex-fixture-HEAD-cold",
+            "value": 3.2072,
+            "range": "±5.85%",
+            "unit": "ms"
+          },
+          {
+            "name": "grep-file-specs-500",
+            "value": 3.5576,
+            "range": "±0.36%",
+            "unit": "ms"
+          },
+          {
+            "name": "grep-file-specs-1000",
+            "value": 7.3468,
+            "range": "±0.16%",
+            "unit": "ms"
+          },
+          {
+            "name": "grep-dir-specs-500",
+            "value": 2.8065,
+            "range": "±0.48%",
+            "unit": "ms"
+          },
+          {
+            "name": "grep-dir-specs-1000",
+            "value": 5.6574,
+            "range": "±0.24%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-small",
+            "value": 0.1128,
+            "range": "±0.90%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-medium",
+            "value": 0.6276,
+            "range": "±0.88%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-handler-dispatch-large",
+            "value": 2.5204,
+            "range": "±0.95%",
+            "unit": "ms"
+          },
+          {
+            "name": "visibility-pass-cold-10000-paths",
+            "value": 41.8684,
+            "range": "±7.51%",
+            "unit": "ms"
+          },
+          {
+            "name": "visibility-pass-cold-50000-paths",
+            "value": 205.5929,
+            "range": "±2.52%",
+            "unit": "ms"
+          },
+          {
+            "name": "object-translation-25-children",
+            "value": 4.8396,
+            "range": "±1.28%",
+            "unit": "ms"
+          },
+          {
+            "name": "object-translation-50-children",
+            "value": 9.7141,
+            "range": "±0.66%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-registry-load",
+            "value": 0.1045,
+            "range": "±0.38%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-cold-large",
+            "value": 0.6938,
+            "range": "±4.69%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-cold-large",
+            "value": 0.9149,
+            "range": "±0.51%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-warm-small",
+            "value": 0.0035,
+            "range": "±0.10%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-warm-small",
+            "value": 0.0138,
+            "range": "±0.36%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-warm-medium",
+            "value": 0.0256,
+            "range": "±0.38%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-warm-medium",
+            "value": 0.0873,
+            "range": "±0.39%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-lookup-warm-large",
+            "value": 0.1065,
+            "range": "±0.19%",
+            "unit": "ms"
+          },
+          {
+            "name": "fqn-resolution-warm-large",
+            "value": 0.365,
+            "range": "±0.50%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-small-tree-scope",
+            "value": 0.0083,
+            "range": "±0.25%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-small-manifest-aggregation",
+            "value": 0.0008,
+            "range": "±0.29%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-medium-tree-scope",
+            "value": 0.0566,
+            "range": "±0.27%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-medium-manifest-aggregation",
+            "value": 0.0044,
+            "range": "±0.30%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-large-tree-scope",
+            "value": 0.2201,
+            "range": "±0.28%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-large-manifest-aggregation",
+            "value": 0.0181,
+            "range": "±0.30%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-sgd-no-delta-100-bundles",
+            "value": 8.7272,
+            "range": "±9.55%",
+            "unit": "ms"
+          },
+          {
+            "name": "pipeline-sgd-no-delta-1000-bundles",
+            "value": 54.1494,
+            "range": "±4.34%",
+            "unit": "ms"
+          },
+          {
+            "name": "no-candidate-10k-lines",
+            "value": 0.0004,
+            "range": "±2.75%",
+            "unit": "ms"
+          },
+          {
+            "name": "pure-move-2k-components",
+            "value": 72.2619,
+            "range": "±2.08%",
+            "unit": "ms"
+          },
+          {
+            "name": "mixed-moves-and-edits-2k",
+            "value": 70.9479,
+            "range": "±1.57%",
+            "unit": "ms"
+          },
+          {
+            "name": "pure-move-1-in-50k-tree",
+            "value": 45.1456,
+            "range": "±2.93%",
+            "unit": "ms"
+          },
+          {
+            "name": "container-moves-200-in-20k-tree",
+            "value": 21.6323,
+            "range": "±4.51%",
+            "unit": "ms"
+          },
+          {
+            "name": "one-folder-component-2k-files-moved",
+            "value": 51.2624,
+            "range": "±2.07%",
+            "unit": "ms"
+          },
+          {
+            "name": "labels-union-20-files-5k-labels",
+            "value": 68.1805,
+            "range": "±3.14%",
+            "unit": "ms"
+          },
+          {
+            "name": "get-lines-mixed-amd-25000-lines",
+            "value": 140.4781,
+            "range": "±2.96%",
+            "unit": "ms"
+          },
+          {
+            "name": "get-lines-all-deletions-25000-lines",
+            "value": 152.8033,
+            "range": "±2.80%",
+            "unit": "ms"
+          },
+          {
+            "name": "resource-copies-2k-files",
+            "value": 10.6997,
+            "range": "±1.36%",
+            "unit": "ms"
+          },
+          {
+            "name": "resource-copies-10k-files",
+            "value": 57.1231,
+            "range": "±2.22%",
+            "unit": "ms"
+          },
+          {
+            "name": "resource-copies-2k-components",
+            "value": 12.5478,
+            "range": "±0.51%",
+            "unit": "ms"
+          },
+          {
+            "name": "resource-copies-4k-components",
+            "value": 26.6299,
+            "range": "±0.62%",
+            "unit": "ms"
+          },
+          {
+            "name": "lwc-companions-2k-siblings",
+            "value": 3.231,
+            "range": "±0.60%",
+            "unit": "ms"
+          },
+          {
+            "name": "lwc-companions-4k-siblings",
+            "value": 6.4104,
+            "range": "±0.81%",
+            "unit": "ms"
+          },
+          {
+            "name": "infolder-copies-2k-documents",
+            "value": 22.2547,
+            "range": "±0.82%",
+            "unit": "ms"
+          },
+          {
+            "name": "infolder-copies-4k-documents",
+            "value": 46.396,
+            "range": "±2.42%",
+            "unit": "ms"
+          },
+          {
+            "name": "resource-copies-250-nested-components",
+            "value": 2.3123,
+            "range": "±1.01%",
+            "unit": "ms"
+          },
+          {
+            "name": "resource-copies-500-nested-components",
+            "value": 4.6645,
+            "range": "±1.06%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-small",
+            "value": 0.0368,
+            "range": "±0.34%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-small",
+            "value": 0.0418,
+            "range": "±0.37%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-small",
+            "value": 0.0403,
+            "range": "±0.32%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-medium",
+            "value": 0.553,
+            "range": "±0.58%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-medium",
+            "value": 0.6138,
+            "range": "±0.66%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-medium",
+            "value": 0.6095,
+            "range": "±0.65%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseXml-large",
+            "value": 6.4486,
+            "range": "±1.89%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseToSidePropagating-large",
+            "value": 5.9708,
+            "range": "±0.51%",
+            "unit": "ms"
+          },
+          {
+            "name": "parseFromSideSwallowing-large",
+            "value": 5.9398,
+            "range": "±0.50%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-diff-reuse-reversed-7k",
+            "value": 22.4598,
+            "range": "±2.28%",
+            "unit": "ms"
+          },
+          {
+            "name": "metadata-diff-reuse-reversed-14k",
+            "value": 43.8961,
+            "range": "±1.48%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-smallLabels",
+            "value": 0.0285,
+            "range": "±0.57%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-mediumProfile",
+            "value": 0.4053,
+            "range": "±0.55%",
+            "unit": "ms"
+          },
+          {
+            "name": "writeXmlDocument-largeProfile",
+            "value": 3.9068,
+            "range": "±0.75%",
             "unit": "ms"
           }
         ]
