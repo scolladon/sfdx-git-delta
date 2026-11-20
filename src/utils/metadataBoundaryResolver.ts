@@ -12,9 +12,11 @@ import { MetadataElement } from './metadataElement.js'
 
 export class MetadataBoundaryResolver {
   protected readonly dirCache: Map<string, string[]>
+  protected readonly componentNamesCache: Map<string, ReadonlySet<string>>
 
   constructor(protected readonly ctx: RunContext) {
     this.dirCache = new Map()
+    this.componentNamesCache = new Map()
   }
 
   protected get metadata(): MetadataRepository {
@@ -100,7 +102,21 @@ export class MetadataBoundaryResolver {
     typeDir: string,
     suffix: string,
     revision: string
-  ): Set<string> {
+  ): ReadonlySet<string> {
+    const cacheKey = `${revision}:${suffix}:${typeDir}`
+    let componentNames = this.componentNamesCache.get(cacheKey)
+    if (componentNames === undefined) {
+      componentNames = this.listComponentNames(typeDir, suffix, revision)
+      this.componentNamesCache.set(cacheKey, componentNames)
+    }
+    return componentNames
+  }
+
+  protected listComponentNames(
+    typeDir: string,
+    suffix: string,
+    revision: string
+  ): ReadonlySet<string> {
     const metaSuffix = `.${suffix}${METAFILE_SUFFIX}`
     const componentNames = new Set<string>()
     for (const file of this.trees.filesUnder(revision, typeDir)) {

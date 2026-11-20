@@ -10,6 +10,11 @@ import { getConcurrencyThreshold } from '../concurrencyUtils.js'
 import { readPathFromGit } from '../fsHelper.js'
 import { log } from '../LoggingDecorator.js'
 import type { XmlContent } from '../xmlHelper.js'
+import {
+  RecordedChildren,
+  RecordingChildParser,
+  ReusingChildParser,
+} from './childReuse.js'
 import { type CompareEntry, StreamingDiff } from './streamingDiff.js'
 import {
   parseFromSideSwallowing,
@@ -41,8 +46,9 @@ type ReaderPort = Pick<GitAdapter, 'getStringContent'>
 
 type RecordedElement = readonly [string, XmlContent]
 
-const entryKey = (entry: CompareEntry): string =>
-  `${entry.type}${TAB}${entry.member}`
+const entryKey = (entry: CompareEntry): string => {
+  return `${entry.type}${TAB}${entry.member}`
+}
 
 const replay = (
   engine: StreamingDiff,
@@ -56,6 +62,7 @@ const replay = (
 const commonEntries = (
   lists: readonly (readonly CompareEntry[])[]
 ): CompareEntry[] => {
+  // Stryker disable next-line ArrayDeclaration -- equivalent: lists is empty only when there is no shield outcome, and runUnion then returns an empty map whatever this yields
   const [first = [], ...rest] = lists
   const others = rest.map(list => new Set(list.map(entryKey)))
   return first.filter(entry => others.every(keys => keys.has(entryKey(entry))))
@@ -110,7 +117,24 @@ export default class MetadataDiff {
       this.inFileAttributes,
       this.config.generateDelta
     )
-    await parseFromSideSwallowing(fromSource, engine.onFromElement)
+    const rootCapture = await this._parseBothSides(engine, fromSource, toSource)
+    return outcomeOf(engine, rootCapture)
+  }
+
+  // The from-side children are recorded so identical to-side children reuse
+  // them instead of being parsed again; both sides then share those objects,
+  // which is safe because nothing downstream mutates parsed content.
+  private async _parseBothSides(
+    engine: StreamingDiff,
+    fromSource: string,
+    toSource: string
+  ): Promise<RootCapture | null> {
+    const recorded = new RecordedChildren()
+    await parseFromSideSwallowing(
+      fromSource,
+      engine.onFromElement,
+      new RecordingChildParser(recorded)
+    )
     // Deleted files have an empty to-side; legacy parseXmlFileToJson
     // silently returned {}, so MetadataComparator saw "no children" and
     // emitted every from-side element as deleted. The strict to-side
@@ -119,10 +143,13 @@ export default class MetadataDiff {
     // drainDeletions pass naturally records every from-side element as
     // deleted. No rootCapture is produced — InFileHandler doesn't need
     // one for a delete-only file and the writer is gated internally.
-    const rootCapture: RootCapture | null = toSource
-      ? await parseToSidePropagating(toSource, engine.onToElement)
+    return toSource
+      ? parseToSidePropagating(
+          toSource,
+          engine.onToElement,
+          new ReusingChildParser(recorded)
+        )
       : null
-    return outcomeOf(engine, rootCapture)
   }
 
   @log
@@ -188,6 +215,7 @@ export default class MetadataDiff {
     })
     // Read completion order is nondeterministic; replay order decides which
     // duplicate element wins, so it follows the sorted path order instead.
+    // Stryker disable next-line EqualityOperator -- equivalent: Map keys are unique, so two compared paths are never equal
     return new Map([...recorded].sort(([a], [b]) => (a < b ? -1 : 1)))
   }
 
@@ -196,6 +224,7 @@ export default class MetadataDiff {
     deletionPaths: readonly string[]
   ): ReadonlySet<string> {
     const deletionBase = new Set(deletionPaths)
+    // Stryker disable next-line BooleanLiteral -- equivalent: generateDelta only feeds buildWriter, which this engine never calls; only finalize().deleted is read
     const engine = new StreamingDiff(this.inFileAttributes, false)
     for (const [path, elements] of recorded) {
       if (deletionBase.has(path)) replay(engine, elements)

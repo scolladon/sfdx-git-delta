@@ -1,5 +1,13 @@
 'use strict'
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 
 import {
   getDefinition,
@@ -10,6 +18,7 @@ import type { Work } from '../../../../../src/types/work'
 import MetadataDiff, {
   type UnionDiffInput,
 } from '../../../../../src/utils/metadataDiff/index.js'
+import { StreamingDiff } from '../../../../../src/utils/metadataDiff/streamingDiff.js'
 import { getWork } from '../../../../__utils__/testWork'
 
 const mockGetStringContent =
@@ -58,6 +67,10 @@ describe('MetadataDiff.runUnion', () => {
     work.config.from = FROM
     work.config.to = TO
     work.config.generateDelta = true
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('Given one base file and one shield member holding the same labels, When runUnion runs, Then the member outcome has no entry and no writer', async () => {
@@ -321,6 +334,55 @@ describe('MetadataDiff.runUnion', () => {
 
     // Assert
     await expect(act).rejects.toThrow()
+  })
+
+  it('Given no shield file, When runUnion runs, Then it returns no outcome', async () => {
+    // Arrange
+    serve({ [`${FROM}:base.xml`]: labelsFile(label('A1')) })
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
+
+    // Act
+    const result = await sut.runUnion(
+      input({ shieldPaths: [], memberPaths: [] })
+    )
+
+    // Assert
+    expect(result.size).toBe(0)
+  })
+
+  it('Given a shield member adding an unknown root child absent from the base, When runUnion runs, Then the member reports package content', async () => {
+    // Arrange
+    // `S` holding `t` is what the characters of a stray string would replay
+    // as, so a base list polluted by one would hide this addition.
+    serve({
+      [`${FROM}:base.xml`]: labelsFile(label('A1')),
+      [`${TO}:member.xml`]: labelsFile(label('A1'), '    <S>t</S>\n'),
+    })
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
+
+    // Act
+    const result = await sut.runUnion(input())
+
+    // Assert
+    expect(result.get('member.xml')?.hasPackageContent).toBe(true)
+  })
+
+  it('Given a changed shield file outside the members and generateDelta true, When runUnion runs, Then no writer is built for it', async () => {
+    // Arrange
+    serve({
+      [`${FROM}:base.xml`]: labelsFile(label('A1', 'old')),
+      [`${TO}:member.xml`]: labelsFile(label('A1', 'old')),
+      [`${TO}:shield.xml`]: labelsFile(label('A1', 'new')),
+    })
+    const buildWriter = vi.spyOn(StreamingDiff.prototype, 'buildWriter')
+    const sut = new MetadataDiff(work.config, inFileAttributes, reader)
+
+    // Act
+    await sut.runUnion(input({ shieldPaths: ['member.xml', 'shield.xml'] }))
+
+    // Assert
+    const writers = buildWriter.mock.results.map(({ value }) => value)
+    expect(writers).toEqual([undefined, undefined])
   })
 
   it('Given a git read failure, When runUnion runs, Then it rejects', async () => {

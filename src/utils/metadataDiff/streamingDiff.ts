@@ -56,7 +56,11 @@ type PassOneBuckets = {
  * Pass 2 as matches drain, so peak on that bucket is O(changed_keyed_count).
  * Deferred buckets (array/object/keyless/unknown) hold every to-side element
  * of those subTypes until end-of-pass — they are O(element_count) per
- * subType, capped by CARDINALITY_SAFETY_LIMIT. The writer closure then
+ * subType, capped by CARDINALITY_SAFETY_LIMIT. In MetadataDiff.run the
+ * from-side children, `<object>`-keyed ones included (Pass 1 keeps only their
+ * fingerprint), stay referenced by the run's recorded children until the
+ * to-side parse ends, and to-side survivors may be the very objects the from
+ * side parsed. The writer closure then
  * captures prunedBySubType and keeps it reachable until the IOExecutor
  * invokes the writer or the HandlerResult is GC'd.
  *
