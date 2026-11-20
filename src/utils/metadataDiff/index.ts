@@ -62,6 +62,7 @@ const replay = (
 const commonEntries = (
   lists: readonly (readonly CompareEntry[])[]
 ): CompareEntry[] => {
+  // Stryker disable next-line ArrayDeclaration -- equivalent: lists is empty only when there is no shield outcome, and runUnion then returns an empty map whatever this yields
   const [first = [], ...rest] = lists
   const others = rest.map(list => new Set(list.map(entryKey)))
   return first.filter(entry => others.every(keys => keys.has(entryKey(entry))))
@@ -214,6 +215,7 @@ export default class MetadataDiff {
     })
     // Read completion order is nondeterministic; replay order decides which
     // duplicate element wins, so it follows the sorted path order instead.
+    // Stryker disable next-line EqualityOperator -- equivalent: Map keys are unique, so two compared paths are never equal
     return new Map([...recorded].sort(([a], [b]) => (a < b ? -1 : 1)))
   }
 
@@ -222,6 +224,7 @@ export default class MetadataDiff {
     deletionPaths: readonly string[]
   ): ReadonlySet<string> {
     const deletionBase = new Set(deletionPaths)
+    // Stryker disable next-line BooleanLiteral -- equivalent: generateDelta only feeds buildWriter, which this engine never calls; only finalize().deleted is read
     const engine = new StreamingDiff(this.inFileAttributes, false)
     for (const [path, elements] of recorded) {
       if (deletionBase.has(path)) replay(engine, elements)
