@@ -4,6 +4,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.8.0](https://github.com/scolladon/sfdx-git-delta/compare/v7.7.2...v7.8.0) (2026-11-27)
+
+
+### Features
+
+* **metadata:** support ComputeApp ([befd094](https://github.com/scolladon/sfdx-git-delta/commit/befd094fa23486d24f83b589d65822bd108b87ff))
+
 ## [7.7.2](https://github.com/scolladon/sfdx-git-delta/compare/v7.7.1...v7.7.2) (2026-11-20)
 
 
